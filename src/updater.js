@@ -89,6 +89,16 @@ module.exports = function startUpdater({ icon }) {
     if (mode !== 'dev') {
         check();
         setInterval(check, CHECK_MS);
+    } else if (process.env.DCF_FAKE_UPDATE) {
+        // Nur zum Ansehen der Update-Anzeige im Projektordner: ein Schein-Download, installiert wird nichts.
+        let p = 0;
+        setTimeout(() => {
+            const t = setInterval(() => {
+                p += 8;
+                if (p < 100) publish({ status: 'downloading', version: '9.9.9', percent: p });
+                else { clearInterval(t); publish({ status: 'ready', version: '9.9.9', percent: 100 }); }
+            }, 700);
+        }, 6000);
     }
     return { check, state: () => ({ ...state }) };
 };
