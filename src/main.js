@@ -25,17 +25,6 @@ const TRAY_ICON = path.join(__dirname, 'assets', 'tray.png');
 // Testprofil (eigene Sitzungen, eigene Einzelinstanz): DCF_PROFILE=<ordner> electron .
 if (process.env.DCF_PROFILE) app.setPath('userData', path.resolve(process.env.DCF_PROFILE));
 app.setName('DreamingCrownfall');
-
-// Umbenennung MarbleLuceFall → DreamingCrownfall (08.10.2026): den alten Profilordner einmal übernehmen,
-// damit Logins, Tabs und Add-ons bleiben. Muss vor allem anderen passieren, was das Profil benutzt.
-if (!process.env.DCF_PROFILE) {
-    const neu = app.getPath('userData');
-    const alt = path.join(app.getPath('appData'), 'MarbleLuceFall');
-    if (!fs.existsSync(neu) && fs.existsSync(alt)) {
-        try { fs.renameSync(alt, neu); console.log(`[dcf] Profil übernommen: ${alt} → ${neu}`); }
-        catch (e) { console.error(`[dcf] Altes Profil nicht übernommen: ${e.message}`); }
-    }
-}
 // Ohne App-Kennung zeigt Windows keine Benachrichtigungen (muss zur appId im package.json passen).
 if (process.platform === 'win32') app.setAppUserModelId('io.github.luciedreams.dreamingcrownfall');
 

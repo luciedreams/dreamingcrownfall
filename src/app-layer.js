@@ -5,7 +5,8 @@
 // EIGENE FENSTER: Jedes MLF-Fenster öffnet sich direkt als Systemfenster (gleicher Tab, gleiche
 // Sitzung — der Inhalt wandert nur in ein anderes Dokument, Skripte und Daten bleiben dieselben).
 // Systemfenster schließen = Fenster schließen (über MLFs eigenen ✕, damit MLF Buch führt).
-// Ausnahme Chat: bleibt im Spiel und bekommt ⧉; draußen geschlossen kehrt er ins Spiel zurück.
+// Ausnahmen: der Chat bleibt im Spiel und bekommt ⧉ (draußen geschlossen kehrt er zurück);
+// What's new und Changelog bleiben immer im Spiel.
 // Spielseiten (iframes) laden beim Umzug einmal neu; MLF richtet sie über ihren load-Horcher ein.
 (() => {
     if (window.top !== window.self || window.__dcfLayer) return;
@@ -13,9 +14,12 @@
 
     let nextId = 1, leaving = false;
     const popped = new Map(); // el -> { popup, finish }
-    // Der Chat ist das MLF-Fenster, in das MLF die Chat-Spalte des Spiels hängt (9e CHAT POP-OUT).
-    const isChat = (el) => !!el.querySelector('[data-role="desktop-chat-pane"]')
-        || /^chat$/i.test(el.querySelector('.mcfo-win__title')?.textContent.trim() || '');
+    const titleOf = (el) => el.querySelector('.mcfo-win__title')?.textContent.trim() || '';
+    // Der Chat ist das Fenster, in das die Spiel-Ebene die Chat-Spalte des Spiels hängt (9e CHAT POP-OUT).
+    const isChat = (el) => !!el.querySelector('[data-role="desktop-chat-pane"]') || /^chat$/i.test(titleOf(el));
+    // What's new und Changelog gehören zum Spiel wie in einem echten Game: sie bleiben im Fenster der App
+    // (Luce, 08.10.: „Teil des Games“, nicht als eigenes Systemfenster).
+    const staysInGame = (el) => /^what.s new$|^changelog$/i.test(titleOf(el));
 
     // Alles, was das Aussehen bestimmt, ins Popup spiegeln: Stylesheets (Spiel + MLF) und die
     // Attribute/Variablen auf <html>, an denen MLFs Themes und Schalter hängen.
@@ -108,7 +112,7 @@
         setTimeout(() => {
             if (!el.isConnected || popped.has(el)) return;
             if (isChat(el)) addButton(el);
-            else popOut(el, { closeOnExit: true });
+            else if (!staysInGame(el)) popOut(el, { closeOnExit: true });
         }, 0);
     }
 
