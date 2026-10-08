@@ -23,7 +23,7 @@ Download the newest file from [Releases](https://github.com/luciedreams/dreaming
 - **Windows:** `DreamingCrownfall-Setup-<version>.exe`. The installer is not signed yet, so Windows shows *"Windows protected your PC"* on the first start: click **More info → Run anyway**.
 - **Linux:** `DreamingCrownfall-<version>.deb` for Debian, Ubuntu, Mint and friends, or `DreamingCrownfall-<version>.AppImage` for everything else (make it executable with `chmod +x DreamingCrownfall-*.AppImage` and start it).
 
-The Windows installer and the AppImage update themselves from the releases; for the .deb, install the new one over the old.
+The Windows installer and the AppImage update themselves from the releases; for the .deb, install the new one over the old. They look on every start and every six hours; **Settings › About › Check for updates** (or the tray menu) looks right away.
 
 ## Add-ons
 
