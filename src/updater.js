@@ -2,12 +2,20 @@
 // Knopfdruck (Settings › About, Tray). Drei Fälle:
 //   auto   — Windows-Installer und AppImage: electron-updater lädt im Hintergrund, installiert beim Beenden
 //            oder sofort per „Restart to update“.
-//   manual — .deb und andere Pakete: können sich nicht selbst ersetzen; hier wird nur bei GitHub nachgesehen
-//            und bei einer neuen Version die Release-Seite angeboten.
+//            Auch .deb/.rpm/pacman (electron-updater erkennt sie an resources/package-type): Installation über
+//            pkexec mit Passwortabfrage — deshalb dort NICHT still beim Beenden, sondern erst auf „Restart now“.
+//   manual — alles andere (z. B. selbst entpackt): nur bei GitHub nachsehen und die Release-Seite anbieten.
 //   dev    — aus dem Projektordner gestartet (`electron .`): Updates kommen über git, nichts zu tun.
 // Der Zustand geht an alle Seiten ('dcf:update:state'), damit die Settings ihn live zeigen.
 
 const { app, Notification, ipcMain, shell, webContents } = require('electron');
+const fs = require('fs');
+const path = require('path');
+
+// deb / rpm / pacman, von electron-builder ins Paket geschrieben; fehlt beim AppImage, Windows und `electron .`.
+function packageType() {
+    try { return fs.readFileSync(path.join(process.resourcesPath, 'package-type'), 'utf8').trim(); } catch { return ''; }
+}
 
 const CHECK_MS = 6 * 60 * 60 * 1000;
 const GH_LATEST = 'https://api.github.com/repos/luciedreams/dreamingcrownfall/releases/latest';
@@ -21,10 +29,12 @@ const newer = (a, b) => {
 
 module.exports = function startUpdater({ icon }) {
     // process.defaultApp statt nur app.isPackaged: das System-Electron von Arch meldet auch bei `electron .` isPackaged=true.
+    const pkg = packageType();
+    const needsPassword = ['deb', 'rpm', 'pacman'].includes(pkg);
     const mode = process.defaultApp || !app.isPackaged ? 'dev'
-        : (process.platform === 'win32' || process.env.APPIMAGE) ? 'auto' : 'manual';
+        : (process.platform === 'win32' || process.env.APPIMAGE || needsPassword) ? 'auto' : 'manual';
     // status: idle | checking | latest | downloading | ready | available | error | dev
-    const state = { mode, status: mode === 'dev' ? 'dev' : 'idle', current: app.getVersion(), version: null, percent: null, error: null, checkedAt: null };
+    const state = { mode, needsPassword, status: mode === 'dev' ? 'dev' : 'idle', current: app.getVersion(), version: null, percent: null, error: null, checkedAt: null };
     let waiters = [];
 
     function publish(patch) {
@@ -40,7 +50,7 @@ module.exports = function startUpdater({ icon }) {
     }
     if (autoUpdater) {
         autoUpdater.autoDownload = true;
-        autoUpdater.autoInstallOnAppQuit = true;
+        autoUpdater.autoInstallOnAppQuit = !needsPassword;   // Passwortabfrage nie unerwartet beim Beenden
         autoUpdater.on('checking-for-update', () => publish({ status: 'checking', error: null }));
         autoUpdater.on('update-not-available', () => publish({ status: 'latest', checkedAt: Date.now() }));
         autoUpdater.on('update-available', (info) => publish({ status: 'downloading', version: info.version, percent: 0 }));
@@ -51,7 +61,8 @@ module.exports = function startUpdater({ icon }) {
             publish({ status: 'ready', version: info.version, percent: 100, checkedAt: Date.now() });
             if (Notification.isSupported()) {
                 new Notification({ title: `DreamingCrownfall ${info.version} is ready`, icon,
-                    body: 'It will be installed when you quit the app, or right away from Settings › About.' }).show();
+                    body: needsPassword ? 'Click "Restart now" in the game to install it (asks for your password).'
+                                        : 'It will be installed when you quit the app, or right away from Settings › About.' }).show();
             }
         });
     }

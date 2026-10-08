@@ -320,7 +320,8 @@
         checking: () => 'Looking for a new version …',
         latest: () => 'You have the newest version.',
         downloading: u => `Version ${u.version} is downloading${u.percent ? ` (${u.percent} %)` : ''} …`,
-        ready: u => `Version ${u.version} is ready. It is installed when you quit the app — or right now:`,
+        ready: u => u.needsPassword ? `Version ${u.version} is ready. Installing it asks for your password:`
+                                    : `Version ${u.version} is ready. It is installed when you quit the app — or right now:`,
         available: u => `Version ${u.version} is out. This kind of install cannot update itself: download the new file from the release page.`,
         error: u => 'Could not check: ' + (u.error || 'unknown error'),
     };

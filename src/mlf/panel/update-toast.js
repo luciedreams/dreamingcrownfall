@@ -63,7 +63,8 @@
         const kicker = u.status === 'downloading' ? 'Update' : u.status === 'ready' ? 'Update ready' : 'New version';
         const title = 'DreamingCrownfall ' + u.version;
         const text = u.status === 'downloading' ? `Downloading … ${u.percent || 0} %`
-                   : u.status === 'ready' ? 'Restart now to update, or later: it installs when you quit the app.'
+                   : u.status === 'ready' ? (u.needsPassword ? 'Restart now to install it — Linux asks for your password once.'
+                                                              : 'Restart now to update, or later: it installs when you quit the app.')
                    : 'This install cannot update itself. Download the new version from the release page.';
         dcfToast.innerHTML = '<div class="dcf-toast__head">' + PN_LOGO + '<div><div class="dcf-toast__kicker"></div><div class="dcf-toast__title"></div></div></div>'
             + '<p class="dcf-toast__text"></p>';
