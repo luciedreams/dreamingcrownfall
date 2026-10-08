@@ -22,15 +22,15 @@ if (host === 'marblecrownfall.com' || host.endsWith('.marblecrownfall.com')) {
                         }).observe(document, { childList: true });
                         return s;
                     };
-                    const GM_info = { script: { name: 'MarbleLuceFall', version }, scriptHandler: 'mlf-app' };
+                    const GM_info = { script: { name: 'DreamingCrownfall', version }, scriptHandler: 'dreamingcrownfall' };
                     try {
                         new Function('GM_addStyle', 'unsafeWindow', 'GM_info', code)(GM_addStyle, window, GM_info);
                     } catch (e) {
-                        console.error('[mlf-app] MarbleLuceFall abgestürzt:', e);
+                        console.error('[dcf] Spiel-Ebene abgestürzt:', e);
                     }
                 }
                 if (layer && window.top === window.self) {
-                    try { new Function(layer)(); } catch (e) { console.error('[mlf-app] App-Schicht abgestürzt:', e); }
+                    try { new Function(layer)(); } catch (e) { console.error('[dcf] App-Schicht abgestürzt:', e); }
                 }
             },
             args: [script.code, script.version, script.layer],

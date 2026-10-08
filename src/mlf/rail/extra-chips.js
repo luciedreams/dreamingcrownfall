@@ -114,8 +114,8 @@
         })
             .then(res => res.json().catch(() => ({})).then(body => ({ ok: res.ok, status: res.status, body })))
             .then(({ ok, status, body }) => {
-                if (!ok) console.warn('[MarbleLuceFall] bid rejected:', body?.error || ('HTTP ' + status));
+                if (!ok) console.warn('[DreamingCrownfall] bid rejected:', body?.error || ('HTTP ' + status));
             })
-            .catch(e => console.warn('[MarbleLuceFall] bid request failed:', e.message));
+            .catch(e => console.warn('[DreamingCrownfall] bid request failed:', e.message));
     }
 

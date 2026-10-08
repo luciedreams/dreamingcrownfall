@@ -60,7 +60,7 @@
                         if (!fresh || gen !== invCacheGen) return;
                         store(fresh, gen).then(() => {
                             if (sig(fresh) !== sig(old) && gen === invCacheGen) {
-                                console.log('[MarbleLuceFall] crown list changed on the server - loading the inventory again');
+                                console.log('[DreamingCrownfall] crown list changed on the server - loading the inventory again');
                                 pw.location.reload();
                             }
                         });

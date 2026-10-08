@@ -109,7 +109,7 @@
             });
             rafInstalled = true;
         } catch (e) {
-            console.warn('[MarbleLuceFall] frame pacing unavailable:', e.message);
+            console.warn('[DreamingCrownfall] frame pacing unavailable:', e.message);
         }
     }
 
@@ -132,7 +132,7 @@
             });
             mediaInstalled = true;
         } catch (e) {
-            console.warn('[MarbleLuceFall] reduced-motion hint unavailable:', e.message);
+            console.warn('[DreamingCrownfall] reduced-motion hint unavailable:', e.message);
         }
     }
 

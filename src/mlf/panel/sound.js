@@ -181,8 +181,8 @@
             gear = document.createElement('button');
             gear.type = 'button';
             gear.className = 'mcfo-gear';
-            gear.title = 'MarbleLuceFall settings';
-            gear.setAttribute('aria-label', 'MarbleLuceFall settings');
+            gear.title = 'DreamingCrownfall settings';
+            gear.setAttribute('aria-label', 'DreamingCrownfall settings');
             gear.innerHTML = GEAR_SVG;
             gear.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); showSettings(); });
             box.appendChild(gear);

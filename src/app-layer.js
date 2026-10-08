@@ -8,8 +8,8 @@
 // Ausnahme Chat: bleibt im Spiel und bekommt ⧉; draußen geschlossen kehrt er ins Spiel zurück.
 // Spielseiten (iframes) laden beim Umzug einmal neu; MLF richtet sie über ihren load-Horcher ein.
 (() => {
-    if (window.top !== window.self || window.__mlfAppLayer) return;
-    window.__mlfAppLayer = true;
+    if (window.top !== window.self || window.__dcfLayer) return;
+    window.__dcfLayer = true;
 
     let nextId = 1, leaving = false;
     const popped = new Map(); // el -> { popup, finish }
@@ -30,14 +30,14 @@
         const own = doc.createElement('style');
         own.textContent = `
             html, body { margin: 0; height: 100%; overflow: hidden; background: #0b121a; }
-            body > .mcfo-win.mlf-app-popped {
+            body > .mcfo-win.dcf-popped {
                 position: fixed !important; inset: 0 !important;
                 width: auto !important; height: auto !important; min-width: 0 !important; min-height: 0 !important;
                 transform: none !important; border: 0 !important; border-radius: 0 !important; box-shadow: none !important;
             }
-            body > .mcfo-win.mlf-app-popped > .mcfo-win__head,
-            body > .mcfo-win.mlf-app-popped > .mcfo-win__grip,
-            body > .mcfo-win.mlf-app-popped > .mcfo-win__edge { display: none !important; }`;
+            body > .mcfo-win.dcf-popped > .mcfo-win__head,
+            body > .mcfo-win.dcf-popped > .mcfo-win__grip,
+            body > .mcfo-win.dcf-popped > .mcfo-win__edge { display: none !important; }`;
         doc.head.appendChild(own);
     }
     function mirrorRoot(doc) {
@@ -50,7 +50,7 @@
     // closeOnExit: Systemfenster zu = MLF-Fenster zu. Sonst (Chat) zurück an die alte Stelle.
     function popOut(el, { closeOnExit = false } = {}) {
         if (popped.has(el)) { popped.get(el).popup.focus(); return; }
-        const title = el.querySelector('.mcfo-win__title')?.textContent || 'MarbleLuceFall';
+        const title = el.querySelector('.mcfo-win__title')?.textContent || 'DreamingCrownfall';
         const r = el.getBoundingClientRect();
         const popup = window.open('about:blank', `mlfpop-${nextId++}`,
             `popup,width=${Math.round(r.width)},height=${Math.round(r.height)}`);
@@ -60,10 +60,10 @@
         doc.title = title;
         mirrorRoot(doc);
 
-        const mark = document.createComment('mlf-app popout');
+        const mark = document.createComment('dcf popout');
         el.parentNode.insertBefore(mark, el);
         const inline = el.getAttribute('style');
-        el.classList.add('mlf-app-popped');
+        el.classList.add('dcf-popped');
         doc.body.appendChild(el);
 
         // Später nachgeladene Stylesheets und Schalterwechsel mitnehmen.
@@ -85,7 +85,7 @@
             done = true;
             clearInterval(poll);
             headObs.disconnect(); rootObs.disconnect(); bodyObs.disconnect(); raiseObs.disconnect();
-            el.classList.remove('mlf-app-popped');
+            el.classList.remove('dcf-popped');
             if (putBack && mark.parentNode) {
                 if (inline != null) el.setAttribute('style', inline); else el.removeAttribute('style');
                 mark.parentNode.insertBefore(el, mark);
@@ -102,8 +102,8 @@
     }
 
     function setupWindow(el) {
-        if (el.dataset.mlfApp) return; // schon gesehen (auch nach der Rückkehr aus einem Popup)
-        el.dataset.mlfApp = '1';
+        if (el.dataset.dcfSeen) return; // schon gesehen (auch nach der Rückkehr aus einem Popup)
+        el.dataset.dcfSeen = '1';
         // Einen Takt warten: MLF hängt den Inhalt (beim Chat die Spalte) gleich nach dem Anlegen ein.
         setTimeout(() => {
             if (!el.isConnected || popped.has(el)) return;
@@ -114,11 +114,11 @@
 
     function addButton(el) {
         const head = el.querySelector(':scope > .mcfo-win__head');
-        if (!head || head.querySelector('[data-mlf-app="pop"]')) return;
+        if (!head || head.querySelector('[data-dcf="pop"]')) return;
         const b = document.createElement('button');
         b.type = 'button';
         b.className = 'mcfo-win__btn';
-        b.dataset.mlfApp = 'pop';
+        b.dataset.dcf = 'pop';
         b.title = 'Pop out into its own window';
         b.textContent = '⧉';
         b.addEventListener('click', (e) => { e.stopPropagation(); popOut(el); });

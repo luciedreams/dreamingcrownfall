@@ -11,15 +11,15 @@ module.exports = function startUpdater({ icon }) {
     if (process.platform === 'linux' && !process.env.APPIMAGE) return; // nur das AppImage kann sich selbst ersetzen
     let autoUpdater;
     try { ({ autoUpdater } = require('electron-updater')); }
-    catch (e) { console.warn(`[mlf-app] electron-updater fehlt: ${e.message}`); return; }
+    catch (e) { console.warn(`[dcf] electron-updater fehlt: ${e.message}`); return; }
 
     autoUpdater.autoDownload = true;
     autoUpdater.autoInstallOnAppQuit = true;
-    autoUpdater.on('error', (e) => console.warn(`[mlf-app] App-Update: ${e?.message || e}`));
+    autoUpdater.on('error', (e) => console.warn(`[dcf] App-Update: ${e?.message || e}`));
     autoUpdater.on('update-downloaded', (info) => {
-        console.log(`[mlf-app] App-Update ${info.version} geladen`);
+        console.log(`[dcf] App-Update ${info.version} geladen`);
         if (Notification.isSupported()) {
-            new Notification({ title: `MarbleLuceFall app ${info.version} is ready`, icon,
+            new Notification({ title: `DreamingCrownfall ${info.version} is ready`, icon,
                 body: 'It will be installed when you quit the app.' }).show();
         }
     });

@@ -8,7 +8,7 @@ const path = require('path');
 const { app } = require('electron');
 
 const HIDDEN_ARG = '--hidden';
-const desktopFile = () => path.join(process.env.XDG_CONFIG_HOME || path.join(os.homedir(), '.config'), 'autostart', 'marblelucefall.desktop');
+const desktopFile = () => path.join(process.env.XDG_CONFIG_HOME || path.join(os.homedir(), '.config'), 'autostart', 'dreamingcrownfall.desktop');
 
 // Womit die App gestartet wurde: AppImage, installiertes Programm oder `electron <ordner>`.
 function command() {
@@ -29,13 +29,14 @@ module.exports = {
     set(on) {
         if (process.platform === 'linux') {
             const f = desktopFile();
+            try { fs.unlinkSync(path.join(path.dirname(f), 'marblelucefall.desktop')); } catch {} // Eintrag vor der Umbenennung
             if (!on) { try { fs.unlinkSync(f); } catch {} return; }
             fs.mkdirSync(path.dirname(f), { recursive: true });
             fs.writeFileSync(f, [
                 '[Desktop Entry]',
                 'Type=Application',
-                'Name=MarbleLuceFall',
-                'Comment=Marble Crownfall with MarbleLuceFall (starts in the tray)',
+                'Name=DreamingCrownfall',
+                'Comment=Marble Crownfall desktop app (starts in the tray)',
                 `Exec=${command()} ${HIDDEN_ARG}`,
                 'Terminal=false',
                 'X-GNOME-Autostart-enabled=true',

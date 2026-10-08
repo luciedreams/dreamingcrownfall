@@ -1,4 +1,4 @@
-// MarbleLuceFall-App: Marble Crownfall mit MarbleLuceFall, mehreren Accounts in Tabs,
+// DreamingCrownfall: Marble Crownfall als Desktop-App (hervorgegangen aus MarbleLuceFall), mehrere Accounts in Tabs,
 // Systembenachrichtigungen und MLF-Fenstern als eigene Systemfenster.
 //
 // Jeder Tab ist ein Account mit eigener Sitzung (Partition, wie ein Browser-Container) und läuft
@@ -22,11 +22,22 @@ const TAB_BAR_HEIGHT = 36;
 const ICON = path.join(__dirname, 'assets', 'icon.png');
 const TRAY_ICON = path.join(__dirname, 'assets', 'tray.png');
 
-// Testprofil (eigene Sitzungen, eigene Einzelinstanz): MLF_PROFILE=<ordner> electron .
-if (process.env.MLF_PROFILE) app.setPath('userData', path.resolve(process.env.MLF_PROFILE));
-app.setName('MarbleLuceFall');
+// Testprofil (eigene Sitzungen, eigene Einzelinstanz): DCF_PROFILE=<ordner> electron .
+if (process.env.DCF_PROFILE) app.setPath('userData', path.resolve(process.env.DCF_PROFILE));
+app.setName('DreamingCrownfall');
+
+// Umbenennung MarbleLuceFall → DreamingCrownfall (08.10.2026): den alten Profilordner einmal übernehmen,
+// damit Logins, Tabs und Add-ons bleiben. Muss vor allem anderen passieren, was das Profil benutzt.
+if (!process.env.DCF_PROFILE) {
+    const neu = app.getPath('userData');
+    const alt = path.join(app.getPath('appData'), 'MarbleLuceFall');
+    if (!fs.existsSync(neu) && fs.existsSync(alt)) {
+        try { fs.renameSync(alt, neu); console.log(`[dcf] Profil übernommen: ${alt} → ${neu}`); }
+        catch (e) { console.error(`[dcf] Altes Profil nicht übernommen: ${e.message}`); }
+    }
+}
 // Ohne App-Kennung zeigt Windows keine Benachrichtigungen (muss zur appId im package.json passen).
-if (process.platform === 'win32') app.setAppUserModelId('io.github.luciedreams.marblelucefall');
+if (process.platform === 'win32') app.setAppUserModelId('io.github.luciedreams.dreamingcrownfall');
 
 // Hosts, die in der App bleiben dürfen; alles andere geht in den System-Browser.
 const isGame = (h) => h === 'marblecrownfall.com' || h.endsWith('.marblecrownfall.com');
@@ -59,7 +70,7 @@ function loadAccounts() {
 function saveAccounts() {
     try {
         fs.writeFileSync(ACCOUNTS_FILE(), JSON.stringify({ accounts: views.map((v) => ({ partition: v.acc.partition })) }, null, 2));
-    } catch (e) { console.error(`[mlf-app] accounts.json nicht schreibbar: ${e.message}`); }
+    } catch (e) { console.error(`[dcf] accounts.json nicht schreibbar: ${e.message}`); }
 }
 
 // Sitzungsordner entfernter Tabs (persist:acc-…) beim Start wegräumen. clearStorageData leert sie
@@ -93,7 +104,7 @@ const views = []; // je Account: { acc, view, name, guest, playerId, avatar }
 let appLayer = null;
 function loadAppLayer() {
     try { appLayer = fs.readFileSync(path.join(__dirname, 'app-layer.js'), 'utf8'); }
-    catch (e) { appLayer = null; console.error(`[mlf-app] app-layer.js nicht lesbar: ${e.message}`); }
+    catch (e) { appLayer = null; console.error(`[dcf] app-layer.js nicht lesbar: ${e.message}`); }
 }
 
 // preload.js holt sich den Code synchron, damit er vor dem ersten Seitenskript läuft.
@@ -115,7 +126,7 @@ function tabState() {
 function pushTabs() {
     if (tabBar && !tabBar.webContents.isDestroyed()) tabBar.webContents.send('tabs:state', tabState());
     const cur = views[active];
-    if (win && cur) win.setTitle(`MarbleLuceFall – ${label(cur)}`);
+    if (win && cur) win.setTitle(`DreamingCrownfall – ${label(cur)}`);
 }
 
 function select(i) {
@@ -221,7 +232,7 @@ function setupSession(acc) {
     if (ses.__mlfReady) return;
     ses.__mlfReady = true;
     // Ohne „Electron/…“ im User-Agent, sonst lehnt Twitch den Login als eingebetteten Browser ab.
-    ses.setUserAgent(ses.getUserAgent().replace(/ (Electron|MarbleLuceFall|mlf-app|marblelucefall-app)\/\S+/gi, ''));
+    ses.setUserAgent(ses.getUserAgent().replace(/ (Electron|DreamingCrownfall|dreamingcrownfall)\/\S+/gi, ''));
     // Nur die Spielseite darf Benachrichtigungen zeigen (landen als System-Benachrichtigung).
     ses.setPermissionRequestHandler((wc, permission, cb, details) => {
         let host = '';
@@ -267,7 +278,7 @@ async function removeAccount(i) {
 function createWindow() {
     win = new BaseWindow({
         width: 1600, height: 1000 + TAB_BAR_HEIGHT,
-        title: 'MarbleLuceFall',
+        title: 'DreamingCrownfall',
         icon: ICON,
         backgroundColor: '#14101c',
         show: !autostart.startHidden, // Autostart: erst im Tray, Fenster über „Show“
@@ -294,7 +305,7 @@ function createWindow() {
 
 function createTray() {
     tray = new Tray(nativeImage.createFromPath(TRAY_ICON));
-    tray.setToolTip('MarbleLuceFall');
+    tray.setToolTip('DreamingCrownfall');
     const show = () => { win.show(); win.focus(); };
     tray.on('click', show);
     tray.setContextMenu(Menu.buildFromTemplate([
@@ -302,7 +313,7 @@ function createTray() {
         { label: 'Reload all tabs', click: () => { loadAppLayer(); views.forEach((v) => v.view.webContents.reloadIgnoringCache()); } },
         { label: 'Test notification', click: () => notifier?.test() },
         { label: 'Start with system (in the tray)', type: 'checkbox', checked: autostart.enabled(),
-          click: (item) => { try { autostart.set(item.checked); } catch (e) { console.error(`[mlf-app] Autostart: ${e.message}`); } } },
+          click: (item) => { try { autostart.set(item.checked); } catch (e) { console.error(`[dcf] Autostart: ${e.message}`); } } },
         { label: 'DevTools (current tab)', click: () => views[active].view.webContents.openDevTools({ mode: 'detach' }) },
         { type: 'separator' },
         { label: 'Quit', click: () => app.quit() },
@@ -315,7 +326,7 @@ if (!app.requestSingleInstanceLock()) {
     app.on('second-instance', () => { if (win) { win.show(); win.focus(); } });
 
     app.whenReady().then(async () => {
-        console.log(`[mlf-app] MarbleLuceFall App ${app.getVersion()}`);
+        console.log(`[dcf] DreamingCrownfall ${app.getVersion()}`);
         loadAppLayer();
         createWindow();
         createTray();

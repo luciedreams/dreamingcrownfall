@@ -672,7 +672,7 @@
         drawSide();
         $body.innerHTML = '<div class="mi-status">Loading the inventory …</div>';
         loadMods().then(m => { mods = m; render(); }, e => {
-            console.error('[MarbleLuceFall] new inventory: the game\'s renderers did not load', e);
+            console.error('[DreamingCrownfall] new inventory: the game\'s renderers did not load', e);
             $body.innerHTML = `<div class="mi-status"><b>The new inventory could not start</b><span>The game changed something it needs (${esc(e && e.message)}). The classic inventory still works.</span>
                 <button type="button" class="mi-btn" data-mi="classic-now">Open the classic inventory</button></div>`;
             $body.querySelector('[data-mi=classic-now]').onclick = () => { const u = new URL(location.href); u.searchParams.set('mlf', 'classic'); location.href = u.href; };

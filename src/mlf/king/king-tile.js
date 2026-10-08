@@ -179,7 +179,7 @@
             setKing(king.displayName, king.baseToll);
         } catch (e) {
             // Report once, not on every attempt, or the console fills up within the hour.
-            if (!kingReported) { kingReported = true; console.warn('[MarbleLuceFall] king snapshot unavailable:', e.message); }
+            if (!kingReported) { kingReported = true; console.warn('[DreamingCrownfall] king snapshot unavailable:', e.message); }
         }
     }
 

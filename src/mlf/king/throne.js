@@ -49,7 +49,7 @@
         if (!pour) return;
         throne.running = true;
         throneRun(pour)
-            .catch(e => console.warn('[MarbleLuceFall] throne actions failed:', e && e.message))
+            .catch(e => console.warn('[DreamingCrownfall] throne actions failed:', e && e.message))
             .finally(() => { throne.running = false; });
     }
 
@@ -138,7 +138,7 @@
     let throneNoteTimer = 0;
     function throneNote(lines) {
         if (!lines.length) return;
-        console.log('[MarbleLuceFall] on the throne:', lines.join(' | '));
+        console.log('[DreamingCrownfall] on the throne:', lines.join(' | '));
         let note = document.querySelector('.mcfo-throne-note');
         if (!note) {
             note = document.createElement('div');

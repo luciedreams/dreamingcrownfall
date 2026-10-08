@@ -1,13 +1,13 @@
 {
-  "name": "marblelucefall-app",
-  "productName": "MarbleLuceFall",
-  "desktopName": "marblelucefall.desktop",
+  "name": "dreamingcrownfall",
+  "productName": "DreamingCrownfall",
+  "desktopName": "dreamingcrownfall.desktop",
   "version": "0.1.0",
-  "description": "Marble Crownfall with MarbleLuceFall: several accounts in tabs, desktop notifications, windows you can move anywhere.",
+  "description": "Marble Crownfall as a desktop app: several accounts in tabs, desktop notifications, windows you can move anywhere.",
   "main": "src/main.js",
   "author": "DreamingLucie",
   "license": "MIT",
-  "homepage": "https://github.com/luciedreams/marblelucefall-app",
+  "homepage": "https://github.com/luciedreams/dreamingcrownfall",
   "private": true,
   "scripts": {
     "start": "electron .",
@@ -23,8 +23,8 @@
     "electron-builder": "26.15.3"
   },
   "build": {
-    "appId": "io.github.luciedreams.marblelucefall",
-    "productName": "MarbleLuceFall",
+    "appId": "io.github.luciedreams.dreamingcrownfall",
+    "productName": "DreamingCrownfall",
     "files": [
       "src/**/*",
       "package.json"
@@ -40,7 +40,7 @@
       ],
       "category": "Game",
       "icon": "build/icon.png",
-      "artifactName": "MarbleLuceFall-${version}.${ext}",
+      "artifactName": "DreamingCrownfall-${version}.${ext}",
       "syncDesktopName": true,
       "maintainer": "DreamingLucie"
     },
@@ -49,24 +49,24 @@
         "nsis"
       ],
       "icon": "build/icon.png",
-      "artifactName": "MarbleLuceFall-Setup-${version}.${ext}"
+      "artifactName": "DreamingCrownfall-Setup-${version}.${ext}"
     },
     "nsis": {
       "oneClick": false,
       "perMachine": false,
       "allowToChangeInstallationDirectory": true,
-      "shortcutName": "MarbleLuceFall"
+      "shortcutName": "DreamingCrownfall"
     },
     "publish": [
       {
         "provider": "github",
         "owner": "luciedreams",
-        "repo": "marblelucefall-app",
+        "repo": "dreamingcrownfall",
         "releaseType": "release"
       }
     ],
     "deb": {
-      "artifactName": "MarbleLuceFall-${version}.${ext}"
+      "artifactName": "DreamingCrownfall-${version}.${ext}"
     }
   }
 }

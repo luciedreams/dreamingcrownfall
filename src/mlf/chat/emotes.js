@@ -60,7 +60,7 @@
                 try { localStorage.setItem('mcfo_emotes', JSON.stringify({ at: Date.now(), list: [...emotes.map] })); } catch (e) {}
                 planChatPass();
             })
-            .catch(err => { emotes.failedAt = Date.now(); console.warn('[MarbleLuceFall] emote list:', err.message || err); })
+            .catch(err => { emotes.failedAt = Date.now(); console.warn('[DreamingCrownfall] emote list:', err.message || err); })
             .then(() => { emotes.loading = false; });
     }
 

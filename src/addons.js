@@ -41,10 +41,10 @@ module.exports = function loadAddons({ views, icon }) {
             (typeof mod === 'function' ? mod : mod.default)(api);
             loaded.push(name);
         } catch (e) {
-            console.error(`[mlf-app] Add-on ${f} nicht geladen: ${e.message}`);
+            console.error(`[dcf] Add-on ${f} nicht geladen: ${e.message}`);
         }
     }
-    if (loaded.length) console.log(`[mlf-app] Add-ons: ${loaded.join(', ')}`);
+    if (loaded.length) console.log(`[dcf] Add-ons: ${loaded.join(', ')}`);
 
     return {
         loaded,

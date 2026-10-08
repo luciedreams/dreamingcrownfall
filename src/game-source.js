@@ -22,7 +22,7 @@ module.exports = {
         try {
             if (!cached || !app.isPackaged) cached = { code: build(), version: app.getVersion() };
         } catch (e) {
-            console.error(`[mlf-app] Spiel-Ebene nicht ladbar: ${e.message}`);
+            console.error(`[dcf] Spiel-Ebene nicht ladbar: ${e.message}`);
         }
         return cached;
     },

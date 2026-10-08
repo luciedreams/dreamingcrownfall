@@ -45,7 +45,7 @@ module.exports = function startNotifier({ views, icon, isWatching, isFocused, fo
         const v = tab != null ? views[tab] : null; // Klick später: Tab per Eintrag finden, Index kann sich verschieben
         n.on('click', () => focusTab(v ? views.indexOf(v) : null));
         n.show();
-        console.log(`[mlf-app] 🔔 ${title} — ${body}`);
+        console.log(`[dcf] 🔔 ${title} — ${body}`);
     }
 
     // ---- Seitenkontext eines Tabs ---------------------------------------------------------
@@ -92,7 +92,7 @@ module.exports = function startNotifier({ views, icon, isWatching, isFocused, fo
         const s = S(i);
         if (!s.ach) {
             s.ach = { seen: new Set(recent.map((a) => a.id)), count: d.completionCount };
-            console.log(`[mlf-app] ${label(i)}: Achievements bereit (${d.completionCount ?? '?'})`);
+            console.log(`[dcf] ${label(i)}: Achievements bereit (${d.completionCount ?? '?'})`);
             return;
         }
         const neu = recent.filter((a) => !s.ach.seen.has(a.id)).sort((a, b) => a.at - b.at);
@@ -118,7 +118,7 @@ module.exports = function startNotifier({ views, icon, isWatching, isFocused, fo
             diamonds: Number(n?.acknowledgeThroughDiamondGiftPosition) || 0,
         };
         const s = S(i);
-        if (!s.gifts) { s.gifts = pos; console.log(`[mlf-app] ${label(i)}: Geschenke bereit`); return; }
+        if (!s.gifts) { s.gifts = pos; console.log(`[dcf] ${label(i)}: Geschenke bereit`); return; }
         const neuGold = pos.gold > s.gifts.gold, neuDia = pos.diamonds > s.gifts.diamonds;
         s.gifts = { gold: Math.max(pos.gold, s.gifts.gold), diamonds: Math.max(pos.diamonds, s.gifts.diamonds) };
         if (!neuGold && !neuDia) return;
@@ -137,7 +137,7 @@ module.exports = function startNotifier({ views, icon, isWatching, isFocused, fo
         const list = Array.isArray(d?.quests?.quests) ? d.quests.quests : null;
         if (!list) return;
         S(i).quests = list.filter((q) => q?.metric === 'shop_purchase' && q.complete !== true && q.parameters);
-        if (!S(i).dailiesAt) console.log(`[mlf-app] ${label(i)}: Dailies bereit (${S(i).quests.length} offene Shop-Quest(s))`);
+        if (!S(i).dailiesAt) console.log(`[dcf] ${label(i)}: Dailies bereit (${S(i).quests.length} offene Shop-Quest(s))`);
         S(i).dailiesAt = Date.now();
     }
 
@@ -188,7 +188,7 @@ module.exports = function startNotifier({ views, icon, isWatching, isFocused, fo
         if (k && k.playerId) {
             const prev = st.king, prevName = st.kingName;
             st.king = k.playerId; st.kingName = k.displayName || '';
-            if (prev === undefined) console.log(`[mlf-app] King-Snapshot ok: ${st.kingName}`);
+            if (prev === undefined) console.log(`[dcf] King-Snapshot ok: ${st.kingName}`);
             if (prev !== undefined && prev !== k.playerId) {
                 const neu = ownIndexById(k.playerId), alt = ownIndexById(prev);
                 if (neu >= 0) notify({ tab: neu, title: `👑 ${label(neu)} is King!`,
@@ -241,7 +241,7 @@ module.exports = function startNotifier({ views, icon, isWatching, isFocused, fo
         try {
             ws = new WebSocket('wss://marblecrownfall.com/chat/ws?roomId=Lobby00');
         } catch { return setTimeout(connectChat, wsBackoff); }
-        ws.onopen = () => { wsBackoff = 2000; console.log('[mlf-app] Chat-Socket verbunden'); };
+        ws.onopen = () => { wsBackoff = 2000; console.log('[dcf] Chat-Socket verbunden'); };
         ws.onmessage = (ev) => {
             let d; try { d = JSON.parse(ev.data); } catch { return; }
             if (d.type === 'chat.room.message' && d.message) onChatMessage(d.message);
@@ -273,7 +273,7 @@ module.exports = function startNotifier({ views, icon, isWatching, isFocused, fo
 
     // Tray › Test-Benachrichtigung: prüft den Weg bis zum Desktop, ohne Fokus-Regel.
     function test() {
-        const n = new Notification({ title: '🔔 MarbleLuceFall', body: 'This is what notifications look like. Click to bring the window up.', icon });
+        const n = new Notification({ title: '🔔 DreamingCrownfall', body: 'This is what notifications look like. Click to bring the window up.', icon });
         n.on('click', () => focusTab(null));
         n.show();
     }

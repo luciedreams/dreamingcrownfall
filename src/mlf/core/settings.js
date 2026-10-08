@@ -121,11 +121,11 @@
             { key: 'kcName',     label: 'King name',             hint: 'top left' },
             { key: 'kcReign',    label: 'Reign number',          hint: 'top left' },
             { key: 'kcDuration', label: 'Reign duration',        hint: 'top left' },
-            { key: 'kcVip',      label: 'VIP tier',              hint: 'top left, under the title, in the colour of the tier, added by MarbleLuceFall' },
+            { key: 'kcVip',      label: 'VIP tier',              hint: 'top left, under the title, in the colour of the tier, added by DreamingCrownfall' },
             { key: 'kcGold',     label: 'Gold this reign',       hint: 'top right' },
             { key: 'kcTolls',    label: 'Points from tolls',     hint: 'top right' },
             { key: 'kcThwarted', label: 'Challengers thwarted',  hint: 'top right' },
-            { key: 'kingToll',   label: 'Toll setting',          hint: 'top right, added by MarbleLuceFall' },
+            { key: 'kingToll',   label: 'Toll setting',          hint: 'top right, added by DreamingCrownfall' },
         ] } },
         { title: 'On the throne', blurb: 'Typing the toll, and beverages poured by themselves the moment you take the crown. The toll on taking the throne is the game\'s Default Toll (Inventory).', throne: true, items: [
             { key: 'tollInput', label: 'Type the toll',

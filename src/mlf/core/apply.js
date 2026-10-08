@@ -79,7 +79,7 @@
     // Autobid goes first now. It is the part that acts on its own and must not wait on anything
     // above it having gone well; it touches no element that has to exist.
     const step = (what, fn) => {
-        try { fn(); } catch (e) { console.warn('[MarbleLuceFall] start-up step "' + what + '" failed:', e && e.message); }
+        try { fn(); } catch (e) { console.warn('[DreamingCrownfall] start-up step "' + what + '" failed:', e && e.message); }
     };
     step('autobid', startAutobid);
     // Random theme: picked before the first pass, so the page never shows the old one first.

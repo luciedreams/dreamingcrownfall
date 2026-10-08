@@ -58,7 +58,7 @@
             }
             return true;
         } catch (e) {
-            if (!bevReported) { bevReported = true; console.warn('[MarbleLuceFall] beverage rights unavailable:', e.message); }
+            if (!bevReported) { bevReported = true; console.warn('[DreamingCrownfall] beverage rights unavailable:', e.message); }
             return false;
         }
     }
@@ -93,7 +93,7 @@
     function buyBeverage(type, size, currency, done = () => {}) {
         const press = () => {
             const button = nativeBeverageButton(type, size, currency);
-            if (!button) { console.warn('[MarbleLuceFall] no native beverage button for', type, size, currency); return null; }
+            if (!button) { console.warn('[DreamingCrownfall] no native beverage button for', type, size, currency); return null; }
             if (button.disabled) return false;   // the game says no, so we say no
             forwardClick(button);
             return true;
@@ -424,7 +424,7 @@
         if (alignTries >= ALIGN_MAX_TRIES || now - alignAt < ALIGN_COOLDOWN_MS) return;
         alignAt = now;
         alignTries++;
-        console.log(`[MarbleLuceFall] king column ${Math.abs(off)}px ${off > 0 ? 'below' : 'above'} the lanes - having the game measure again`);
+        console.log(`[DreamingCrownfall] king column ${Math.abs(off)}px ${off > 0 ? 'below' : 'above'} the lanes - having the game measure again`);
         refitSoon();
     }
 

@@ -1,6 +1,6 @@
-# MarbleLuceFall App
+# DreamingCrownfall
 
-[Marble Crownfall](https://marblecrownfall.com) as a desktop app for Windows and Linux, with its own in-game layer. That layer started out as the [MarbleLuceFall](https://greasyfork.org/scripts/595115) userscript (6.59.1) and is developed separately since — the app and the script are two projects with their own versions.
+[Marble Crownfall](https://marblecrownfall.com) as a desktop app for Windows and Linux. Its in-game layer started out as the [MarbleLuceFall](https://greasyfork.org/scripts/595115) userscript (6.59.1) and is developed separately since — DreamingCrownfall and MarbleLuceFall are two projects with their own versions.
 
 ## What the app adds
 
@@ -9,22 +9,22 @@
   someone mentions you in chat · one of your accounts takes or loses the throne · a Royal Celebration starts ·
   a Rebellion starts · an achievement unlocks · a gift arrives · the shop has an item for one of your open shop quests.
   Clicking a notification brings up the right tab.
-- **Windows you can put anywhere.** Inventory, Dailies, Shop, Leaderboards, Settings and every other MarbleLuceFall window opens as a real window of its own: move it to another screen, resize it, Alt+Tab to it. Closing it closes the window. The chat stays in the game and gets a **⧉** button to pop it out.
+- **Windows you can put anywhere.** Inventory, Dailies, Shop, Leaderboards, Settings and every other window opens as a real window of its own: move it to another screen, resize it, Alt+Tab to it. Closing it closes the window. The chat stays in the game and gets a **⧉** button to pop it out.
 - **No browser, no extension.** Everything is part of the app and updates with it.
 - **Starts with your system if you like** (tray menu › *Start with system*), hidden in the tray, so notifications keep coming without opening the window.
 
 ## Install
 
-Download the newest file from [Releases](https://github.com/luciedreams/marblelucefall-app/releases/latest).
+Download the newest file from [Releases](https://github.com/luciedreams/dreamingcrownfall/releases/latest).
 
-- **Windows:** `MarbleLuceFall-Setup-<version>.exe`. The installer is not signed yet, so Windows shows *"Windows protected your PC"* on the first start: click **More info → Run anyway**.
-- **Linux:** `MarbleLuceFall-<version>.AppImage`. Make it executable (`chmod +x MarbleLuceFall-*.AppImage`) and start it.
+- **Windows:** `DreamingCrownfall-Setup-<version>.exe`. The installer is not signed yet, so Windows shows *"Windows protected your PC"* on the first start: click **More info → Run anyway**.
+- **Linux:** `DreamingCrownfall-<version>.deb` for Debian, Ubuntu, Mint and friends, or `DreamingCrownfall-<version>.AppImage` for everything else (make it executable with `chmod +x DreamingCrownfall-*.AppImage` and start it).
 
-The app updates itself from the releases (Windows installer and AppImage).
+The Windows installer and the AppImage update themselves from the releases; for the .deb, install the new one over the old.
 
 ## Add-ons
 
-Every `.js` file in the `addons` folder of your profile is loaded when the app starts (Linux `~/.config/MarbleLuceFall/addons/`, Windows `%APPDATA%\MarbleLuceFall\addons\`). An add-on is a function that gets a small API: the accounts in your tabs and their sessions, desktop notifications and log lines (see `src/addons.js`). Add-ons run with the full rights of the app — only put files there that you wrote or trust. The app ships with none, and updates never touch the folder.
+Every `.js` file in the `addons` folder of your profile is loaded when the app starts (Linux `~/.config/DreamingCrownfall/addons/`, Windows `%APPDATA%\DreamingCrownfall\addons\`). An add-on is a function that gets a small API: the accounts in your tabs and their sessions, desktop notifications and log lines (see `src/addons.js`). Add-ons run with the full rights of the app — only put files there that you wrote or trust. The app ships with none, and updates never touch the folder.
 
 ## Keys
 
@@ -40,7 +40,7 @@ Every `.js` file in the `addons` folder of your profile is loaded when the app s
 
 ## Privacy and network
 
-The app talks to `marblecrownfall.com` (the game), `twitch.tv` (sign-in, inside the app), `greasyfork.org` (MarbleLuceFall) and `github.com` (app updates). Links to anything else open in your normal browser. Logins stay on your computer, one separate session per tab.
+The app talks to `marblecrownfall.com` (the game), `twitch.tv` (sign-in, inside the app) and `github.com` (app updates). Two optional extras fetch public data without any login: Twitch emotes in chat (list from `emotes.adamcy.pl`, pictures from Twitch's `static-cdn.jtvnw.net`, off by default) and euro prices in the shop (exchange rate from `api.frankfurter.dev`). Links to anything else open in your normal browser. Logins stay on your computer, one separate session per tab.
 
 ## Build from source
 
@@ -52,7 +52,7 @@ npm run dist:win       # Windows installer in dist/
 ```
 
 The in-game layer lives in `src/mlf/`: the files listed in `src/mlf/order.txt`, joined in that order (they share one scope). When run from the folder, a reload (F5) picks up changes.
-`MLF_PROFILE=/some/folder npm start` uses a separate profile (own sessions), e.g. for testing next to the normal app.
+`DCF_PROFILE=/some/folder npm start` uses a separate profile (own sessions), e.g. for testing next to the normal app.
 
 Releases are built by GitHub Actions for every `v*` tag.
 

@@ -242,7 +242,7 @@
                 }
                 return nativeSet.call(this, name, value);
             };
-        } catch (e) { console.warn('[MarbleLuceFall] could not size bidding indicators:', e.message); }
+        } catch (e) { console.warn('[DreamingCrownfall] could not size bidding indicators:', e.message); }
     }
     if (cosHide.indicatorSmall) installIndicatorScale();
     function cosReviver(k, v) {
@@ -293,7 +293,7 @@
                         { status: res.status, statusText: res.statusText, headers: res.headers });
                 }).catch(() => res));
             };
-        } catch (e) { console.warn('[MarbleLuceFall] could not filter cosmetics from replies:', e.message); }
+        } catch (e) { console.warn('[DreamingCrownfall] could not filter cosmetics from replies:', e.message); }
     }
     if (Object.values(cosHide).some(Boolean)) wrapCosFetch();
 
@@ -341,6 +341,6 @@
         tapInstalled = true;
     } catch (e) {
         // Without the tap everything else still works; autobid then says it cannot see the lanes.
-        console.warn('[MarbleLuceFall] could not read the lanes, autobid stays idle:', e.message);
+        console.warn('[DreamingCrownfall] could not read the lanes, autobid stays idle:', e.message);
     }
 

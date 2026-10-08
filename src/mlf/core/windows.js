@@ -181,7 +181,7 @@
         const now = await latestAssetBuild();
         if (!now || now === have || w.freshFor === now || f.contentDocument !== doc) return;
         w.freshFor = now;
-        console.info('[MarbleLuceFall] window page from build ' + have + ', game is on ' + now + ': reloading');
+        console.info('[DreamingCrownfall] window page from build ' + have + ', game is on ' + now + ': reloading');
         // Refresh the cached copy first; the reload itself revalidates as well.
         try { await fetch(url, { cache: 'reload', credentials: 'same-origin' }); } catch (e) {}
         f.removeAttribute('data-mcfo-ready');
@@ -192,7 +192,7 @@
         const w = windows.get(path);
         if (!w) return;
         // A window may hold something that is not ours to destroy (the chat): it takes it out first.
-        if (w.onClose) { try { w.onClose(); } catch (e) { console.warn('[MarbleLuceFall] window close:', e.message); } }
+        if (w.onClose) { try { w.onClose(); } catch (e) { console.warn('[DreamingCrownfall] window close:', e.message); } }
         if (w.el) w.el.remove();   // the frame goes with it — park it instead to keep it loaded
         windows.delete(path);
         // Up to 3.7 the parked flag outlived the window. Harmless then, because nothing read it
