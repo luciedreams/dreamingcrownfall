@@ -14,7 +14,9 @@ const desktopFile = () => path.join(process.env.XDG_CONFIG_HOME || path.join(os.
 function command() {
     const q = (s) => `"${String(s).replace(/(["\\$`])/g, '\\$1')}"`;
     if (process.env.APPIMAGE) return q(process.env.APPIMAGE);
-    if (app.isPackaged) return q(process.execPath);
+    // process.defaultApp statt app.isPackaged: das System-Electron von Arch meldet auch bei `electron <ordner>`
+    // isPackaged=true — dann fehlte hier der Ordner und der Autostart öffnete ein leeres Electron.
+    if (!process.defaultApp && app.isPackaged) return q(process.execPath);
     return `${q(process.execPath)} ${q(app.getAppPath())}`;
 }
 

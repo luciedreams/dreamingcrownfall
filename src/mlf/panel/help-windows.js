@@ -131,21 +131,8 @@
         }
         el.append(rest);
     }
-    function openSettingsAt(title, label) {
-        settingsView = title;
-        showSettings();
-        if (!label) return;
-        const w = windows.get(SETTINGS_KEY);
-        const hit = w && w.body && [...w.body.querySelectorAll('.mcfo-set__label, .mcfo-set__sub-label')]
-            .find(x => x.textContent.trim() === label);
-        const item = hit && (hit.closest('.mcfo-set__item') || hit.closest('.mcfo-set__row'));
-        if (!item) return;
-        item.scrollIntoView({ block: 'center' });
-        // A ring that fades once — shows where to look, then gets out of the way.
-        item.classList.add('mcfo-set__item--found');
-        requestAnimationFrame(() => item.classList.add('mcfo-set__item--fade'));
-        setTimeout(() => item.classList.remove('mcfo-set__item--found', 'mcfo-set__item--fade'), 3000);
-    }
+    // DreamingCrownfall: straight to the page that holds this section, the switch ringed once.
+    function openSettingsAt(title, label) { showAppSettings({ section: title, label }); }
     function docVersion(box, entry) {
         const head = document.createElement('div');
         head.className = 'mcfo-doc__ver';
@@ -315,16 +302,31 @@
         crumb.append(back, title);
         box.appendChild(crumb);
 
+        sectionContent(box, () => renderSettings(body), section);
+        box.appendChild(settingsFoot('Reset this page', () => {
+            if (section.render === 'sound') {
+                soundOff();                      // the default there: both off
+                musicPause();
+                settings.musicExcluded = [];     // a new array, never the one behind the defaults
+                music.queue = [];
+            }
+            for (const k of sectionKeys(section)) settings[k] = settingDefaults[k];
+        }, body));
+    }
+
+    // The controls of one settings section without crumb and footer. Shared by the old window and
+    // the DreamingCrownfall settings (panel/settings-app.js); redraw() draws the page again.
+    function sectionContent(box, redraw, section) {
         if (section.render === 'performance') {
-            box.appendChild(performanceCard(() => renderSettings(body)));
+            box.appendChild(performanceCard(() => redraw()));
             const gt = document.createElement('div');
             gt.className = 'mcfo-set__sub-title';
             gt.textContent = 'The game\'s own graphics';
-            box.append(gt, graphicsCard(() => renderSettings(body)));
+            box.append(gt, graphicsCard(() => redraw()));
         } else if (section.render === 'theme') {
-            box.appendChild(themeCard(() => renderSettings(body)));
+            box.appendChild(themeCard(() => redraw()));
         } else if (section.render === 'sound') {
-            box.appendChild(soundCard(() => renderSettings(body)));
+            box.appendChild(soundCard(() => redraw()));
         } else {
             // On the throne page the cost warning stands right above Pour beverages, not above the
             // toll switches, which cost nothing: the items are split into two cards around it.
@@ -387,15 +389,6 @@
                 box.appendChild(card2);
             }
         }
-        box.appendChild(settingsFoot('Reset this page', () => {
-            if (section.render === 'sound') {
-                soundOff();                      // the default there: both off
-                musicPause();
-                settings.musicExcluded = [];     // a new array, never the one behind the defaults
-                music.queue = [];
-            }
-            for (const k of sectionKeys(section)) settings[k] = settingDefaults[k];
-        }, body));
     }
 
     function settingsFoot(label, reset, body) {
@@ -404,7 +397,7 @@
         foot.innerHTML = '<span>Changes apply at once and are saved in this browser.</span><button type="button"></button>';
         const b = foot.querySelector('button');
         b.textContent = label;
-        b.addEventListener('click', () => { reset(); saveSettings(); apply(); renderSettings(body); });
+        b.addEventListener('click', () => { reset(); saveSettings(); apply(); if (settingsRedraw) settingsRedraw(); else renderSettings(body); });
         return foot;
     }
 

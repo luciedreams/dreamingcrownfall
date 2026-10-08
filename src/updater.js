@@ -7,7 +7,7 @@ const { app, Notification } = require('electron');
 const CHECK_MS = 6 * 60 * 60 * 1000;
 
 module.exports = function startUpdater({ icon }) {
-    if (!app.isPackaged) return;
+    if (process.defaultApp || !app.isPackaged) return; // aus dem Ordner gestartet (Arch-Electron meldet isPackaged trotzdem true)
     if (process.platform === 'linux' && !process.env.APPIMAGE) return; // nur das AppImage kann sich selbst ersetzen
     let autoUpdater;
     try { ({ autoUpdater } = require('electron-updater')); }

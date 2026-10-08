@@ -48,6 +48,7 @@ panel/help-intro.js
 panel/changelog.js
 panel/help-windows.js
 panel/patch-notes.js
+panel/settings-app.js
 panel/sound.js
 panel/music-player.js
 panel/player-bar.js

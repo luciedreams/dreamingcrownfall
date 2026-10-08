@@ -5,19 +5,10 @@
     // frame. Its key is not a path, so it can never collide with a page.
     const SETTINGS_KEY = '#settings';
 
+    // DreamingCrownfall: the settings are a full panel over the game (panel/settings-app.js). A
+    // page asked for beforehand through settingsView (e.g. the music bar asks for Sound) is opened.
     function showSettings() {
-        const vorhanden = windows.get(SETTINGS_KEY);
-        if (vorhanden && !vorhanden.lazy) {
-            restoreWindow(SETTINGS_KEY);
-            renderSettings(vorhanden.body);   // redrawn, so it never shows a stale state
-            return;
-        }
-        if (vorhanden) windows.delete(SETTINGS_KEY);
-
-        const w = makeWindow(SETTINGS_KEY, 'Settings',
-                             { width: 560, height: Math.min(780, innerHeight - 60) });
-        w.el.classList.add('mcfo-win--solid');
-        renderSettings(w.body);
-        drawTaskbar();
+        const section = settingsView;
+        settingsView = null;
+        showAppSettings(section ? { section } : {});
     }
-

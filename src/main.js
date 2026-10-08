@@ -143,6 +143,7 @@ ipcMain.on('tabs:reload', (_e, i) => views[i]?.view.webContents.reload());
 ipcMain.on('tabs:add', () => { addAccount({ partition: newPartition() }, true); saveAccounts(); });
 ipcMain.on('tabs:remove', (_e, i) => removeAccount(i));
 ipcMain.handle('tabs:state', () => tabState());
+ipcMain.on('dcf:notify:test', () => notifier?.test());
 
 // Wer ist in diesem Tab eingeloggt? Fragt das Spiel selbst (Seitenkontext = Cookie der Partition).
 async function refreshIdentity(v) {

@@ -20,7 +20,9 @@ let cached = null;
 module.exports = {
     get() {
         try {
-            if (!cached || !app.isPackaged) cached = { code: build(), version: app.getVersion() };
+            // process.defaultApp: aus dem Ordner gestartet (`electron .`). app.isPackaged taugt dafür nicht —
+            // das System-Electron von Arch meldet auch dann true.
+            if (!cached || process.defaultApp || !app.isPackaged) cached = { code: build(), version: app.getVersion() };
         } catch (e) {
             console.error(`[dcf] Spiel-Ebene nicht ladbar: ${e.message}`);
         }
