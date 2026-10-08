@@ -198,13 +198,8 @@
         });
     }
 
-    function showChangelog() {
-        showDocWindow(CHANGELOG_KEY, 'Changelog', { width: 520, height: Math.min(700, innerHeight - 80) }, body => {
-            const box = docBox(body);
-            for (const entry of CHANGELOG) docVersion(box, entry);
-            docFoot(box, docButton('How to', showHowTo));
-        });
-    }
+    // DreamingCrownfall: the changelog is a patch-notes card in the game, not a window (panel/patch-notes.js).
+    function showChangelog() { showPatchNotes('changelog'); }
 
     function readSeen() { try { return localStorage.getItem(WHATSNEW_SEEN); } catch (e) { return null; } }
 
@@ -215,48 +210,7 @@
         showWhatsNew();
     }
 
-    function showWhatsNew() {
-        const height = Math.min(560, innerHeight - 80);
-        const w = showDocWindow(WHATSNEW_KEY, 'What’s new', { width: 480, height }, renderWhatsNew);
-        // In the middle, unless it was put somewhere else before.
-        if (w && w.el && !Number.isFinite((loadWinState()[WHATSNEW_KEY] || {}).left)) {
-            clampWindow(w.el, Math.round((innerWidth - 480) / 2), 90, 480, height);
-        }
-    }
-
-    function renderWhatsNew(body) {
-        const box = docBox(body);
-        const seen = readSeen();
-        // Everything newer than the version last dismissed; after a fresh install, this version.
-        const news = seen ? CHANGELOG.filter(e => cmpVersion(e.v, seen) > 0 && cmpVersion(e.v, SCRIPT_VERSION) <= 0) : [];
-        const list = news.length ? news : [CHANGELOG[0]];
-        const intro = document.createElement('p');
-        intro.className = 'mcfo-doc__intro';
-        intro.textContent = list.length > 1 ? `New since version ${seen}:`
-                          : seen ? 'New in this version:' : 'Welcome! New in this version — and How to has a short tour of everything else:';
-        box.appendChild(intro);
-        for (const entry of list) docVersion(box, entry);
-
-        const check = document.createElement('label');
-        check.className = 'mcfo-doc__check';
-        check.innerHTML = '<input type="checkbox"><span>Don’t show this again</span>';
-        const input = check.querySelector('input');
-        // Ticked from the start (6.4): once read is enough for most people, so this version counts
-        // as seen as soon as the window shows. Whoever wants it back on every load unticks it.
-        // Unticked: back to what was stored before, so skipped versions are not lost.
-        const before = seen === SCRIPT_VERSION ? null : seen;
-        input.checked = true;
-        try { localStorage.setItem(WHATSNEW_SEEN, SCRIPT_VERSION); } catch (e) {}
-        input.addEventListener('change', () => {
-            try {
-                if (input.checked) localStorage.setItem(WHATSNEW_SEEN, SCRIPT_VERSION);
-                else if (before) localStorage.setItem(WHATSNEW_SEEN, before);
-                else localStorage.removeItem(WHATSNEW_SEEN);
-            } catch (e) {}
-        });
-        docFoot(box, check, docButton('Changelog', showChangelog), docButton('How to', showHowTo),
-                docButton('Got it', () => closeWindow(WHATSNEW_KEY), true));
-    }
+    function showWhatsNew() { showPatchNotes('whatsnew'); }
 
     // Two levels since 4.0: an overview with one tile per page, and the page itself. One long
     // scroll through every switch had grown to eight chapters — finding one meant reading all.
