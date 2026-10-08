@@ -17,6 +17,7 @@ const startUpdater = require('./updater.js');
 const loadAddons = require('./addons.js');
 const autostart = require('./autostart.js');
 const appSettings = require('./app-settings.js');
+const startDiscord = require('./discord.js');
 
 const START_URL = 'https://marblecrownfall.com/';
 const TAB_BAR_HEIGHT = 36;
@@ -330,6 +331,13 @@ if (!app.requestSingleInstanceLock()) {
             isFocused: watching,
             isWatching: (i) => watching() && active === i,
             focusTab: (i) => { win.show(); win.focus(); if (i != null && i >= 0) select(i); },
+        });
+        startDiscord({
+            setting: appSettings.get,
+            onSettingsChange: appSettings.onChange,
+            activeAccount: () => { const v = views[active]; return v && !v.guest ? v.name : null; },
+            kingOfMine: () => notifier.kingOfMine(),
+            startedAt: Date.now(),
         });
     });
 

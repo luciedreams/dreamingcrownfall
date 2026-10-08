@@ -190,6 +190,7 @@ module.exports = function startNotifier({ views, icon, isWatching, isFocused, fo
         if (k && k.playerId) {
             const prev = st.king, prevName = st.kingName;
             st.king = k.playerId; st.kingName = k.displayName || '';
+            st.kingSince = Number(k.capturedAtMs) || (prev !== k.playerId ? Date.now() : st.kingSince || Date.now());
             if (prev === undefined) console.log(`[dcf] King-Snapshot ok: ${st.kingName}`);
             if (prev !== undefined && prev !== k.playerId) {
                 const neu = ownIndexById(k.playerId), alt = ownIndexById(prev);
@@ -280,5 +281,11 @@ module.exports = function startNotifier({ views, icon, isWatching, isFocused, fo
         n.show();
     }
 
-    return { resetAccount, test };
+    // Für Discord: ist gerade einer der eigenen Accounts King, und seit wann?
+    function kingOfMine() {
+        const i = st.king ? ownIndexById(st.king) : -1;
+        return i >= 0 ? { name: label(i), since: st.kingSince || Date.now() } : null;
+    }
+
+    return { resetAccount, test, kingOfMine };
 };

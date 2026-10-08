@@ -10,6 +10,9 @@
   a Rebellion starts · an achievement unlocks · a gift arrives · the shop has an item for one of your open shop quests.
   Clicking a notification brings up the right tab.
 - **Windows you can put anywhere.** Inventory, Dailies, Shop, Leaderboards, Settings and every other window opens as a real window of its own: move it to another screen, resize it, Alt+Tab to it. Closing it closes the window. The chat stays in the game and gets a **⧉** button to pop it out.
+- **Emoji in chat.** `:)` becomes 🙂 as you type, `:fire` suggests 🔥, and an emoji button opens every emoji with search, recent ones and skin tones. What is sent is plain Unicode, so everybody sees it.
+- **Discord Rich Presence, opt-in.** "Playing Marble Crownfall", with the account you are looking at and "👑 King for 12 min" while one of yours sits on the throne (Settings › Discord; each part can be switched off).
+- **Settings that are easy to find.** One panel with categories and a search over every switch.
 - **No browser, no extension.** Everything is part of the app and updates with it.
 - **Starts with your system if you like** (tray menu › *Start with system*), hidden in the tray, so notifications keep coming without opening the window.
 
@@ -40,7 +43,7 @@ Every `.js` file in the `addons` folder of your profile is loaded when the app s
 
 ## Privacy and network
 
-The app talks to `marblecrownfall.com` (the game), `twitch.tv` (sign-in, inside the app) and `github.com` (app updates). Two optional extras fetch public data without any login: Twitch emotes in chat (list from `emotes.adamcy.pl`, pictures from Twitch's `static-cdn.jtvnw.net`, off by default) and euro prices in the shop (exchange rate from `api.frankfurter.dev`). Links to anything else open in your normal browser. Logins stay on your computer, one separate session per tab.
+The app talks to `marblecrownfall.com` (the game), `twitch.tv` (sign-in, inside the app) and `github.com` (app updates). With Discord switched on it also talks to the Discord app on your own computer (a local connection). Two optional extras fetch public data without any login: Twitch emotes in chat (list from `emotes.adamcy.pl`, pictures from Twitch's `static-cdn.jtvnw.net`, off by default) and euro prices in the shop (exchange rate from `api.frankfurter.dev`). Links to anything else open in your normal browser. Logins stay on your computer, one separate session per tab.
 
 ## Build from source
 
