@@ -35,12 +35,14 @@
     },
     "linux": {
       "target": [
-        "AppImage"
+        "AppImage",
+        "deb"
       ],
       "category": "Game",
       "icon": "build/icon.png",
       "artifactName": "MarbleLuceFall-${version}.${ext}",
-      "syncDesktopName": true
+      "syncDesktopName": true,
+      "maintainer": "DreamingLucie"
     },
     "win": {
       "target": [
@@ -62,6 +64,9 @@
         "repo": "marblelucefall-app",
         "releaseType": "release"
       }
-    ]
+    ],
+    "deb": {
+      "artifactName": "MarbleLuceFall-${version}.${ext}"
+    }
   }
 }
