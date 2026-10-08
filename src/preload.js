@@ -1,0 +1,39 @@
+// Läuft in jedem Frame vor den Seitenskripten (wie @run-at document-start) und führt
+// MarbleLuceFall im Seitenkontext aus — dort, wo Tampermonkey es mit unsafeWindow hinstellt.
+// Bereitgestellt werden genau die drei Dinge, die das Skript vom Manager erwartet:
+// GM_addStyle, unsafeWindow, GM_info. Danach die App-Schicht (nur oberster Frame).
+
+const { contextBridge, ipcRenderer } = require('electron');
+
+const host = location.hostname;
+if (host === 'marblecrownfall.com' || host.endsWith('.marblecrownfall.com')) {
+    const script = ipcRenderer.sendSync('mlf:script');
+    if (script && (script.code || script.layer)) {
+        contextBridge.executeInMainWorld({
+            func: (code, version, layer) => {
+                if (code) {
+                    const GM_addStyle = (css) => {
+                        const s = document.createElement('style');
+                        s.textContent = css;
+                        const parent = document.head || document.documentElement;
+                        if (parent) parent.appendChild(s);
+                        else new MutationObserver((_, o) => {
+                            if (document.documentElement) { (document.head || document.documentElement).appendChild(s); o.disconnect(); }
+                        }).observe(document, { childList: true });
+                        return s;
+                    };
+                    const GM_info = { script: { name: 'MarbleLuceFall', version }, scriptHandler: 'mlf-app' };
+                    try {
+                        new Function('GM_addStyle', 'unsafeWindow', 'GM_info', code)(GM_addStyle, window, GM_info);
+                    } catch (e) {
+                        console.error('[mlf-app] MarbleLuceFall abgestürzt:', e);
+                    }
+                }
+                if (layer && window.top === window.self) {
+                    try { new Function(layer)(); } catch (e) { console.error('[mlf-app] App-Schicht abgestürzt:', e); }
+                }
+            },
+            args: [script.code, script.version, script.layer],
+        });
+    }
+}

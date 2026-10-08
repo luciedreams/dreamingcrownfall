@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src https: data:; style-src 'unsafe-inline'; script-src 'unsafe-inline'">
+<title>Tabs</title>
+<style>
+    :root {
+        --bg: #14101c;
+        --tab: #221a30;
+        --tab-hover: #2c2240;
+        --tab-active: #3a2a58;
+        --text: #e6def5;
+        --muted: #8f84a6;
+        --accent: #b48ae8;
+        --line: #2e2440;
+        --danger: #e07a7a;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+        margin: 0; height: 100%; background: var(--bg); color: var(--text);
+        font: 13px/1 system-ui, sans-serif; user-select: none; overflow: hidden;
+    }
+    body { display: flex; align-items: center; gap: 6px; padding: 0 8px; border-bottom: 1px solid var(--line); }
+    button { font: inherit; color: inherit; cursor: pointer; }
+    .tab {
+        position: relative; display: flex; align-items: center; gap: 8px;
+        height: 26px; padding: 0 10px; border: 1px solid transparent; border-radius: 7px;
+        background: var(--tab);
+    }
+    .tab:hover { background: var(--tab-hover); }
+    .tab.active { background: var(--tab-active); border-color: var(--accent); }
+    .tab .avatar { width: 18px; height: 18px; border-radius: 50%; object-fit: cover; }
+    .tab .dot { width: 7px; height: 7px; border-radius: 50%; background: #6fd18f; }
+    .tab.guest .dot { background: #e0a050; }
+    .tab.loading .dot { background: var(--muted); }
+    .tab.guest .name { color: var(--muted); }
+    .tab .key { color: var(--muted); font-size: 11px; }
+    .tab .x {
+        border: 0; background: none; color: var(--muted); padding: 0 2px; font-size: 13px;
+        visibility: hidden;
+    }
+    .tab:hover .x { visibility: visible; }
+    .tab .x:hover { color: var(--danger); }
+    .tab.confirm { border-color: var(--danger); }
+    .tab.confirm .ask { color: var(--danger); }
+    .tab .yes, .tab .no { border: 0; border-radius: 5px; padding: 3px 8px; background: #3a2030; }
+    .tab .no { background: #2c2240; }
+    .add {
+        width: 26px; height: 26px; border: 1px dashed var(--line); border-radius: 7px; background: none;
+        color: var(--muted); font-size: 16px; line-height: 1;
+    }
+    .add:hover { color: var(--text); border-color: var(--accent); }
+    .hint { margin-left: auto; color: var(--muted); font-size: 11px; white-space: nowrap; }
+</style>
+</head>
+<body>
+<div id="tabs" style="display:contents"></div>
+<button class="add" id="add" title="Account hinzufügen">+</button>
+<span class="hint">Strg+1–9 · Strg+Tab · F5 neu laden · F11 Vollbild</span>
+<script>
+    const box = document.getElementById('tabs');
+    let confirmAt = -1, last = null;
+
+    function el(tag, cls, text) {
+        const e = document.createElement(tag);
+        if (cls) e.className = cls;
+        if (text != null) e.textContent = text;
+        return e;
+    }
+
+    function render(s) {
+        last = s;
+        if (confirmAt >= s.tabs.length) confirmAt = -1;
+        box.replaceChildren(...s.tabs.map((t, i) => {
+            const b = el('div', 'tab' + (i === s.active ? ' active' : '') + (t.guest ? ' guest' : '') + (t.loading ? ' loading' : ''));
+            if (i === confirmAt) {
+                b.classList.add('confirm');
+                const yes = el('button', 'yes', 'Ja'), no = el('button', 'no', 'Nein');
+                yes.onclick = (e) => { e.stopPropagation(); confirmAt = -1; window.tabs.remove(i); };
+                no.onclick = (e) => { e.stopPropagation(); confirmAt = -1; render(last); };
+                b.append(el('span', 'ask', `${t.name} abmelden und entfernen?`), yes, no);
+                return b;
+            }
+            b.title = t.guest ? 'Nicht eingeloggt – im Spiel oben rechts „Log in“' : (t.loading ? 'Lädt …' : 'Eingeloggt');
+            if (t.avatar) {
+                const img = el('img', 'avatar');
+                img.src = t.avatar; img.alt = '';
+                img.onerror = () => img.replaceWith(el('span', 'dot'));
+                b.append(img);
+            } else b.append(el('span', 'dot'));
+            b.append(el('span', 'name', t.guest ? `${t.name} (nicht eingeloggt)` : t.name));
+            if (i < 9) b.append(el('span', 'key', `Strg+${i + 1}`));
+            if (s.tabs.length > 1) {
+                const x = el('button', 'x', '×');
+                x.title = 'Account entfernen';
+                x.onclick = (e) => { e.stopPropagation(); confirmAt = i; render(last); };
+                b.append(x);
+            }
+            b.onclick = () => window.tabs.select(i);
+            b.onauxclick = (e) => { if (e.button === 1) window.tabs.reload(i); };
+            return b;
+        }));
+    }
+    document.getElementById('add').onclick = () => window.tabs.add();
+    window.tabs.onState(render);
+    window.tabs.state().then(render);
+</script>
+</body>
+</html>

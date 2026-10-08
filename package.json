@@ -1,0 +1,67 @@
+{
+  "name": "marblelucefall-app",
+  "productName": "MarbleLuceFall",
+  "desktopName": "marblelucefall.desktop",
+  "version": "0.1.0",
+  "description": "Marble Crownfall with MarbleLuceFall: several accounts in tabs, desktop notifications, windows you can move anywhere.",
+  "main": "src/main.js",
+  "author": "DreamingLucie",
+  "license": "MIT",
+  "homepage": "https://github.com/luciedreams/marblelucefall-app",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder",
+    "dist:linux": "electron-builder --linux",
+    "dist:win": "electron-builder --win"
+  },
+  "dependencies": {
+    "electron-updater": "6.8.9"
+  },
+  "devDependencies": {
+    "electron": "44.5.0",
+    "electron-builder": "26.15.3"
+  },
+  "build": {
+    "appId": "io.github.luciedreams.marblelucefall",
+    "productName": "MarbleLuceFall",
+    "files": [
+      "src/**/*",
+      "package.json"
+    ],
+    "directories": {
+      "buildResources": "build",
+      "output": "dist"
+    },
+    "linux": {
+      "target": [
+        "AppImage"
+      ],
+      "category": "Game",
+      "icon": "build/icon.png",
+      "artifactName": "MarbleLuceFall-${version}.${ext}",
+      "syncDesktopName": true
+    },
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "icon": "build/icon.png",
+      "artifactName": "MarbleLuceFall-Setup-${version}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "shortcutName": "MarbleLuceFall"
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "luciedreams",
+        "repo": "marblelucefall-app",
+        "releaseType": "release"
+      }
+    ]
+  }
+}
