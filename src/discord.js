@@ -12,7 +12,7 @@ const os = require('os');
 const path = require('path');
 
 // Client-ID der Discord-App „Marble Crownfall“ (Developer Portal). Öffentlich, kein Geheimnis.
-const CLIENT_ID = process.env.DCF_DISCORD_CLIENT_ID || '';
+const CLIENT_ID = process.env.DCF_DISCORD_CLIENT_ID || '1557866078636482580';
 const TICK_MS = 15 * 1000;
 const RETRY_MS = 15 * 1000;
 
