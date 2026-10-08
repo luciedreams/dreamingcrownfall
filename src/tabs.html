@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="de">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src https: data:; style-src 'unsafe-inline'; script-src 'unsafe-inline'">
@@ -56,8 +56,8 @@
 </head>
 <body>
 <div id="tabs" style="display:contents"></div>
-<button class="add" id="add" title="Account hinzufügen">+</button>
-<span class="hint">Strg+1–9 · Strg+Tab · F5 neu laden · F11 Vollbild</span>
+<button class="add" id="add" title="Add account">+</button>
+<span class="hint">Ctrl+1–9 · Ctrl+Tab · F5 reload · F11 full screen</span>
 <script>
     const box = document.getElementById('tabs');
     let confirmAt = -1, last = null;
@@ -76,24 +76,24 @@
             const b = el('div', 'tab' + (i === s.active ? ' active' : '') + (t.guest ? ' guest' : '') + (t.loading ? ' loading' : ''));
             if (i === confirmAt) {
                 b.classList.add('confirm');
-                const yes = el('button', 'yes', 'Ja'), no = el('button', 'no', 'Nein');
+                const yes = el('button', 'yes', 'Yes'), no = el('button', 'no', 'No');
                 yes.onclick = (e) => { e.stopPropagation(); confirmAt = -1; window.tabs.remove(i); };
                 no.onclick = (e) => { e.stopPropagation(); confirmAt = -1; render(last); };
-                b.append(el('span', 'ask', `${t.name} abmelden und entfernen?`), yes, no);
+                b.append(el('span', 'ask', `Sign out and remove ${t.name}?`), yes, no);
                 return b;
             }
-            b.title = t.guest ? 'Nicht eingeloggt – im Spiel oben rechts „Log in“' : (t.loading ? 'Lädt …' : 'Eingeloggt');
+            b.title = t.guest ? 'Not signed in – use “Log in” at the top right of the game' : (t.loading ? 'Loading …' : 'Signed in');
             if (t.avatar) {
                 const img = el('img', 'avatar');
                 img.src = t.avatar; img.alt = '';
                 img.onerror = () => img.replaceWith(el('span', 'dot'));
                 b.append(img);
             } else b.append(el('span', 'dot'));
-            b.append(el('span', 'name', t.guest ? `${t.name} (nicht eingeloggt)` : t.name));
-            if (i < 9) b.append(el('span', 'key', `Strg+${i + 1}`));
+            b.append(el('span', 'name', t.guest ? `${t.name} (not signed in)` : t.name));
+            if (i < 9) b.append(el('span', 'key', `Ctrl+${i + 1}`));
             if (s.tabs.length > 1) {
                 const x = el('button', 'x', '×');
-                x.title = 'Account entfernen';
+                x.title = 'Remove account';
                 x.onclick = (e) => { e.stopPropagation(); confirmAt = i; render(last); };
                 b.append(x);
             }

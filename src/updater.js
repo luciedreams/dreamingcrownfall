@@ -19,8 +19,8 @@ module.exports = function startUpdater({ icon }) {
     autoUpdater.on('update-downloaded', (info) => {
         console.log(`[mlf-app] App-Update ${info.version} geladen`);
         if (Notification.isSupported()) {
-            new Notification({ title: `MarbleLuceFall-App ${info.version} ist bereit`, icon,
-                body: 'Wird beim nächsten Beenden installiert.' }).show();
+            new Notification({ title: `MarbleLuceFall app ${info.version} is ready`, icon,
+                body: 'It will be installed when you quit the app.' }).show();
         }
     });
     const check = () => autoUpdater.checkForUpdates().catch(() => {});

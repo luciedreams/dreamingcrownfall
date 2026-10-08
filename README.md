@@ -23,7 +23,7 @@ The app updates itself from the releases (Windows installer and AppImage).
 
 ## MarbleLuceFall updates
 
-The app and the script are updated separately. On every start, and every 30 minutes, the app looks for a newer MarbleLuceFall on Greasy Fork and keeps the last one it got, so it also starts offline. A new version is used from the next time a tab loads (F5). The tray menu has **Nach MLF-Update suchen** to check right away (the app itself speaks German for now).
+The app and the script are updated separately. On every start, and every 30 minutes, the app looks for a newer MarbleLuceFall on Greasy Fork and keeps the last one it got, so it also starts offline. A new version is used from the next time a tab loads (F5). The tray menu has **Check for MLF update** to look right away.
 
 ## Keys
 

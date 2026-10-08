@@ -103,7 +103,7 @@ module.exports = function startNotifier({ views, icon, isWatching, isFocused, fo
         }
         // recentlyUnlocked ist auf 5 gedeckelt — ein größerer Sprung wird ehrlich ausgewiesen.
         const more = (Number(d.completionCount) || 0) - (Number(s.ach.count) || 0) - neu.length;
-        if (s.ach.count != null && more > 0) notify({ tab: i, title: `🏅 ${label(i)}`, body: `und ${more} weitere Achievement(s)` });
+        if (s.ach.count != null && more > 0) notify({ tab: i, title: `🏅 ${label(i)}`, body: `and ${more} more achievement(s)` });
         s.ach.count = d.completionCount;
     }
 
@@ -124,9 +124,9 @@ module.exports = function startNotifier({ views, icon, isWatching, isFocused, fo
         if (!neuGold && !neuDia) return;
         const quellen = (Array.isArray(n?.sources) ? n.sources : [])
             .filter((q) => /gift|geschenk/i.test(String(q?.label || '')) || (neuGold && q?.currency === 'gold') || (neuDia && q?.currency === 'diamonds'))
-            .map((q) => `${q.label || 'Geschenk'}: +${Number(q.amount || 0).toLocaleString('de-DE')} ${q.currency === 'gold' ? 'Gold' : 'Diamonds'}`);
-        notify({ tab: i, title: `🎁 ${label(i)} hat ein Geschenk bekommen`,
-            body: quellen.slice(0, 4).join('\n') || [neuGold && 'Gold', neuDia && 'Diamonds'].filter(Boolean).join(' und ') });
+            .map((q) => `${q.label || 'Gift'}: +${Number(q.amount || 0).toLocaleString('en-US')} ${q.currency === 'gold' ? 'Gold' : 'Diamonds'}`);
+        notify({ tab: i, title: `🎁 ${label(i)} got a gift`,
+            body: quellen.slice(0, 4).join('\n') || [neuGold && 'Gold', neuDia && 'Diamonds'].filter(Boolean).join(' and ') });
     }
 
     // ---- Shop-Quest im Angebot --------------------------------------------------------------
@@ -171,9 +171,9 @@ module.exports = function startNotifier({ views, icon, isWatching, isFocused, fo
                     if (!fits.length) continue;
                     const ends = pub.rotation.endsAt ? new Date(pub.rotation.endsAt).getTime() : 0;
                     const rest = ends ? Math.max(0, Math.round((ends - Date.now()) / 60000)) : null;
-                    notify({ tab: i, title: `🛍️ ${label(i)}: Quest-Angebot im ${shopId === 'crowns' ? 'King' : 'Chat'} Shop`,
-                        body: `${q.title || q.definitionId}\n` + fits.map((o) => `${o.displayName || o.definitionId} (${o.rarity}), Platz ${(o.slotIndex || 0) + 1}`).join('\n')
-                            + (rest != null ? `\nnoch ${rest} Min` : '') });
+                    notify({ tab: i, title: `🛍️ ${label(i)}: quest item in the ${shopId === 'crowns' ? 'King' : 'Chat'} Shop`,
+                        body: `${q.title || q.definitionId}\n` + fits.map((o) => `${o.displayName || o.definitionId} (${o.rarity}), slot ${(o.slotIndex || 0) + 1}`).join('\n')
+                            + (rest != null ? `\n${rest} min left` : '') });
                 }
             }
         }
@@ -191,10 +191,10 @@ module.exports = function startNotifier({ views, icon, isWatching, isFocused, fo
             if (prev === undefined) console.log(`[mlf-app] King-Snapshot ok: ${st.kingName}`);
             if (prev !== undefined && prev !== k.playerId) {
                 const neu = ownIndexById(k.playerId), alt = ownIndexById(prev);
-                if (neu >= 0) notify({ tab: neu, title: `👑 ${label(neu)} ist King!`,
-                    body: prevName ? `Thron übernommen von ${prevName}` : 'Thron übernommen' });
-                else if (alt >= 0) notify({ tab: alt, title: `💔 ${label(alt)} hat den Thron verloren`,
-                    body: `${k.displayName || 'Jemand'} hat die Krone übernommen` });
+                if (neu >= 0) notify({ tab: neu, title: `👑 ${label(neu)} is King!`,
+                    body: prevName ? `Took the throne from ${prevName}` : 'Took the throne' });
+                else if (alt >= 0) notify({ tab: alt, title: `💔 ${label(alt)} lost the throne`,
+                    body: `${k.displayName || 'Someone'} took the crown` });
             }
         }
         // Royal Celebration: je ID einmal; was beim ersten Abruf schon läuft, ist Wasserstand.
@@ -203,10 +203,10 @@ module.exports = function startNotifier({ views, icon, isWatching, isFocused, fo
             st.celebs.add(rc.id);
             if (st.kingSeen && ['pending', 'ready', 'active'].includes(String(rc.state))) {
                 const own = ownIndexById(rc.playerId);
-                const who = rc.playerId === k?.playerId ? (k.displayName || 'Der King') : 'Der King';
+                const who = rc.playerId === k?.playerId ? (k.displayName || 'The King') : 'The King';
                 notify({ global: own < 0, tab: own >= 0 ? own : null,
                     title: `🎉 Royal Celebration${rc.multiplier ? ` x${rc.multiplier}` : ''}`,
-                    body: `${who} feiert` + (rc.tiles ? ` · ${rc.tiles} Tiles` : '') });
+                    body: `${who} is celebrating` + (rc.tiles ? ` · ${rc.tiles} tiles` : '') });
             }
         }
         st.kingSeen = true;
@@ -231,7 +231,7 @@ module.exports = function startNotifier({ views, icon, isWatching, isFocused, fo
         for (let i = 0; i < views.length; i++) {
             const names = [views[i].name].filter(Boolean);
             if (names.some((n) => new RegExp(`(^|[^\\w])@?${esc(n)}(?![\\w])`, 'i').test(text))) {
-                notify({ tab: i, title: `💬 ${m.sender.displayName || 'Jemand'} → ${label(i)}`, body: text });
+                notify({ tab: i, title: `💬 ${m.sender.displayName || 'Someone'} → ${label(i)}`, body: text });
                 break;
             }
         }
@@ -273,7 +273,7 @@ module.exports = function startNotifier({ views, icon, isWatching, isFocused, fo
 
     // Tray › Test-Benachrichtigung: prüft den Weg bis zum Desktop, ohne Fokus-Regel.
     function test() {
-        const n = new Notification({ title: '🔔 MarbleLuceFall', body: 'So sehen Benachrichtigungen aus. Klick holt das Fenster nach vorn.', icon });
+        const n = new Notification({ title: '🔔 MarbleLuceFall', body: 'This is what notifications look like. Click to bring the window up.', icon });
         n.on('click', () => focusTab(null));
         n.show();
     }

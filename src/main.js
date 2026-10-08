@@ -293,13 +293,13 @@ function createTray() {
     const show = () => { win.show(); win.focus(); };
     tray.on('click', show);
     tray.setContextMenu(Menu.buildFromTemplate([
-        { label: 'Anzeigen', click: show },
-        { label: 'Alle Tabs neu laden', click: () => { loadAppLayer(); views.forEach((v) => v.view.webContents.reloadIgnoringCache()); } },
-        { label: 'Nach MLF-Update suchen', click: () => mlf.update().catch((e) => console.warn(`[mlf-app] ${e.message}`)) },
-        { label: 'Test-Benachrichtigung', click: () => notifier?.test() },
-        { label: 'DevTools (aktiver Tab)', click: () => views[active].view.webContents.openDevTools({ mode: 'detach' }) },
+        { label: 'Show', click: show },
+        { label: 'Reload all tabs', click: () => { loadAppLayer(); views.forEach((v) => v.view.webContents.reloadIgnoringCache()); } },
+        { label: 'Check for MLF update', click: () => mlf.update().catch((e) => console.warn(`[mlf-app] ${e.message}`)) },
+        { label: 'Test notification', click: () => notifier?.test() },
+        { label: 'DevTools (current tab)', click: () => views[active].view.webContents.openDevTools({ mode: 'detach' }) },
         { type: 'separator' },
-        { label: 'Beenden', click: () => app.quit() },
+        { label: 'Quit', click: () => app.quit() },
     ]));
 }
 
@@ -313,8 +313,8 @@ if (!app.requestSingleInstanceLock()) {
             userData: app.getPath('userData'),
             onUpdate: (version, before) => {
                 if (!Notification.isSupported()) return;
-                new Notification({ title: `MarbleLuceFall ${version} ist da`, icon: ICON,
-                    body: `Vorher ${before}. Gilt ab dem nächsten Neuladen eines Tabs (F5).` }).show();
+                new Notification({ title: `MarbleLuceFall ${version} is here`, icon: ICON,
+                    body: `Was ${before}. Takes effect the next time a tab loads (F5).` }).show();
             },
         });
         await mlf.init();

@@ -119,7 +119,7 @@
         b.type = 'button';
         b.className = 'mcfo-win__btn';
         b.dataset.mlfApp = 'pop';
-        b.title = 'In eigenes Fenster';
+        b.title = 'Pop out into its own window';
         b.textContent = '⧉';
         b.addEventListener('click', (e) => { e.stopPropagation(); popOut(el); });
         b.addEventListener('pointerdown', (e) => e.stopPropagation()); // kein Ziehen über den Knopf
