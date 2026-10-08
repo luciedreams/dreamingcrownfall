@@ -4,15 +4,18 @@
 // Jeder Tab ist ein Account mit eigener Sitzung (Partition, wie ein Browser-Container) und läuft
 // durchgehend; sichtbar ist immer nur einer, die anderen zeichnen nicht (das Spiel pausiert bei
 // document.hidden nur die Grafik, Socket und Tickets laufen weiter).
-// MarbleLuceFall kommt von Greasy Fork (mlf-source.js) und läuft wie mit Tampermonkey vor den
-// Seitenskripten in jedem Frame (preload.js); die eigenen Funktionen der App stehen in app-layer.js.
+// Die Spiel-Ebene (src/mlf/, abgespalten von MarbleLuceFall 6.59.1, game-source.js) läuft wie mit
+// Tampermonkey vor den Seitenskripten in jedem Frame (preload.js); App-Funktionen im Seitenkontext
+// stehen in app-layer.js.
 
-const { app, BaseWindow, WebContentsView, Tray, Menu, ipcMain, session, shell, nativeImage, Notification } = require('electron');
+const { app, BaseWindow, WebContentsView, Tray, Menu, ipcMain, session, shell, nativeImage } = require('electron');
 const fs = require('fs');
 const path = require('path');
-const createMlfSource = require('./mlf-source.js');
+const gameSource = require('./game-source.js');
 const startNotifier = require('./notify.js');
 const startUpdater = require('./updater.js');
+const loadAddons = require('./addons.js');
+const autostart = require('./autostart.js');
 
 const START_URL = 'https://marblecrownfall.com/';
 const TAB_BAR_HEIGHT = 36;
@@ -81,7 +84,7 @@ const webPrefs = (acc) => ({
     nodeIntegrationInSubFrames: true, // Preload auch in den Overlay-iframes (Inventar, Achievements)
 });
 
-let win = null, tabBar = null, tray = null, notifier = null, mlf = null;
+let win = null, tabBar = null, tray = null, notifier = null, addons = null;
 let active = 0;
 const views = []; // je Account: { acc, view, name, guest, playerId, avatar }
 
@@ -95,7 +98,7 @@ function loadAppLayer() {
 
 // preload.js holt sich den Code synchron, damit er vor dem ersten Seitenskript läuft.
 ipcMain.on('mlf:script', (e) => {
-    const s = mlf?.get();
+    const s = gameSource.get();
     e.returnValue = { code: s?.code || null, version: s?.version || null, layer: appLayer };
 });
 
@@ -152,6 +155,7 @@ async function refreshIdentity(v) {
             v.guest = !!me.isGuest;
             v.name = me.isGuest ? null : me.displayName;
             v.avatar = me.isGuest ? '' : (me.profileImageUrl || me.avatarUrl || '');
+            addons?.identityChanged(v);
         }
     } catch {}
     pushTabs();
@@ -266,6 +270,7 @@ function createWindow() {
         title: 'MarbleLuceFall',
         icon: ICON,
         backgroundColor: '#14101c',
+        show: !autostart.startHidden, // Autostart: erst im Tray, Fenster über „Show“
     });
     win.setMenu(null);
 
@@ -295,8 +300,9 @@ function createTray() {
     tray.setContextMenu(Menu.buildFromTemplate([
         { label: 'Show', click: show },
         { label: 'Reload all tabs', click: () => { loadAppLayer(); views.forEach((v) => v.view.webContents.reloadIgnoringCache()); } },
-        { label: 'Check for MLF update', click: () => mlf.update().catch((e) => console.warn(`[mlf-app] ${e.message}`)) },
         { label: 'Test notification', click: () => notifier?.test() },
+        { label: 'Start with system (in the tray)', type: 'checkbox', checked: autostart.enabled(),
+          click: (item) => { try { autostart.set(item.checked); } catch (e) { console.error(`[mlf-app] Autostart: ${e.message}`); } } },
         { label: 'DevTools (current tab)', click: () => views[active].view.webContents.openDevTools({ mode: 'detach' }) },
         { type: 'separator' },
         { label: 'Quit', click: () => app.quit() },
@@ -309,19 +315,12 @@ if (!app.requestSingleInstanceLock()) {
     app.on('second-instance', () => { if (win) { win.show(); win.focus(); } });
 
     app.whenReady().then(async () => {
-        mlf = createMlfSource({
-            userData: app.getPath('userData'),
-            onUpdate: (version, before) => {
-                if (!Notification.isSupported()) return;
-                new Notification({ title: `MarbleLuceFall ${version} is here`, icon: ICON,
-                    body: `Was ${before}. Takes effect the next time a tab loads (F5).` }).show();
-            },
-        });
-        await mlf.init();
+        console.log(`[mlf-app] MarbleLuceFall App ${app.getVersion()}`);
         loadAppLayer();
         createWindow();
         createTray();
         startUpdater({ icon: ICON });
+        addons = loadAddons({ views, icon: ICON });
         const watching = () => win && win.isVisible() && !win.isMinimized() && win.isFocused();
         notifier = startNotifier({
             views, icon: ICON,

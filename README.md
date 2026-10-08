@@ -1,6 +1,6 @@
 # MarbleLuceFall App
 
-[Marble Crownfall](https://marblecrownfall.com) with [MarbleLuceFall](https://greasyfork.org/scripts/595115) built in, as a desktop app for Windows and Linux.
+[Marble Crownfall](https://marblecrownfall.com) as a desktop app for Windows and Linux, with its own in-game layer. That layer started out as the [MarbleLuceFall](https://greasyfork.org/scripts/595115) userscript (6.59.1) and is developed separately since — the app and the script are two projects with their own versions.
 
 ## What the app adds
 
@@ -10,7 +10,8 @@
   a Rebellion starts · an achievement unlocks · a gift arrives · the shop has an item for one of your open shop quests.
   Clicking a notification brings up the right tab.
 - **Windows you can put anywhere.** Inventory, Dailies, Shop, Leaderboards, Settings and every other MarbleLuceFall window opens as a real window of its own: move it to another screen, resize it, Alt+Tab to it. Closing it closes the window. The chat stays in the game and gets a **⧉** button to pop it out.
-- **No browser, no extension.** MarbleLuceFall is loaded by the app itself.
+- **No browser, no extension.** Everything is part of the app and updates with it.
+- **Starts with your system if you like** (tray menu › *Start with system*), hidden in the tray, so notifications keep coming without opening the window.
 
 ## Install
 
@@ -21,9 +22,9 @@ Download the newest file from [Releases](https://github.com/luciedreams/marblelu
 
 The app updates itself from the releases (Windows installer and AppImage).
 
-## MarbleLuceFall updates
+## Add-ons
 
-The app and the script are updated separately. On every start, and every 30 minutes, the app looks for a newer MarbleLuceFall on Greasy Fork and keeps the last one it got, so it also starts offline. A new version is used from the next time a tab loads (F5). The tray menu has **Check for MLF update** to look right away.
+Every `.js` file in the `addons` folder of your profile is loaded when the app starts (Linux `~/.config/MarbleLuceFall/addons/`, Windows `%APPDATA%\MarbleLuceFall\addons\`). An add-on is a function that gets a small API: the accounts in your tabs and their sessions, desktop notifications and log lines (see `src/addons.js`). Add-ons run with the full rights of the app — only put files there that you wrote or trust. The app ships with none, and updates never touch the folder.
 
 ## Keys
 
@@ -50,7 +51,7 @@ npm run dist:linux     # AppImage in dist/
 npm run dist:win       # Windows installer in dist/
 ```
 
-`MLF_SCRIPT=/path/to/MarbleLuceFall.user.js npm start` runs a local copy of the script instead of the Greasy Fork one.
+The in-game layer lives in `src/mlf/`: the files listed in `src/mlf/order.txt`, joined in that order (they share one scope). When run from the folder, a reload (F5) picks up changes.
 `MLF_PROFILE=/some/folder npm start` uses a separate profile (own sessions), e.g. for testing next to the normal app.
 
 Releases are built by GitHub Actions for every `v*` tag.
