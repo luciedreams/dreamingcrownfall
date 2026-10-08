@@ -22,7 +22,7 @@ const SHOP_KIND = { crown_shop: 'crowns', chat_shop: 'chat', marble_shop: 'marbl
 const RARITY = { common: 1, uncommon: 2, rare: 3, epic: 4, legendary: 5, mythic: 6, ethereal: 7, cosmic: 8 };
 const ACH_MARK = ',"families":';
 
-module.exports = function startNotifier({ views, icon, isWatching, isFocused, focusTab }) {
+module.exports = function startNotifier({ views, icon, isWatching, isFocused, focusTab, setting = () => true }) {
     const st = {
         king: undefined,       // playerId des Kings beim letzten Snapshot
         kingName: '',
@@ -38,8 +38,10 @@ module.exports = function startNotifier({ views, icon, isWatching, isFocused, fo
     const label = (i) => views[i]?.name || `Account ${i + 1}`;
     const ownIndexById = (pid) => views.findIndex((v) => v.playerId && v.playerId === pid);
 
-    function notify({ title, body, tab = null, global = false }) {
-        if (global ? isFocused() : (tab != null && isWatching(tab))) return;
+    // kind = Schalter in den App-Einstellungen (notify.<kind>); onlyWhenAway = die Hinschau-Regel.
+    function notify({ kind, title, body, tab = null, global = false }) {
+        if (!setting('notify.enabled') || (kind && setting(`notify.${kind}`) === false)) return;
+        if (setting('notify.onlyWhenAway') !== false && (global ? isFocused() : (tab != null && isWatching(tab)))) return;
         if (!Notification.isSupported()) return;
         const n = new Notification({ title, body, icon, silent: false });
         const v = tab != null ? views[tab] : null; // Klick später: Tab per Eintrag finden, Index kann sich verschieben
@@ -98,12 +100,12 @@ module.exports = function startNotifier({ views, icon, isWatching, isFocused, fo
         const neu = recent.filter((a) => !s.ach.seen.has(a.id)).sort((a, b) => a.at - b.at);
         for (const a of neu) {
             s.ach.seen.add(a.id);
-            notify({ tab: i, title: `🏅 ${label(i)}: ${a.title || 'Achievement'}`,
+            notify({ kind: 'achievement', tab: i, title: `🏅 ${label(i)}: ${a.title || 'Achievement'}`,
                 body: [a.desc, a.ap != null ? `+${a.ap} AP` : ''].filter(Boolean).join(' · ') });
         }
         // recentlyUnlocked ist auf 5 gedeckelt — ein größerer Sprung wird ehrlich ausgewiesen.
         const more = (Number(d.completionCount) || 0) - (Number(s.ach.count) || 0) - neu.length;
-        if (s.ach.count != null && more > 0) notify({ tab: i, title: `🏅 ${label(i)}`, body: `and ${more} more achievement(s)` });
+        if (s.ach.count != null && more > 0) notify({ kind: 'achievement', tab: i, title: `🏅 ${label(i)}`, body: `and ${more} more achievement(s)` });
         s.ach.count = d.completionCount;
     }
 
@@ -125,7 +127,7 @@ module.exports = function startNotifier({ views, icon, isWatching, isFocused, fo
         const quellen = (Array.isArray(n?.sources) ? n.sources : [])
             .filter((q) => /gift|geschenk/i.test(String(q?.label || '')) || (neuGold && q?.currency === 'gold') || (neuDia && q?.currency === 'diamonds'))
             .map((q) => `${q.label || 'Gift'}: +${Number(q.amount || 0).toLocaleString('en-US')} ${q.currency === 'gold' ? 'Gold' : 'Diamonds'}`);
-        notify({ tab: i, title: `🎁 ${label(i)} got a gift`,
+        notify({ kind: 'gift', tab: i, title: `🎁 ${label(i)} got a gift`,
             body: quellen.slice(0, 4).join('\n') || [neuGold && 'Gold', neuDia && 'Diamonds'].filter(Boolean).join(' and ') });
     }
 
@@ -171,7 +173,7 @@ module.exports = function startNotifier({ views, icon, isWatching, isFocused, fo
                     if (!fits.length) continue;
                     const ends = pub.rotation.endsAt ? new Date(pub.rotation.endsAt).getTime() : 0;
                     const rest = ends ? Math.max(0, Math.round((ends - Date.now()) / 60000)) : null;
-                    notify({ tab: i, title: `🛍️ ${label(i)}: quest item in the ${shopId === 'crowns' ? 'King' : 'Chat'} Shop`,
+                    notify({ kind: 'shopQuest', tab: i, title: `🛍️ ${label(i)}: quest item in the ${shopId === 'crowns' ? 'King' : 'Chat'} Shop`,
                         body: `${q.title || q.definitionId}\n` + fits.map((o) => `${o.displayName || o.definitionId} (${o.rarity}), slot ${(o.slotIndex || 0) + 1}`).join('\n')
                             + (rest != null ? `\n${rest} min left` : '') });
                 }
@@ -191,9 +193,9 @@ module.exports = function startNotifier({ views, icon, isWatching, isFocused, fo
             if (prev === undefined) console.log(`[dcf] King-Snapshot ok: ${st.kingName}`);
             if (prev !== undefined && prev !== k.playerId) {
                 const neu = ownIndexById(k.playerId), alt = ownIndexById(prev);
-                if (neu >= 0) notify({ tab: neu, title: `👑 ${label(neu)} is King!`,
+                if (neu >= 0) notify({ kind: 'king', tab: neu, title: `👑 ${label(neu)} is King!`,
                     body: prevName ? `Took the throne from ${prevName}` : 'Took the throne' });
-                else if (alt >= 0) notify({ tab: alt, title: `💔 ${label(alt)} lost the throne`,
+                else if (alt >= 0) notify({ kind: 'king', tab: alt, title: `💔 ${label(alt)} lost the throne`,
                     body: `${k.displayName || 'Someone'} took the crown` });
             }
         }
@@ -204,7 +206,7 @@ module.exports = function startNotifier({ views, icon, isWatching, isFocused, fo
             if (st.kingSeen && ['pending', 'ready', 'active'].includes(String(rc.state))) {
                 const own = ownIndexById(rc.playerId);
                 const who = rc.playerId === k?.playerId ? (k.displayName || 'The King') : 'The King';
-                notify({ global: own < 0, tab: own >= 0 ? own : null,
+                notify({ kind: 'celebration', global: own < 0, tab: own >= 0 ? own : null,
                     title: `🎉 Royal Celebration${rc.multiplier ? ` x${rc.multiplier}` : ''}`,
                     body: `${who} is celebrating` + (rc.tiles ? ` · ${rc.tiles} tiles` : '') });
             }
@@ -223,7 +225,7 @@ module.exports = function startNotifier({ views, icon, isWatching, isFocused, fo
         const kind = m?.sender?.kind;
         if (kind === 'system') {
             const reb = text.match(/^(.*?)\s+has started a x(\d+) Rebellion\b/i);
-            if (reb) notify({ global: true, title: `⚡ Rebellion x${reb[2]}`, body: text });
+            if (reb) notify({ kind: 'rebellion', global: true, title: `⚡ Rebellion x${reb[2]}`, body: text });
             return;
         }
         if (kind !== 'player') return;
@@ -231,7 +233,7 @@ module.exports = function startNotifier({ views, icon, isWatching, isFocused, fo
         for (let i = 0; i < views.length; i++) {
             const names = [views[i].name].filter(Boolean);
             if (names.some((n) => new RegExp(`(^|[^\\w])@?${esc(n)}(?![\\w])`, 'i').test(text))) {
-                notify({ tab: i, title: `💬 ${m.sender.displayName || 'Someone'} → ${label(i)}`, body: text });
+                notify({ kind: 'mention', tab: i, title: `💬 ${m.sender.displayName || 'Someone'} → ${label(i)}`, body: text });
                 break;
             }
         }

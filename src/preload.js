@@ -7,6 +7,18 @@ const { contextBridge, ipcRenderer } = require('electron');
 
 const host = location.hostname;
 if (host === 'marblecrownfall.com' || host.endsWith('.marblecrownfall.com')) {
+    // Brücke zu den App-Einstellungen (Benachrichtigungen, Discord, Autostart) — nur im obersten Frame,
+    // und die App nimmt nur die Schalter an, die sie kennt (app-settings.js).
+    if (window.top === window.self) {
+        const changeHandlers = [];
+        ipcRenderer.on('dcf:settings:changed', (_e, s) => { for (const cb of changeHandlers) { try { cb(s); } catch (err) {} } });
+        contextBridge.exposeInMainWorld('dcfApp', {
+            settings: () => ipcRenderer.sendSync('dcf:settings:get'),
+            set: (key, value) => ipcRenderer.send('dcf:settings:set', String(key), value === true),
+            onChange: (cb) => { if (typeof cb === 'function') changeHandlers.push(cb); },
+        });
+    }
+
     const script = ipcRenderer.sendSync('mlf:script');
     if (script && (script.code || script.layer)) {
         contextBridge.executeInMainWorld({

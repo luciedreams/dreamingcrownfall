@@ -16,6 +16,7 @@ const startNotifier = require('./notify.js');
 const startUpdater = require('./updater.js');
 const loadAddons = require('./addons.js');
 const autostart = require('./autostart.js');
+const appSettings = require('./app-settings.js');
 
 const START_URL = 'https://marblecrownfall.com/';
 const TAB_BAR_HEIGHT = 36;
@@ -302,7 +303,7 @@ function createTray() {
         { label: 'Reload all tabs', click: () => { loadAppLayer(); views.forEach((v) => v.view.webContents.reloadIgnoringCache()); } },
         { label: 'Test notification', click: () => notifier?.test() },
         { label: 'Start with system (in the tray)', type: 'checkbox', checked: autostart.enabled(),
-          click: (item) => { try { autostart.set(item.checked); } catch (e) { console.error(`[dcf] Autostart: ${e.message}`); } } },
+          click: (item) => { try { appSettings.setAutostart(item.checked); } catch (e) { console.error(`[dcf] Autostart: ${e.message}`); } } },
         { label: 'DevTools (current tab)', click: () => views[active].view.webContents.openDevTools({ mode: 'detach' }) },
         { type: 'separator' },
         { label: 'Quit', click: () => app.quit() },
@@ -316,6 +317,7 @@ if (!app.requestSingleInstanceLock()) {
 
     app.whenReady().then(async () => {
         console.log(`[dcf] DreamingCrownfall ${app.getVersion()}`);
+        appSettings.init();
         loadAppLayer();
         createWindow();
         createTray();
@@ -323,7 +325,7 @@ if (!app.requestSingleInstanceLock()) {
         addons = loadAddons({ views, icon: ICON });
         const watching = () => win && win.isVisible() && !win.isMinimized() && win.isFocused();
         notifier = startNotifier({
-            views, icon: ICON,
+            views, icon: ICON, setting: appSettings.get,
             isFocused: watching,
             isWatching: (i) => watching() && active === i,
             focusTab: (i) => { win.show(); win.focus(); if (i != null && i >= 0) select(i); },
