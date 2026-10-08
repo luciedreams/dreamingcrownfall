@@ -146,6 +146,9 @@
             .dcf-set__resulthead span { flex: 1; font-size: 13px; font-weight: 800; color: var(--ds-text); }
             .dcf-set__btn { font: inherit; font-size: 13.5px; font-weight: 700; cursor: pointer; padding: 9px 15px; border-radius: 10px; color: var(--ds-text); background: transparent; border: 1px solid var(--ds-line); }
             .dcf-set__btn:hover { background: rgba(180, 138, 232, 0.12); border-color: rgba(180, 138, 232, 0.5); }
+            .dcf-set__btn--main { border: 0; color: #1a1026; background: linear-gradient(180deg, #ffe08f, #f2b84b); }
+            .dcf-set__btn--main:hover { background: linear-gradient(180deg, #ffe7a6, #f5c25f); }
+            .dcf-set__btn:disabled { opacity: 0.5; cursor: default; }
             .dcf-set__btn--danger { border-color: rgba(224, 122, 122, 0.4); color: #f2b3b3; }
             .dcf-set__btn--danger:hover { background: rgba(224, 122, 122, 0.12); }
             .dcf-set__btns { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
@@ -289,6 +292,7 @@
                         mk('How to', () => { closeAppSettings(); showHowTo(); }));
             part.appendChild(btns);
             box.appendChild(part);
+            box.appendChild(dcfUpdatePart());
             const reset = dcfPart('Start over');
             reset.appendChild(dcfEl('p', 'dcf-set__note', 'Every in-game setting back to its default: theme, switches, sliders. Your accounts, loadouts and the app settings stay.'));
             const rb = dcfEl('div', 'dcf-set__btns');
@@ -306,6 +310,48 @@
             reset.appendChild(rb);
             box.appendChild(reset);
         }
+    }
+
+    // ---- updates (app) ----------------------------------------------------------------------
+    // The state comes from the app (src/updater.js) and follows it live while the page is open.
+    const DCF_UPDATE_TEXT = {
+        dev: () => 'Running from the project folder — updates come with git, nothing to install here.',
+        idle: () => 'Not checked yet.',
+        checking: () => 'Looking for a new version …',
+        latest: () => 'You have the newest version.',
+        downloading: u => `Version ${u.version} is downloading${u.percent ? ` (${u.percent} %)` : ''} …`,
+        ready: u => `Version ${u.version} is ready. It is installed when you quit the app — or right now:`,
+        available: u => `Version ${u.version} is out. This kind of install cannot update itself: download the new file from the release page.`,
+        error: u => 'Could not check: ' + (u.error || 'unknown error'),
+    };
+    function dcfUpdatePart() {
+        const part = dcfPart('Updates');
+        const api = dcfApi();
+        const note = dcfEl('p', 'dcf-set__note', '…');
+        const btns = dcfEl('div', 'dcf-set__btns');
+        const check = dcfEl('button', 'dcf-set__btn', 'Check for updates');
+        check.type = 'button';
+        const act = dcfEl('button', 'dcf-set__btn dcf-set__btn--main');
+        act.type = 'button';
+        act.hidden = true;
+        btns.append(check, act);
+        part.append(note, btns);
+        if (!api || !api.update) { note.textContent = 'Updates are handled by the DreamingCrownfall app.'; check.hidden = true; return part; }
+        const show = u => {
+            if (!u) return;
+            const when = u.checkedAt ? ' Last checked ' + new Date(u.checkedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + '.' : '';
+            note.textContent = (DCF_UPDATE_TEXT[u.status] || DCF_UPDATE_TEXT.idle)(u) + (['latest', 'error'].includes(u.status) ? when : '');
+            check.hidden = u.status === 'dev';
+            check.disabled = u.status === 'checking' || u.status === 'downloading';
+            act.hidden = !(u.status === 'ready' || u.status === 'available');
+            act.textContent = u.status === 'ready' ? 'Restart and update' : 'Open the release page';
+        };
+        check.addEventListener('click', () => { check.disabled = true; note.textContent = DCF_UPDATE_TEXT.checking(); api.update.check().then(show); });
+        act.addEventListener('click', () => api.update.install());
+        api.update.state().then(show);
+        if (!dcfUpdatePart.listening) { dcfUpdatePart.listening = true; api.update.onChange(u => { dcfUpdatePart.last = u; if (dcfUpdatePart.show) dcfUpdatePart.show(u); }); }
+        dcfUpdatePart.show = show;
+        return part;
     }
 
     function dcfMyName() {
@@ -435,6 +481,9 @@
         dcfSet = null;
         settingsRedraw = null;
     }
+
+    // For the app's tray menu (Check for updates): open the settings on a page.
+    try { window.dcfOpenSettings = page => showAppSettings({ page: String(page || '') }); } catch (e) {}
 
     // opts: { page } a page id, { section, label } the page of an old section and a switch to ring.
     function showAppSettings(opts = {}) {

@@ -86,7 +86,7 @@ const webPrefs = (acc) => ({
     nodeIntegrationInSubFrames: true, // Preload auch in den Overlay-iframes (Inventar, Achievements)
 });
 
-let win = null, tabBar = null, tray = null, notifier = null, addons = null;
+let win = null, tabBar = null, tray = null, notifier = null, addons = null, updater = null;
 let active = 0;
 const views = []; // je Account: { acc, view, name, guest, playerId, avatar }
 
@@ -295,6 +295,13 @@ function createWindow() {
     select(0);
 }
 
+// Settings im aktiven Tab öffnen, auf einer bestimmten Seite (Tray › Check for updates).
+function showSettingsPage(page) {
+    win.show(); win.focus();
+    const wc = views[active]?.view.webContents;
+    if (wc) wc.executeJavaScript(`window.dcfOpenSettings && window.dcfOpenSettings(${JSON.stringify(page)})`).catch(() => {});
+}
+
 function createTray() {
     tray = new Tray(nativeImage.createFromPath(TRAY_ICON));
     tray.setToolTip('DreamingCrownfall');
@@ -303,6 +310,7 @@ function createTray() {
     tray.setContextMenu(Menu.buildFromTemplate([
         { label: 'Show', click: show },
         { label: 'Reload all tabs', click: () => { loadAppLayer(); views.forEach((v) => v.view.webContents.reloadIgnoringCache()); } },
+        { label: 'Check for updates', click: () => { showSettingsPage('about'); updater?.check(); } },
         { label: 'Test notification', click: () => notifier?.test() },
         { label: 'Start with system (in the tray)', type: 'checkbox', checked: autostart.enabled(),
           click: (item) => { try { appSettings.setAutostart(item.checked); } catch (e) { console.error(`[dcf] Autostart: ${e.message}`); } } },
@@ -323,7 +331,7 @@ if (!app.requestSingleInstanceLock()) {
         loadAppLayer();
         createWindow();
         createTray();
-        startUpdater({ icon: ICON });
+        updater = startUpdater({ icon: ICON });
         addons = loadAddons({ views, icon: ICON });
         const watching = () => win && win.isVisible() && !win.isMinimized() && win.isFocused();
         notifier = startNotifier({

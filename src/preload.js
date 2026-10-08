@@ -17,6 +17,12 @@ if (host === 'marblecrownfall.com' || host.endsWith('.marblecrownfall.com')) {
             set: (key, value) => ipcRenderer.send('dcf:settings:set', String(key), value === true),
             onChange: (cb) => { if (typeof cb === 'function') changeHandlers.push(cb); },
             testNotification: () => ipcRenderer.send('dcf:notify:test'),
+            update: {
+                state: () => ipcRenderer.invoke('dcf:update:state'),
+                check: () => ipcRenderer.invoke('dcf:update:check'),
+                install: () => ipcRenderer.send('dcf:update:install'),
+                onChange: (cb) => { if (typeof cb === 'function') ipcRenderer.on('dcf:update:state', (_e, s) => { try { cb(s); } catch (err) {} }); },
+            },
         });
     }
 

@@ -589,6 +589,26 @@
         put(q('last'), parts.join(' · '));
     }
 
+    // DreamingCrownfall: a timer that hidden tabs do not slow down. Chromium aligns timers of a
+    // hidden page to whole seconds, so in a background account tab the 60 ms below could become up
+    // to a second — late for a bidding window. Timers inside a worker are not throttled; the worker
+    // only counts and posts back. Falls back to setTimeout where a worker cannot be made.
+    let abTimerWorker = null, abTimerSeq = 0;
+    const abTimerJobs = new Map();
+    function abSoon(fn, ms) {
+        if (abTimerWorker === null) {
+            try {
+                const src = 'onmessage=e=>setTimeout(()=>postMessage(e.data.id),e.data.ms)';
+                abTimerWorker = new Worker(URL.createObjectURL(new Blob([src], { type: 'text/javascript' })));
+                abTimerWorker.onmessage = e => { const f = abTimerJobs.get(e.data); abTimerJobs.delete(e.data); if (f) f(); };
+            } catch (e) { abTimerWorker = false; }
+        }
+        if (!abTimerWorker) return setTimeout(fn, ms);
+        const id = ++abTimerSeq;
+        abTimerJobs.set(id, fn);
+        abTimerWorker.postMessage({ id, ms });
+    }
+
     function startAutobid() {
         laneListeners.push((laneKey, entry, prev, source) => {
             if (source !== 'socket' || !settings.autobidOn) return;
@@ -598,7 +618,7 @@
             // Our listener sits on the socket before the game's (added in its constructor), so it
             // runs first. The tick waits until the game has taken the frame in — its chip lock is
             // read from the page.
-            setTimeout(autobidTick, 60);
+            abSoon(autobidTick, 60);
         });
         // The frames drive it; this beat keeps the status fresh and covers a quiet socket.
         setInterval(autobidTick, 1000);
