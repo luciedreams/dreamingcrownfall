@@ -20,7 +20,8 @@
   },
   "devDependencies": {
     "electron": "44.5.0",
-    "electron-builder": "26.15.3"
+    "electron-builder": "26.15.3",
+    "emojibase-data": "17.0.0"
   },
   "build": {
     "appId": "io.github.luciedreams.dreamingcrownfall",

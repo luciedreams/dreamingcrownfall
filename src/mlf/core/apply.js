@@ -41,6 +41,7 @@
         drawChatPop();
         drawTomatoButton();
         drawAnimalButton();
+        drawEmojiButton();
         applyChatPlus();
         applyChatGrow();
         applyChatStick();

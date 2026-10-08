@@ -39,6 +39,8 @@ chat/popout.js
 chat/enhanced.js
 chat/tomatoes.js
 chat/emotes.js
+chat/emoji-data.js
+chat/emoji.js
 chat/growing-box.js
 chat/stay-newest.js
 rail/extra-chips.js
