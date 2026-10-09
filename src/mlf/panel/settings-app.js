@@ -367,6 +367,7 @@
     // so preview and HUD can never look different. Every change goes to the app at once: the open
     // HUD follows while you click.
     let dcfHudLib = null;
+    let dcfHudShownOpen = null;   // what the page last drew for "HUD open", to redraw only when that changes
     function dcfHudRenderer(api) {
         if (dcfHudLib) return dcfHudLib;
         try {
@@ -395,8 +396,17 @@
         if (!api.hud) { box.appendChild(dcfEl('p', 'dcf-set__empty', 'The HUD needs a newer version of the app.')); return; }
         const lib = dcfHudRenderer(api);
         let { cfg, open } = api.hud.get();
+        dcfHudShownOpen = open;
         let data = null;
-        const save = () => { api.hud.set(cfg); drawPreview(); };
+        // Preview at once; the app (file + open HUD) at most every 60 ms, so a dragged slider
+        // does not send a write per pixel.
+        let sendTimer = 0, sentAt = 0;
+        const send = () => { clearTimeout(sendTimer); sentAt = Date.now(); api.hud.set(cfg); };
+        const save = (final) => {
+            drawPreview();
+            if (final || Date.now() - sentAt > 60) send();
+            else { clearTimeout(sendTimer); sendTimer = setTimeout(send, 60); }
+        };
 
         // Preview
         const prevPart = dcfPart('Preview', 'Shown with your real values; a Royal Celebration only appears while one runs.');
@@ -440,7 +450,7 @@
                         const items = cfg.items.slice();
                         [items[i], items[i + dir]] = [items[i + dir], items[i]];
                         cfg = Object.assign({}, cfg, { items });
-                        save(); drawItems();
+                        save(true); drawItems();
                     });
                     return b;
                 };
@@ -450,7 +460,7 @@
                 input.checked = it.on;
                 input.addEventListener('change', () => {
                     cfg = Object.assign({}, cfg, { items: cfg.items.map(x => x.id === it.id ? { id: x.id, on: input.checked } : x) });
-                    save(); drawItems();
+                    save(true); drawItems();
                 });
                 const sw = dcfEl('label', 'dcf-hudrow__sw');
                 sw.append(input, Object.assign(dcfEl('span', 'mcfo-switch'), { ariaHidden: 'true' }));
@@ -474,7 +484,7 @@
                 const b = dcfEl('button', null, label);
                 b.type = 'button';
                 b.dataset.v = v;
-                b.addEventListener('click', () => { cfg = Object.assign({}, cfg, { [key]: v }); save(); draw(); });
+                b.addEventListener('click', () => { cfg = Object.assign({}, cfg, { [key]: v }); save(true); draw(); });
                 s.appendChild(b);
             }
             draw();
@@ -485,6 +495,7 @@
         slider.type = 'range'; slider.min = '30'; slider.max = '100'; slider.step = '1'; slider.value = String(cfg.opacity);
         const val = dcfEl('b', null, cfg.opacity + ' %');
         slider.addEventListener('input', () => { cfg = Object.assign({}, cfg, { opacity: Number(slider.value) }); val.textContent = slider.value + ' %'; save(); });
+        slider.addEventListener('change', () => save(true));
         range.append(slider, val);
         look.append(
             dcfEl('span', null, 'Layout'), seg('layout', [['bar', 'Bar'], ['column', 'Column']]),
@@ -498,7 +509,12 @@
         // Opened or closed elsewhere (F2, tray): follow.
         if (!dcfHudPage.listening && api.hud.onChange) {
             dcfHudPage.listening = true;
-            api.hud.onChange(s => { if (dcfSet && dcfSet.page === 'hud' && !dcfSet.query) dcfRender(); });
+            // Only "opened/closed elsewhere" redraws the page. Our own changes come back here too,
+            // and redrawing on those swapped the slider out from under the mouse while dragging.
+            api.hud.onChange(s => {
+                if (!s || s.open === dcfHudShownOpen) return;
+                if (dcfSet && dcfSet.page === 'hud' && !dcfSet.query) dcfRender();
+            });
         }
     }
 
