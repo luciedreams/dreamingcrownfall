@@ -30,7 +30,53 @@
     const CROWN_STILL_MS = 500;
 
     function rafPacingWanted() {
-        return Number(perfValue('perfFpsCap')) > 0 || (!!perfValue('perfCrownStill') && !perfValue('perfCrownHide'));
+        return Number(perfValue('perfFpsCap')) !== 0 || (!!perfValue('perfCrownStill') && !perfValue('perfCrownHide'));
+    }
+
+    // --- Auto frame rate (app 0.3.0, perfFpsCap -1) ---
+    // The cap follows what this computer manages. Steps divide the screen's rate (60 Hz: no cap,
+    // 30, 20), so every frame takes the same number of refreshes: a cap of 45 on 60 Hz would
+    // alternate between one and two, the very stutter the cap is meant to take away.
+    // Every 3 s: more than a quarter of the frames late for the current step -> one step down.
+    // Three calm windows in a row -> try the next step up; failing that, wait longer before the
+    // next try (2 min, doubling up to 15). The screen's rate comes from the app (the screen the
+    // window is on); guessed from frame times it came out at 122 Hz on a 60 Hz screen, since a
+    // late frame is often followed by an early one.
+    const AUTO_WINDOW_MS = 3000;
+    const autoFps = { lastFrame: 0, frames: [], since: 0, refresh: 60,
+                      step: 0, calm: 0, probe: false, upFrom: 0, backoff: 2 * 60 * 1000 };
+    const autoSteps = () => [1, 2, 3].map(d => Math.round(autoFps.refresh / d)).filter(f => f >= 20);
+    function autoCap() {
+        const steps = autoSteps();
+        return autoFps.step ? steps[Math.min(autoFps.step, steps.length - 1)] : 0;
+    }
+    function autoCall(t) {
+        if (!autoFps.since) autoFps.since = t;
+        if (t - autoFps.since < AUTO_WINDOW_MS) return;
+        autoFps.since = t;
+        const frames = autoFps.frames.splice(0);
+        try { const hz = Math.round(Number(pageWindow.dcfApp && pageWindow.dcfApp.displayHz())); if (hz >= 30 && hz <= 360) autoFps.refresh = hz; } catch (e) { /* not in the app: 60 */ }
+        if (frames.length < 10 || document.hidden) return;
+        const steps = autoSteps();
+        autoFps.step = Math.min(autoFps.step, steps.length - 1);
+        const late = frames.filter(x => x > 1000 / steps[autoFps.step] * 1.4).length / frames.length;
+        if (late > 0.25) {
+            if (autoFps.probe) { autoFps.upFrom = t + autoFps.backoff; autoFps.backoff = Math.min(autoFps.backoff * 2, 15 * 60 * 1000); }
+            autoFps.probe = false;
+            autoFps.calm = 0;
+            if (autoFps.step < steps.length - 1) autoFps.step++;
+            return;
+        }
+        if (autoFps.probe) { autoFps.probe = false; autoFps.backoff = 2 * 60 * 1000; }   // the step up held
+        if (late < 0.05 && autoFps.step > 0 && ++autoFps.calm >= 3 && t >= autoFps.upFrom) {
+            autoFps.step--;
+            autoFps.probe = true;
+            autoFps.calm = 0;
+        }
+    }
+    function autoFrame(t) {
+        if (autoFps.lastFrame && t - autoFps.lastFrame < 250) autoFps.frames.push(t - autoFps.lastFrame);
+        autoFps.lastFrame = t;
     }
 
     // The crown's loop is recognised by its source: the draw function that turns the model
@@ -62,13 +108,16 @@
 
     function pump(t) {
         pumpQueued = false;
-        const cap = Number(perfValue('perfFpsCap')) || 0;
+        const auto = Number(perfValue('perfFpsCap')) === -1;
+        const cap = auto ? autoCap() : Number(perfValue('perfFpsCap')) || 0;
+        if (auto) autoCall(t);
         // 2 ms of slack, or a 60 Hz screen would miss every other frame of a 30 fps cap by a
         // fraction of a millisecond and land on 20.
         if (cap && t - lastPumpAt < 1000 / cap - 2) { queuePump(); return; }
         lastPumpAt = t;
         if (!rafWaiting.size) return;
         framesDelivered++;
+        if (auto) autoFrame(t);
 
         const still = !!perfValue('perfCrownStill');
         const batch = [...rafWaiting];
@@ -159,7 +208,9 @@
         const t = new Date(fpsStats.since || Date.now());
         const hhmm = String(t.getHours()).padStart(2, '0') + ':' + String(t.getMinutes()).padStart(2, '0');
         fpsPop.innerHTML = row('Min', fpsStats.min) + row('Avg', has ? Math.round(fpsStats.sum / fpsStats.n) : 0)
-            + row('Max', fpsStats.max) + `<div class="mcfo-fpspop__note">since ${hhmm}</div>`;
+            + row('Max', fpsStats.max)
+            + (Number(perfValue('perfFpsCap')) === -1 ? `<div class="mcfo-fpspop__row"><span>Auto</span><b>${autoCap() ? autoCap() + ' fps' : 'no cap'}</b></div>` : '')
+            + `<div class="mcfo-fpspop__note">since ${hhmm}</div>`;
         // Below the badge when it sits in the header card, above it when it floats over the footer.
         const r = fpsBadge.getBoundingClientRect(), h = fpsPop.offsetHeight, w = fpsPop.offsetWidth;
         const below = r.bottom + 6 + h <= innerHeight;

@@ -8,7 +8,7 @@
 // Tampermonkey vor den Seitenskripten in jedem Frame (preload.js); App-Funktionen im Seitenkontext
 // stehen in app-layer.js.
 
-const { app, BaseWindow, WebContentsView, Tray, Menu, ipcMain, session, shell, nativeImage } = require('electron');
+const { app, BaseWindow, WebContentsView, Tray, Menu, ipcMain, session, shell, nativeImage, screen } = require('electron');
 const fs = require('fs');
 const path = require('path');
 const gameSource = require('./game-source.js');
@@ -147,6 +147,12 @@ ipcMain.on('tabs:add', () => { addAccount({ partition: newPartition() }, true); 
 ipcMain.on('tabs:remove', (_e, i) => removeAccount(i));
 ipcMain.handle('tabs:state', () => tabState());
 ipcMain.on('dcf:notify:test', () => notifier?.test());
+// Bildwiederholrate des Bildschirms, auf dem das Fenster steht (Auto-Bildrate der Spiel-Ebene).
+ipcMain.on('dcf:display:hz', (e) => {
+    let hz = 60;
+    try { hz = screen.getDisplayMatching(win.getBounds()).displayFrequency || 60; } catch {}
+    e.returnValue = hz;
+});
 
 // Wer ist in diesem Tab eingeloggt? Fragt das Spiel selbst (Seitenkontext = Cookie der Partition).
 async function refreshIdentity(v) {
