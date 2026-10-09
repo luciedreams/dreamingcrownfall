@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src https: data:; style-src 'unsafe-inline'; script-src 'unsafe-inline'">
+<title>Home</title>
+<style>
+    :root {
+        --bg1: #201634; --bg2: #120d1c; --card: rgba(255, 255, 255, 0.035); --card-hover: rgba(255, 255, 255, 0.06);
+        --line: rgba(180, 138, 232, 0.2); --line2: rgba(180, 138, 232, 0.12);
+        --text: #ece4f7; --muted: #a99cc0; --dim: #7d7194; --violet: #b48ae8; --violet2: #8b5cf6; --gold: #ffd36e;
+        --green: #7fd99a; --warn: #e0a050;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; }
+    body {
+        background: radial-gradient(1200px 600px at 20% -10%, rgba(139, 92, 246, 0.16), transparent 60%), linear-gradient(180deg, var(--bg1), var(--bg2));
+        background-attachment: fixed; color: var(--text); font: 14px/1.4 system-ui, sans-serif; user-select: none;
+    }
+    main { max-width: 1240px; margin: 0 auto; padding: 28px 28px 40px; }
+    header { display: flex; align-items: flex-end; gap: 18px; flex-wrap: wrap; margin-bottom: 20px; }
+    .title .kicker { color: var(--gold); font-size: 11px; font-weight: 800; letter-spacing: 0.18em; text-transform: uppercase; }
+    .title h1 { margin: 2px 0 0; font-size: 26px; font-weight: 800; letter-spacing: -0.01em; }
+    .totals { display: flex; gap: 10px; margin-left: auto; flex-wrap: wrap; }
+    .total { padding: 8px 14px; border: 1px solid var(--line2); border-radius: 12px; background: var(--card); min-width: 110px; }
+    .total span { display: block; color: var(--dim); font-size: 10.5px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; }
+    .total b { font-size: 17px; font-variant-numeric: tabular-nums; }
+    .bar { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 18px; color: var(--muted); font-size: 13px; }
+    .bar .king { display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; border: 1px solid var(--line2); background: var(--card); }
+    .bar .king.mine { border-color: rgba(255, 211, 110, 0.5); color: var(--gold); background: rgba(255, 211, 110, 0.07); }
+    .bar .sep { flex: 1; }
+    .bar button { border: 1px solid var(--line); background: var(--card); color: var(--muted); border-radius: 8px; padding: 6px 12px; font: inherit; cursor: pointer; }
+    .bar button:hover { color: var(--text); border-color: var(--violet); }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); gap: 16px; }
+    .acc {
+        position: relative; display: flex; flex-direction: column; gap: 14px; padding: 18px;
+        border: 1px solid var(--line2); border-radius: 16px; background: var(--card); cursor: pointer;
+        transition: background 120ms, border-color 120ms, transform 120ms;
+    }
+    .acc:hover { background: var(--card-hover); border-color: var(--line); transform: translateY(-1px); }
+    .acc.king { border-color: rgba(255, 211, 110, 0.55); box-shadow: 0 0 0 1px rgba(255, 211, 110, 0.15), 0 10px 30px rgba(255, 211, 110, 0.06); }
+    .head { display: flex; align-items: center; gap: 12px; }
+    .avatar { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; background: #2c2240; flex: none; border: 2px solid var(--line); }
+    .acc.king .avatar { border-color: var(--gold); }
+    .avatar.initial { display: grid; place-items: center; color: var(--violet); font-weight: 800; font-size: 18px; }
+    .who { min-width: 0; }
+    .name { font-size: 16px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .status { display: inline-flex; align-items: center; gap: 6px; margin-top: 3px; color: var(--dim); font-size: 12px; }
+    .status::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: var(--dim); }
+    .status.on { color: var(--green); }
+    .status.on::before { background: var(--green); box-shadow: 0 0 6px var(--green); }
+    .crown { margin-left: auto; color: var(--gold); font-size: 12px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; white-space: nowrap; }
+    .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .stat { padding: 9px 11px; border-radius: 10px; background: rgba(0, 0, 0, 0.18); border: 1px solid rgba(255, 255, 255, 0.03); }
+    .stat span { display: block; color: var(--dim); font-size: 10.5px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+    .stat b { font-size: 15px; font-variant-numeric: tabular-nums; }
+    .stat.gold b { color: var(--gold); }
+    .stat.dia b { color: #9fd3ff; }
+    .daily { display: flex; flex-direction: column; gap: 7px; }
+    .daily .row { display: flex; justify-content: space-between; color: var(--muted); font-size: 12.5px; }
+    .meter { height: 6px; border-radius: 999px; background: rgba(255, 255, 255, 0.06); overflow: hidden; }
+    .meter i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--violet2), var(--violet)); }
+    .meter.full i { background: linear-gradient(90deg, #4fb37a, var(--green)); }
+    .chips { display: flex; gap: 6px; flex-wrap: wrap; min-height: 22px; }
+    .chip { padding: 3px 9px; border-radius: 999px; font-size: 11.5px; font-weight: 700; border: 1px solid var(--line2); color: var(--muted); }
+    .chip.claim { color: #1c1408; background: var(--gold); border-color: var(--gold); }
+    .foot { margin-top: auto; display: flex; align-items: center; justify-content: space-between; color: var(--dim); font-size: 11.5px; }
+    .open { border: 1px solid var(--line); background: rgba(139, 92, 246, 0.14); color: var(--text); border-radius: 8px; padding: 6px 12px; font: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer; }
+    .open:hover { background: rgba(139, 92, 246, 0.28); border-color: var(--violet); }
+    .empty { color: var(--dim); font-size: 13px; padding: 18px 0 6px; }
+</style>
+</head>
+<body>
+<main>
+    <header>
+        <div class="title"><div class="kicker">DreamingCrownfall</div><h1>Your accounts</h1></div>
+        <div class="totals" id="totals"></div>
+    </header>
+    <div class="bar"><div class="king" id="king"></div><span id="reset"></span><span class="sep"></span><span id="age"></span><button id="refresh" type="button">Refresh</button></div>
+    <div class="grid" id="grid"></div>
+</main>
+<script>
+    const $ = (id) => document.getElementById(id);
+    const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+    const fmt = (n) => (n == null ? '–' : Number(n).toLocaleString('en-US'));
+    const short = (n) => {
+        if (n == null) return '–';
+        const a = Math.abs(n);
+        for (const [v, s] of [[1e12, 'T'], [1e9, 'B'], [1e6, 'M'], [1e3, 'K']]) if (a >= v) return (n / v).toFixed(a >= v * 100 ? 0 : 1).replace(/\.0$/, '') + s;
+        return String(n);
+    };
+    const mins = (ms) => { const m = Math.max(0, Math.round(ms / 60000)); return m >= 60 ? `${Math.floor(m / 60)} h ${m % 60} min` : `${m} min`; };
+    let last = null;
+
+    function stat(label, value, cls, title) {
+        const s = el('div', 'stat' + (cls ? ' ' + cls : ''));
+        s.append(el('span', null, label), el('b', null, value));
+        if (title) s.title = title;
+        return s;
+    }
+
+    function card(a, king) {
+        const isKing = king && king.mine === a.index;
+        const c = el('div', 'acc' + (isKing ? ' king' : ''));
+        c.onclick = () => window.home.select(a.index);
+
+        const head = el('div', 'head');
+        const initial = () => el('div', 'avatar initial', (a.name || '?').trim().charAt(0).toUpperCase());
+        let img;
+        if (a.avatar) { img = el('img', 'avatar'); img.src = a.avatar; img.alt = ''; img.onerror = () => img.replaceWith(initial()); }
+        else img = initial();
+        const who = el('div', 'who');
+        who.append(el('div', 'name', a.guest ? `${a.name} (not signed in)` : a.name));
+        const earning = /earning/i.test(a.ticketStatus || '') && !/not earning/i.test(a.ticketStatus || '');
+        who.append(el('div', 'status' + (earning ? ' on' : ''), a.guest ? 'Sign in in its tab' : (a.ticketStatus || (a.loading ? 'Loading …' : '…'))));
+        head.append(img, who);
+        if (isKing) head.append(el('div', 'crown', `King · ${mins(Date.now() - king.since)}`));
+        c.append(head);
+
+        if (!a.guest) {
+            const stats = el('div', 'stats');
+            stats.append(
+                stat('Tickets', fmt(a.tickets)),
+                stat('Points', short(a.points), null, a.points != null ? fmt(a.points) : ''),
+                stat('Gold', fmt(a.gold), 'gold'),
+                stat('Diamonds', fmt(a.diamonds), 'dia'),
+            );
+            c.append(stats);
+
+            const q = a.quests || { total: 0, done: 0, claimable: 0 };
+            const d = el('div', 'daily');
+            const row = el('div', 'row');
+            row.append(el('span', null, 'Daily quests'), el('span', null, q.total ? `${q.done} / ${q.total}` : '–'));
+            const meter = el('div', 'meter' + (q.total && q.done === q.total ? ' full' : ''));
+            const fill = el('i');
+            fill.style.width = q.total ? `${Math.round(q.done / q.total * 100)}%` : '0';
+            meter.append(fill);
+            d.append(row, meter);
+            c.append(d);
+
+            const chips = el('div', 'chips');
+            if (q.claimable) chips.append(el('span', 'chip claim', `${q.claimable} quest reward${q.claimable > 1 ? 's' : ''} to claim`));
+            const it = a.items || { claimable: 0 };
+            if (it.claimable) chips.append(el('span', 'chip claim', `${it.claimable} daily item${it.claimable > 1 ? 's' : ''} to claim`));
+            if (a.vip != null) chips.append(el('span', 'chip', `VIP ${fmt(a.vip)}`));
+            if (a.kingMinutes) chips.append(el('span', 'chip', `King ${mins(a.kingMinutes * 60000)} this episode`));
+            c.append(chips);
+        }
+
+        const foot = el('div', 'foot');
+        foot.append(el('span', null, a.index < 9 ? `Ctrl+${a.index + 1}` : ''));
+        const open = el('button', 'open', 'Open tab');
+        open.type = 'button';
+        open.onclick = (e) => { e.stopPropagation(); window.home.select(a.index); };
+        foot.append(open);
+        c.append(foot);
+        return c;
+    }
+
+    function render(s) {
+        last = s;
+        const acc = s.accounts.filter((a) => !a.guest);
+        const sum = (k) => acc.some((a) => a[k] != null) ? acc.reduce((n, a) => n + (Number(a[k]) || 0), 0) : null;
+        const totals = [['Tickets', fmt(sum('tickets'))], ['Gold', fmt(sum('gold'))], ['Diamonds', fmt(sum('diamonds'))], ['Points', short(sum('points'))]];
+        $('totals').replaceChildren(...totals.map(([k, v]) => { const t = el('div', 'total'); t.append(el('span', null, k), el('b', null, v)); return t; }));
+
+        const k = s.king, kb = $('king');
+        kb.className = 'king' + (k && k.mine >= 0 ? ' mine' : '');
+        kb.textContent = k ? `👑 ${k.mine >= 0 ? 'Your ' + (s.accounts[k.mine]?.name || 'account') : k.name} is King · ${mins(Date.now() - k.since)}` : '👑 King: …';
+
+        const reset = acc.map((a) => a.resetAtMs).find(Boolean);
+        $('reset').textContent = reset ? `Dailies reset in ${mins(reset - Date.now())}` : '';
+        const at = Math.max(0, ...acc.map((a) => a.at || 0));
+        $('age').textContent = at ? `Updated ${Math.max(0, Math.round((Date.now() - at) / 1000))} s ago` : 'Loading …';
+
+        const grid = $('grid');
+        grid.replaceChildren(...s.accounts.map((a) => card(a, k)));
+        if (!s.accounts.length) grid.replaceChildren(el('div', 'empty', 'No accounts yet.'));
+    }
+
+    $('refresh').onclick = () => window.home.refresh();
+    window.home.onState(render);
+    window.home.state().then(render);
+    // Zeitangaben (King seit, aktualisiert vor) laufen zwischen den Abrufen weiter.
+    setInterval(() => { if (last) render(last); }, 10000);
+</script>
+</body>
+</html>

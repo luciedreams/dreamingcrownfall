@@ -287,5 +287,10 @@ module.exports = function startNotifier({ views, icon, isWatching, isFocused, fo
         return i >= 0 ? { name: label(i), since: st.kingSince || Date.now() } : null;
     }
 
-    return { resetAccount, test, kingOfMine };
+    // Für Home: der aktuelle King, egal ob eigener Account.
+    function kingNow() {
+        return st.king ? { playerId: st.king, name: st.kingName, since: st.kingSince || Date.now() } : null;
+    }
+
+    return { resetAccount, test, kingOfMine, kingNow };
 };

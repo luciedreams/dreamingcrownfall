@@ -20,6 +20,7 @@ const appSettings = require('./app-settings.js');
 const startDiscord = require('./discord.js');
 const startVitals = require('./vitals.js');
 const initPerfReport = require('./perf-report.js');
+const createHome = require('./home.js');
 
 const START_URL = 'https://marblecrownfall.com/';
 const TAB_BAR_HEIGHT = 36;
@@ -90,6 +91,9 @@ const webPrefs = (acc) => ({
 
 let win = null, tabBar = null, tray = null, notifier = null, addons = null, updater = null, vitals = null;
 let active = 0;
+const HOME = -1;      // active === HOME: der Home-Tab (Übersicht, erst ab zwei Accounts)
+let lastGame = 0;     // zuletzt gewählter Spiel-Tab (für Discord, Settings aus dem Tray)
+let home = null;
 const views = []; // je Account: { acc, view, name, guest, playerId, avatar }
 
 // ---- App-Schicht und MLF an den Preload ------------------------------------------------------
@@ -113,23 +117,30 @@ const label = (v) => v.name || `Account ${views.indexOf(v) + 1}`;
 function tabState() {
     return {
         active,
+        home: !!home?.available(),
         tabs: views.map((v) => ({ name: label(v), guest: v.guest, avatar: v.avatar || '', loading: v.view.webContents.isLoading() })),
     };
 }
 function pushTabs() {
     if (tabBar && !tabBar.webContents.isDestroyed()) tabBar.webContents.send('tabs:state', tabState());
     const cur = views[active];
-    if (win && cur) win.setTitle(`DreamingCrownfall – ${label(cur)}`);
+    if (win) win.setTitle(active === HOME ? 'DreamingCrownfall – Home' : cur ? `DreamingCrownfall – ${label(cur)}` : 'DreamingCrownfall');
+    home?.push();
 }
 
 function select(i) {
-    if (!views[i]) return;
+    if (i === HOME && !home?.available()) i = lastGame;
+    if (i !== HOME && !views[i]) i = Math.min(Math.max(0, i), views.length - 1);
+    if (i !== HOME && !views[i]) return;
     active = i;
+    if (i !== HOME) lastGame = i;
     views.forEach((v, j) => v.view.setVisible(j === i));
+    home?.setVisible(i === HOME);
     layout();
-    views[i].view.webContents.focus();
+    (i === HOME ? home.view : views[i].view).webContents.focus();
     pushTabs();
 }
+const activeContents = () => (active === HOME ? home?.view.webContents : views[active]?.view.webContents);
 
 function layout() {
     if (!win) return;
@@ -139,6 +150,7 @@ function layout() {
     tabBar.setVisible(!full);
     tabBar.setBounds({ x: 0, y: 0, width, height: TAB_BAR_HEIGHT });
     for (const v of views) v.view.setBounds({ x: 0, y: top, width, height: height - top });
+    home?.view.setBounds({ x: 0, y: top, width, height: height - top });
 }
 
 ipcMain.on('tabs:select', (_e, i) => select(i));
@@ -180,7 +192,7 @@ function handleKeys(e, input, wc) {
     const k = input.key;
     let done = true;
     if (ctrl && /^[1-9]$/.test(k)) select(Number(k) - 1);
-    else if (ctrl && k === 'Tab') select((active + (input.shift ? views.length - 1 : 1)) % views.length);
+    else if (ctrl && k === 'Tab') select(active === HOME ? (input.shift ? views.length - 1 : 0) : (active + (input.shift ? views.length - 1 : 1)) % views.length);
     else if (k === 'F5' || (ctrl && k.toLowerCase() === 'r')) input.shift ? wc.reloadIgnoringCache() : wc.reload();
     else if (k === 'F12' || (ctrl && input.shift && k.toLowerCase() === 'i')) wc.toggleDevTools();
     else if (k === 'F11') { win.setFullScreen(!win.isFullScreen()); }
@@ -267,11 +279,13 @@ async function removeAccount(i) {
     if (!v || views.length < 2) return;
     views.splice(i, 1);
     notifier?.resetAccount(v);
+    home?.forget(v);
     win.contentView.removeChildView(v.view);
     v.view.webContents.close();
     try { await session.fromPartition(v.acc.partition).clearStorageData(); } catch {}
     saveAccounts();
-    select(Math.min(active >= i ? Math.max(0, active - 1) : active, views.length - 1));
+    if (lastGame >= i) lastGame = Math.max(0, lastGame - 1);
+    select(active === HOME ? HOME : Math.min(active >= i ? Math.max(0, active - 1) : active, views.length - 1));
 }
 
 // ---- Fenster ----------------------------------------------------------------------------------
@@ -291,9 +305,11 @@ function createWindow() {
     } });
     tabBar.setBackgroundColor('#14101c');
     tabBar.webContents.loadFile(path.join(__dirname, 'tabs.html'));
-    tabBar.webContents.on('before-input-event', (e, input) => { if (views[active]) handleKeys(e, input, views[active].view.webContents); });
+    tabBar.webContents.on('before-input-event', (e, input) => { const wc = activeContents(); if (wc) handleKeys(e, input, wc); });
     win.contentView.addChildView(tabBar);
 
+    home = createHome({ win, views, label, kingNow: () => notifier?.kingNow() || null, onSelect: (i) => select(i) });
+    home.view.webContents.on('before-input-event', (e, input) => handleKeys(e, input, home.view.webContents));
     for (const acc of loadAccounts()) addAccount(acc);
     saveAccounts();
     removeOrphanSessions();
@@ -309,6 +325,7 @@ function createWindow() {
 // Settings im aktiven Tab öffnen, auf einer bestimmten Seite (Tray › Check for updates).
 function showSettingsPage(page) {
     win.show(); win.focus();
+    if (active === HOME) select(lastGame);
     const wc = views[active]?.view.webContents;
     if (wc) wc.executeJavaScript(`window.dcfOpenSettings && window.dcfOpenSettings(${JSON.stringify(page)})`).catch(() => {});
 }
@@ -325,7 +342,7 @@ function createTray() {
         { label: 'Test notification', click: () => notifier?.test() },
         { label: 'Start with system (in the tray)', type: 'checkbox', checked: autostart.enabled(),
           click: (item) => { try { appSettings.setAutostart(item.checked); } catch (e) { console.error(`[dcf] Autostart: ${e.message}`); } } },
-        { label: 'DevTools (current tab)', click: () => views[active].view.webContents.openDevTools({ mode: 'detach' }) },
+        { label: 'DevTools (current tab)', click: () => activeContents()?.openDevTools({ mode: 'detach' }) },
         { type: 'separator' },
         { label: 'Quit', click: () => app.quit() },
     ]));
@@ -356,7 +373,7 @@ if (!app.requestSingleInstanceLock()) {
         startDiscord({
             setting: appSettings.get,
             onSettingsChange: appSettings.onChange,
-            activeAccount: () => { const v = views[active]; return v && !v.guest ? v.name : null; },
+            activeAccount: () => { const v = views[active === HOME ? lastGame : active]; return v && !v.guest ? v.name : null; },
             kingOfMine: () => notifier.kingOfMine(),
             startedAt: Date.now(),
         });
