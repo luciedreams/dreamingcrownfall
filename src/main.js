@@ -162,8 +162,17 @@ ipcMain.on('tabs:select', (_e, i) => select(i));
 ipcMain.on('tabs:reload', (_e, i) => views[i]?.view.webContents.reload());
 ipcMain.on('tabs:add', () => { addAccount({ partition: newPartition() }, true); saveAccounts(); });
 ipcMain.on('tabs:remove', (_e, i) => removeAccount(i));
+// Zahnrad in der Tab-Leiste: immer erreichbar, auch wenn die Spiel-Ebene „wie die Website“ aussieht.
+ipcMain.on('tabs:settings', () => showSettingsPage(''));
 ipcMain.handle('tabs:state', () => tabState());
 ipcMain.on('dcf:notify:test', () => notifier?.test());
+// Willkommen-Schritte: nur ein Tab zeigt sie (der erste, der fragt, behält sie auch nach dem Neuladen).
+let welcomeOwner = null;
+ipcMain.on('dcf:welcome:claim', (e) => {
+    if (welcomeOwner == null || welcomeOwner === e.sender.id) { welcomeOwner = e.sender.id; e.returnValue = true; } else e.returnValue = false;
+});
+// Aus den Willkommen-Schritten: weiteren Account-Tab anlegen, ohne hinzuwechseln.
+ipcMain.on('dcf:account:add', () => { addAccount({ partition: newPartition() }, false); saveAccounts(); });
 // Bildwiederholrate des Bildschirms, auf dem das Fenster steht (Auto-Bildrate der Spiel-Ebene).
 ipcMain.on('dcf:display:hz', (e) => {
     let hz = 60;
@@ -202,6 +211,7 @@ function handleKeys(e, input, wc) {
     else if (k === 'F12' || (ctrl && input.shift && k.toLowerCase() === 'i')) wc.toggleDevTools();
     else if (k === 'F11') { win.setFullScreen(!win.isFullScreen()); }
     else if (k === 'F2' && !ctrl && !input.alt) hud?.toggle();
+    else if (ctrl && k === ',') showSettingsPage('');
     else if (ctrl && (k === '+' || k === '=')) wc.setZoomLevel(wc.getZoomLevel() + 0.5);
     else if (ctrl && k === '-') wc.setZoomLevel(wc.getZoomLevel() - 0.5);
     else if (ctrl && k === '0') wc.setZoomLevel(0);
@@ -381,7 +391,12 @@ if (!app.requestSingleInstanceLock()) {
 
     app.whenReady().then(async () => {
         console.log(`[dcf] DreamingCrownfall ${app.getVersion()}`);
+        // Neue Installation = noch keine accounts.json: Willkommen-Schritte, Spiel-Ebene startet
+        // wie die Website. Bestehende Installationen bekommen beides nicht (nichts ändert sich).
+        const fresh = !fs.existsSync(ACCOUNTS_FILE());
         appSettings.init();
+        if (fresh) appSettings.set('game.plain', true);
+        else if (!appSettings.get('app.onboarded')) appSettings.set('app.onboarded', true);
         initPerfReport();
         vitals = startVitals({ views, setting: appSettings.get, label });
         loadAppLayer();

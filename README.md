@@ -9,6 +9,8 @@
   someone mentions you in chat · one of your accounts takes or loses the throne · a Royal Celebration starts ·
   a Rebellion starts · an achievement unlocks · a gift arrives · the shop has an item for one of your open shop quests.
   Clicking a notification brings up the right tab.
+- **Starts like the website.** A new installation shows the game exactly as marblecrownfall.com does; a few welcome steps (sign in, more accounts, how to start) let you keep it plain or switch everything on, and Settings — the gear top right in the tab bar, or Ctrl+, — has every switch to build it your way.
+- **A guided tour**: how the game works (bidding, the run, Points, the King, Gold, Diamonds, Rebellions) and what the app adds, step by step with a spotlight on the game. Settings › About › *Take the tour*.
 - **Home: all your accounts at a glance** (from two accounts on). Tickets and whether they are earning, points, gold and diamonds, daily quests and what is waiting to be claimed, who is King — one card per account, totals on top. It only asks the game while you look at it.
 - **Windows you can put anywhere.** Inventory, Dailies, Shop, Leaderboards, Settings and every other window opens as a real window of its own: move it to another screen, resize it, Alt+Tab to it. Closing it closes the window. The chat stays in the game and gets a **⧉** button to pop it out. Prefer them inside the game? Settings › General › *Every window on its own* off, and **⧉** takes out just the one you want.
 - **Emoji in chat.** `:)` becomes 🙂 as you type, `:fire` suggests 🔥, and an emoji button opens every emoji with search, recent ones and skin tones. What is sent is plain Unicode, so everybody sees it.

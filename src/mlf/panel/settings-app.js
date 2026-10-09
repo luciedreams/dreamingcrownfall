@@ -323,7 +323,8 @@
             const mk = (label, run, cls) => { const b = dcfEl('button', 'dcf-set__btn' + (cls ? ' ' + cls : ''), label); b.type = 'button'; b.addEventListener('click', run); return b; };
             btns.append(mk('What\'s new', () => { closeAppSettings(); showWhatsNew(); }),
                         mk('Changelog', () => { closeAppSettings(); showChangelog(); }),
-                        mk('How to', () => { closeAppSettings(); showHowTo(); }));
+                        mk('How to', () => { closeAppSettings(); showHowTo(); }),
+                        mk('Take the tour', () => { closeAppSettings(); startTour(); }));
             part.appendChild(btns);
             box.appendChild(part);
             box.appendChild(dcfUpdatePart());
@@ -333,7 +334,7 @@
             const rb = dcfEl('div', 'dcf-set__btns');
             const ask = mk('Reset all in-game settings', () => {
                 if (ask.dataset.sure) {
-                    Object.assign(settings, settingDefaults);
+                    Object.assign(settings, startValues());
                     saveSettings(); apply(); dcfRender();
                     return;
                 }

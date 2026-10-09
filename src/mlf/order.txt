@@ -51,6 +51,8 @@ panel/changelog.js
 panel/help-windows.js
 panel/patch-notes.js
 panel/settings-app.js
+panel/tour.js
+panel/welcome.js
 panel/update-toast.js
 panel/sound.js
 panel/music-player.js

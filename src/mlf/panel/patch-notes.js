@@ -166,7 +166,11 @@
             const go = pnEl('button', 'dcf-pn__btn dcf-pn__btn--main', 'Continue');
             go.type = 'button';
             go.addEventListener('click', closePatchNotes);
-            foot.append(toggle, howto, pnEl('span', 'dcf-pn__spacer'), go);
+            const tour = pnEl('button', 'dcf-pn__btn', 'Tour');
+            tour.type = 'button';
+            tour.title = 'How the game works, and what the app adds';
+            tour.addEventListener('click', () => { closePatchNotes(); startTour(); });
+            foot.append(toggle, howto, tour, pnEl('span', 'dcf-pn__spacer'), go);
 
             card.replaceChildren(head, body, foot);
             go.focus({ preventScroll: true });

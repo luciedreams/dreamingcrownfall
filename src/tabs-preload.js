@@ -8,4 +8,5 @@ contextBridge.exposeInMainWorld('tabs', {
     reload: (i) => ipcRenderer.send('tabs:reload', i),
     add: () => ipcRenderer.send('tabs:add'),
     remove: (i) => ipcRenderer.send('tabs:remove', i),
+    settings: () => ipcRenderer.send('tabs:settings'),
 });

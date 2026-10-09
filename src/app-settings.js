@@ -10,6 +10,8 @@ const autostart = require('./autostart.js');
 
 // Nur Ja/Nein-Schalter; Pfad = Schlüssel in der Datei.
 const SCHEMA = {
+    'app.onboarded': false,   // Willkommen-Schritte erledigt (bestehende Installationen: main.js setzt es)
+    'game.plain': false,      // Spiel-Ebene startet wie die Website (neue Installationen ab 0.3.0)
     'windows.popOut': true,
     'stability.recover': true,
     'shortcuts.global': false,
@@ -71,6 +73,13 @@ module.exports = {
         });
     },
     get: (key) => values[key],
+    // Für den Hauptprozess (Erststart): wie ein Schalter aus der Seite, gleiche Prüfung.
+    set(key, value) {
+        if (!(key in SCHEMA) || typeof value !== 'boolean' || values[key] === value) return;
+        values[key] = value;
+        save();
+        broadcast();
+    },
     onChange: (cb) => listeners.push(cb),
     // Für das Tray-Menü, damit beide Stellen dasselbe zeigen.
     setAutostart(on) { autostart.set(on); broadcast(); },

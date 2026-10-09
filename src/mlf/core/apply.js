@@ -94,7 +94,7 @@
     step('update check', startUpdateCheck);
     step('dailies and shop', startDailies);
     // A moment after start-up, once the game has built its page.
-    setTimeout(maybeShowWhatsNew, 1200);
+    setTimeout(startupCards, 1200);   // the welcome steps on a new installation, else What's new
     }   // end of main()
 
     // At document-start there is no DOM yet — the socket tap in section 0 is all that could run

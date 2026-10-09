@@ -77,6 +77,25 @@
         for (const b of FOOTER_BUTTONS) settings[b.key] = false;
     }
 
+    // Plain start (app 0.3.0): a new installation begins with the game exactly as the website
+    // shows it — every switch off — and each player turns on what they like. The app says so
+    // (game.plain); it counts only where this page has stored nothing yet, so whoever has
+    // settings keeps them. New account tabs of such an installation start plain as well.
+    function gamePlain() {
+        try { return !!(pageWindow.dcfApp && pageWindow.dcfApp.settings()['game.plain']); } catch (e) { return false; }
+    }
+    function plainValues() {
+        const v = { boardClear: false };
+        for (const item of ALL_ITEMS) v[item.key] = item.type === 'seg' ? item.def : false;
+        return v;
+    }
+    // What "Reset" goes back to: plain for a plain installation, the full set otherwise.
+    const startValues = () => Object.assign({}, settingDefaults, gamePlain() ? plainValues() : {});
+    if (window.top === window.self && !Object.keys(stored).length && gamePlain()) {
+        Object.assign(settings, plainValues());
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(settings)); } catch (e) {}
+    }
+
     function saveSettings() {
         try { localStorage.setItem(STORAGE_KEY, JSON.stringify(settings)); } catch (e) {}
         setCosmeticsHidden();

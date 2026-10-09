@@ -54,12 +54,16 @@
     }
     .add:hover { color: var(--text); border-color: var(--accent); }
     .hint { margin-left: auto; color: var(--muted); font-size: 11px; white-space: nowrap; }
+    .gear { width: 28px; height: 26px; border: 1px solid var(--line); border-radius: 7px; background: none; color: var(--muted); display: grid; place-items: center; }
+    .gear:hover { color: var(--text); border-color: var(--accent); }
+    .gear svg { width: 16px; height: 16px; }
 </style>
 </head>
 <body>
 <div id="tabs" style="display:contents"></div>
 <button class="add" id="add" title="Add account">+</button>
-<span class="hint">Ctrl+1–9 · Ctrl+Tab · F5 reload · F11 full screen</span>
+<span class="hint">Ctrl+1–9 · Ctrl+Tab · F2 HUD · F5 reload · F11 full screen</span>
+<button class="gear" id="gear" title="Settings (Ctrl+,)" aria-label="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z"/></svg></button>
 <script>
     const box = document.getElementById('tabs');
     let confirmAt = -1, last = null;
@@ -113,6 +117,7 @@
         }));
     }
     document.getElementById('add').onclick = () => window.tabs.add();
+    document.getElementById('gear').onclick = () => window.tabs.settings();
     window.tabs.onState(render);
     window.tabs.state().then(render);
 </script>
