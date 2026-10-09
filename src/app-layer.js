@@ -6,6 +6,8 @@
 // Sitzung — der Inhalt wandert nur in ein anderes Dokument, Skripte und Daten bleiben dieselben).
 // Systemfenster schließen = Fenster schließen (über MLFs eigenen ✕, damit MLF Buch führt).
 // Ausnahme Chat: bleibt im Spiel und bekommt ⧉; draußen geschlossen kehrt er ins Spiel zurück.
+// Schalter „Every window on its own" (windows.popOut, 0.1.4) aus: alle Fenster wie der Chat —
+// im Spiel mit ⧉. Umschalten wirkt sofort auf die offenen Fenster.
 // (What's new und Changelog sind keine Fenster mehr, sondern Patch-Notes-Karten im Spiel.)
 // Spielseiten (iframes) laden beim Umzug einmal neu; MLF richtet sie über ihren load-Horcher ein.
 (() => {
@@ -17,6 +19,8 @@
     const titleOf = (el) => el.querySelector('.mcfo-win__title')?.textContent.trim() || '';
     // Der Chat ist das Fenster, in das die Spiel-Ebene die Chat-Spalte des Spiels hängt (9e CHAT POP-OUT).
     const isChat = (el) => !!el.querySelector('[data-role="desktop-chat-pane"]') || /^chat$/i.test(titleOf(el));
+    const popOutAll = () => { try { return window.dcfApp?.settings()['windows.popOut'] !== false; } catch (e) { return true; } };
+    let separate = popOutAll();
 
     // Alles, was das Aussehen bestimmt, ins Popup spiegeln: Stylesheets (Spiel + MLF) und die
     // Attribute/Variablen auf <html>, an denen MLFs Themes und Schalter hängen.
@@ -81,7 +85,8 @@
         raiseObs.observe(el, { attributes: true, attributeFilter: ['style', 'hidden'] });
 
         let done = false;
-        function finish(putBack) {
+        // stay: zurück ins Spiel und offen lassen (Schalter umgelegt), statt MLFs ✕ zu klicken.
+        function finish(putBack, stay = false) {
             if (done) return;
             done = true;
             clearInterval(poll);
@@ -95,11 +100,12 @@
             popped.delete(el);
             if (!popup.closed) try { popup.close(); } catch (e) {}
             // Beim Neuladen der Seite nichts schließen — sonst merkt sich MLF das als „zu“.
-            if (putBack && closeOnExit && !leaving) el.querySelector('[data-mcfo-win="close"]')?.click();
+            if (putBack && closeOnExit && !leaving && !stay) el.querySelector('[data-mcfo-win="close"]')?.click();
+            if (stay) addButton(el);
         }
         popup.addEventListener('pagehide', () => finish(true));
         const poll = setInterval(() => { if (popup.closed) finish(true); }, 500);
-        popped.set(el, { popup, finish });
+        popped.set(el, { popup, finish, closeOnExit });
     }
 
     function setupWindow(el) {
@@ -108,7 +114,7 @@
         // Einen Takt warten: MLF hängt den Inhalt (beim Chat die Spalte) gleich nach dem Anlegen ein.
         setTimeout(() => {
             if (!el.isConnected || popped.has(el)) return;
-            if (isChat(el)) addButton(el);
+            if (isChat(el) || !separate) addButton(el);
             else popOut(el, { closeOnExit: true });
         }, 0);
     }
@@ -139,6 +145,24 @@
             .observe(document.body, { childList: true, subtree: true });
     };
     if (document.body) start(); else document.addEventListener('DOMContentLoaded', start, { once: true });
+
+    // Schalter umgelegt: an → offene Fenster (außer Chat) hinaus, aus → automatisch ausgelagerte zurück.
+    try {
+        window.dcfApp?.onChange(() => {
+            const now = popOutAll();
+            if (now === separate) return;
+            separate = now;
+            if (separate) {
+                for (const el of document.querySelectorAll('.mcfo-win')) {
+                    if (popped.has(el) || isChat(el) || el.hidden) continue;
+                    el.querySelector(':scope > .mcfo-win__head [data-dcf="pop"]')?.remove();
+                    popOut(el, { closeOnExit: true });
+                }
+            } else {
+                for (const [, p] of [...popped]) if (p.closeOnExit) p.finish(true, true);
+            }
+        });
+    } catch (e) {}
 
     // Beim Verlassen der Seite (Neuladen, Navigation) alle Popouts schließen — ihr Inhalt
     // gehört zu dieser Seite und stirbt mit ihr.

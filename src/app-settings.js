@@ -1,4 +1,4 @@
-// Einstellungen, die der App gehören und nicht dem Spiel: Benachrichtigungen, Discord, Autostart.
+// Einstellungen, die der App gehören und nicht dem Spiel: Fenster, Benachrichtigungen, Discord, Autostart.
 // Gespeichert in <Profil>/app-settings.json. Die Settings-Oberfläche im Spiel liest und schreibt sie
 // über die Brücke im Preload (window.dcfApp); hier wird jeder Schreibzugriff gegen SCHEMA geprüft,
 // damit die Seite nichts anderes ändern kann als diese Schalter.
@@ -10,6 +10,7 @@ const autostart = require('./autostart.js');
 
 // Nur Ja/Nein-Schalter; Pfad = Schlüssel in der Datei.
 const SCHEMA = {
+    'windows.popOut': true,
     'notify.enabled': true,
     'notify.onlyWhenAway': true,
     'notify.mention': true,

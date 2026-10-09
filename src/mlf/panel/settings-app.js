@@ -35,7 +35,7 @@
     // one of the special cards. Every section of SETTINGS_SECTIONS appears exactly once.
     const DCF_NAV = [
         { group: 'App', pages: [
-            { id: 'general', title: 'General', icon: 'general', blurb: 'How the app starts and your accounts.', app: 'general' },
+            { id: 'general', title: 'General', icon: 'general', blurb: 'How the app starts, its windows and your accounts.', app: 'general' },
             { id: 'notifications', title: 'Notifications', icon: 'bell', blurb: 'Desktop notifications for every account, also while the window is in the background.', app: 'notifications' },
             { id: 'discord', title: 'Discord', icon: 'discord', blurb: 'Show on your Discord profile that you are playing.', app: 'discord' },
         ]},
@@ -59,6 +59,7 @@
 
     // Settings that belong to the app (window.dcfApp), with what the search finds them by.
     const DCF_APP_ITEMS = [
+        { page: 'general', part: 'windows', key: 'windows.popOut', label: 'Every window on its own', hint: 'Inventory, leaderboards, shop and the other windows open as windows of their own, to move anywhere, also onto another screen. Off: they open inside the game as before, and ⧉ in a window\'s title bar takes that one out. The chat always opens inside the game.' },
         { page: 'general', key: 'app.autostart', label: 'Start with your computer', hint: 'Starts hidden in the tray when you log in, so notifications keep coming and your sessions stay fresh without opening the window.' },
         { page: 'notifications', key: 'notify.enabled', label: 'Desktop notifications', hint: 'All notifications of the app. Switch off to silence everything at once.' },
         { page: 'notifications', key: 'notify.onlyWhenAway', label: 'Only when you are not looking', hint: 'Nothing pops up for the account you have in front of you. Hidden tabs, another app in front or the window in the tray still notify.', needs: 'notify.enabled' },
@@ -241,11 +242,13 @@
         const state = api.settings();
         const items = DCF_APP_ITEMS.filter(i => i.page === page.id);
         if (page.id === 'general') {
-            const part = dcfPart('Start');
-            const card = dcfEl('div', 'mcfo-set__card');
-            for (const i of items) card.appendChild(dcfAppSwitch(i, state));
-            part.appendChild(card);
-            box.appendChild(part);
+            for (const [title, group] of [['Start', undefined], ['Windows', 'windows']]) {
+                const part = dcfPart(title);
+                const card = dcfEl('div', 'mcfo-set__card');
+                for (const i of items.filter(x => x.part === group)) card.appendChild(dcfAppSwitch(i, state));
+                part.appendChild(card);
+                box.appendChild(part);
+            }
             const acc = dcfPart('Accounts');
             acc.appendChild(dcfEl('p', 'dcf-set__note', 'Every tab at the top of the window is one account with its own login. "+" adds a tab, "×" on a tab signs that account out and removes it. Ctrl+1 to 9 switch between them.'));
             box.appendChild(acc);
