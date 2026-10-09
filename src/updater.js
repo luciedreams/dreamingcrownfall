@@ -33,7 +33,7 @@ module.exports = function startUpdater({ icon }) {
     const needsPassword = ['deb', 'rpm', 'pacman'].includes(pkg);
     const mode = process.defaultApp || !app.isPackaged ? 'dev'
         : (process.platform === 'win32' || process.env.APPIMAGE || needsPassword) ? 'auto' : 'manual';
-    // status: idle | checking | latest | downloading | ready | available | error | dev
+    // status: idle | checking | latest | downloading | ready | available | error | installfailed | dev
     const state = { mode, needsPassword, status: mode === 'dev' ? 'dev' : 'idle', current: app.getVersion(), version: null, percent: null, error: null, checkedAt: null };
     let waiters = [];
 
@@ -48,15 +48,31 @@ module.exports = function startUpdater({ icon }) {
         try { ({ autoUpdater } = require('electron-updater')); }
         catch (e) { console.warn(`[dcf] electron-updater fehlt: ${e.message}`); }
     }
+    let downloadedFile = null, installing = false;
     if (autoUpdater) {
+        // Ins App-Log (main.js schreibt die Konsole nach <Profil>/logs/app.log) — sonst sieht niemand,
+        // woran eine Installation gescheitert ist.
+        autoUpdater.logger = {
+            info: (m) => console.log(`[dcf] updater: ${m}`), warn: (m) => console.warn(`[dcf] updater: ${m}`),
+            error: (m) => console.error(`[dcf] updater: ${m}`), debug: () => {},
+        };
         autoUpdater.autoDownload = true;
         autoUpdater.autoInstallOnAppQuit = !needsPassword;   // Passwortabfrage nie unerwartet beim Beenden
         autoUpdater.on('checking-for-update', () => publish({ status: 'checking', error: null }));
         autoUpdater.on('update-not-available', () => publish({ status: 'latest', checkedAt: Date.now() }));
         autoUpdater.on('update-available', (info) => publish({ status: 'downloading', version: info.version, percent: 0 }));
         autoUpdater.on('download-progress', (p) => publish({ status: 'downloading', percent: Math.round(p.percent || 0) }));
-        autoUpdater.on('error', (e) => { console.warn(`[dcf] App-Update: ${e?.message || e}`); publish({ status: 'error', error: String(e?.message || e).slice(0, 200), checkedAt: Date.now() }); });
+        autoUpdater.on('error', (e) => {
+            const msg = String(e?.message || e).slice(0, 200);
+            console.warn(`[dcf] App-Update: ${msg}`);
+            // Beim Installieren gescheitert (z. B. .deb: pkexec bekam keine Berechtigung, Code 127 — bei
+            // Ninkasi/Mint 09.10.): das geladene Paket liegt noch da, der Paket-Installer des Systems
+            // kann es öffnen und fragt selbst nach dem Passwort.
+            if (installing && downloadedFile) publish({ status: 'installfailed', error: msg, file: downloadedFile });
+            else publish({ status: 'error', error: msg, checkedAt: Date.now() });
+        });
         autoUpdater.on('update-downloaded', (info) => {
+            downloadedFile = info.downloadedFile || null;
             console.log(`[dcf] App-Update ${info.version} geladen`);
             publish({ status: 'ready', version: info.version, percent: 100, checkedAt: Date.now() });
             if (Notification.isSupported()) {
@@ -93,7 +109,11 @@ module.exports = function startUpdater({ icon }) {
     ipcMain.handle('dcf:update:state', () => ({ ...state }));
     ipcMain.handle('dcf:update:check', () => check());
     ipcMain.on('dcf:update:install', () => {
-        if (state.status === 'ready' && autoUpdater) autoUpdater.quitAndInstall();
+        if (state.status === 'ready' && autoUpdater) {
+            installing = true;   // quitAndInstall installiert synchron; ein Fehler kommt noch hier als 'error'
+            try { autoUpdater.quitAndInstall(); } finally { installing = false; }
+        }
+        else if (state.status === 'installfailed' && state.file) shell.openPath(state.file).then((err) => { if (err) shell.openExternal(RELEASES); });
         else if (state.status === 'available') shell.openExternal(RELEASES);
     });
 

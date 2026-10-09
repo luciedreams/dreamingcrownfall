@@ -1,5 +1,9 @@
     // Newest first. The first entry is what What's new shows after a fresh install.
     const CHANGELOG = [
+        { v: '0.3.4', date: '2026-10-09', items: [
+            'Linux .deb: when installing an update fails because the password prompt does not come up, the app now offers to open the downloaded package in your system\'s installer, which asks for the password itself. The message no longer says "Could not check".',
+            'The app keeps a log of what it does (Settings › About › Open the log folder), handy when something goes wrong on another computer.',
+        ] },
         { v: '0.3.3', date: '2026-10-09', items: [
             'Starting with your computer: choose whether the app waits in the tray or opens its window right away (Settings › General › Start in the tray).',
             'The tour fits however you have set the app up: it finds each thing where it is right now — moved by a setting, folded into a rail, in a window of its own — and says so when something is not on screen. While you are King it explains the throne and the toll instead of the ticket chips.',

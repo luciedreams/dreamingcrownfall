@@ -42,7 +42,7 @@
     function dcfToastClose() { if (dcfToast) { dcfToast.remove(); dcfToast = null; } }
 
     function dcfToastShow(u) {
-        const show = u && (u.status === 'downloading' || u.status === 'ready' || u.status === 'available');
+        const show = u && (u.status === 'downloading' || u.status === 'ready' || u.status === 'available' || u.status === 'installfailed');
         if (!show || dcfToastHidden.has(u.status + '|' + u.version) || (u.status === 'downloading' && dcfToastHidden.has('ready|' + u.version))) {
             dcfToastClose();
             return;
@@ -60,11 +60,12 @@
         const above = footer ? Math.round(innerHeight - footer.getBoundingClientRect().top) : 70;
         dcfToast.style.setProperty('--dcf-toast-bottom', (above + 12) + 'px');
 
-        const kicker = u.status === 'downloading' ? 'Update' : u.status === 'ready' ? 'Update ready' : 'New version';
+        const kicker = u.status === 'downloading' ? 'Update' : u.status === 'ready' ? 'Update ready' : u.status === 'installfailed' ? 'Update not installed' : 'New version';
         const title = 'DreamingCrownfall ' + u.version;
         const text = u.status === 'downloading' ? `Downloading … ${u.percent || 0} %`
                    : u.status === 'ready' ? (u.needsPassword ? 'Restart now to install it — Linux asks for your password once.'
                                                               : 'Restart now to update, or later: it installs when you quit the app.')
+                   : u.status === 'installfailed' ? 'The password prompt did not come up. Open the package in your system\'s installer instead; it asks for the password itself.'
                    : 'This install cannot update itself. Download the new version from the release page.';
         dcfToast.innerHTML = '<div class="dcf-toast__head">' + PN_LOGO + '<div><div class="dcf-toast__kicker"></div><div class="dcf-toast__title"></div></div></div>'
             + '<p class="dcf-toast__text"></p>';
@@ -88,7 +89,7 @@
             const go = document.createElement('button');
             go.type = 'button';
             go.className = 'dcf-toast__btn dcf-toast__btn--main';
-            go.textContent = u.status === 'ready' ? 'Restart now' : 'Download';
+            go.textContent = u.status === 'ready' ? 'Restart now' : u.status === 'installfailed' ? 'Open installer' : 'Download';
             go.addEventListener('click', () => { const api = window.dcfApp; if (api && api.update) api.update.install(); if (u.status !== 'ready') dcfToastClose(); });
             btns.append(later, go);
             dcfToast.appendChild(btns);

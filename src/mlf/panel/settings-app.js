@@ -362,6 +362,7 @@
                                     : `Version ${u.version} is ready. It is installed when you quit the app — or right now:`,
         available: u => `Version ${u.version} is out. This kind of install cannot update itself: download the new file from the release page.`,
         error: u => 'Could not check: ' + (u.error || 'unknown error'),
+        installfailed: u => `Version ${u.version} could not be installed (${u.error || 'unknown error'}). Open it in your system's package installer instead — it asks for your password itself:`,
     };
     // ---- HUD (app, src/hud*.js) ----------------------------------------------------------------
     // The drawing comes from the app itself (src/hud-render.js, the same file the HUD window loads),
@@ -536,6 +537,8 @@
         });
         if (!api || !api.perfReport) b.disabled = true;
         btns.appendChild(b);
+        // The app's own log (src/main.js): what it did, also when an update could not be installed.
+        if (api && api.openLogs) btns.appendChild(mk('Open the log folder', () => api.openLogs()));
         part.appendChild(btns);
         return part;
     }
@@ -559,8 +562,8 @@
             note.textContent = (DCF_UPDATE_TEXT[u.status] || DCF_UPDATE_TEXT.idle)(u) + (['latest', 'error'].includes(u.status) ? when : '');
             check.hidden = u.status === 'dev';
             check.disabled = u.status === 'checking' || u.status === 'downloading';
-            act.hidden = !(u.status === 'ready' || u.status === 'available');
-            act.textContent = u.status === 'ready' ? 'Restart and update' : 'Open the release page';
+            act.hidden = !(u.status === 'ready' || u.status === 'available' || u.status === 'installfailed');
+            act.textContent = u.status === 'ready' ? 'Restart and update' : u.status === 'installfailed' ? 'Open the package installer' : 'Open the release page';
         };
         check.addEventListener('click', () => { check.disabled = true; note.textContent = DCF_UPDATE_TEXT.checking(); api.update.check().then(show); });
         act.addEventListener('click', () => api.update.install());

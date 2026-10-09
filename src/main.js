@@ -33,6 +33,28 @@ const TRAY_ICON = path.join(__dirname, 'assets', 'tray.png');
 // Testprofil (eigene Sitzungen, eigene Einzelinstanz): DCF_PROFILE=<ordner> electron .
 if (process.env.DCF_PROFILE) app.setPath('userData', path.resolve(process.env.DCF_PROFILE));
 app.setName('DreamingCrownfall');
+
+// App-Log: was die App auf die Konsole schreibt, auch nach <Profil>/logs/app.log (ab 1 MB eine
+// Generation app.old.log). Aus dem Menü gestartet sieht sonst niemand die Konsole — so lässt sich
+// z. B. ein gescheitertes Update auf einem anderen Rechner nachlesen (Settings › About).
+const LOG_DIR = path.join(app.getPath('userData'), 'logs');
+(() => {
+    try {
+        fs.mkdirSync(LOG_DIR, { recursive: true });
+        const file = path.join(LOG_DIR, 'app.log');
+        try { if (fs.statSync(file).size > 1024 * 1024) fs.renameSync(file, path.join(LOG_DIR, 'app.old.log')); } catch {}
+        const out = fs.createWriteStream(file, { flags: 'a' });
+        out.write(`\n=== ${new Date().toISOString()} DreamingCrownfall ${app.getVersion()} (${process.platform}) ===\n`);
+        for (const k of ['log', 'warn', 'error']) {
+            const orig = console[k].bind(console);
+            console[k] = (...a) => {
+                orig(...a);
+                try { out.write(`${new Date().toISOString().slice(11, 19)} ${a.map((x) => (typeof x === 'string' ? x : (x && x.stack) || JSON.stringify(x))).join(' ')}\n`); } catch {}
+            };
+        }
+    } catch {}
+})();
+ipcMain.on('dcf:logs:open', () => shell.openPath(LOG_DIR));
 // Globale Tastenkürzel unter Wayland gehen nur über das Desktop-Portal (shortcuts.js).
 app.commandLine.appendSwitch('enable-features', 'GlobalShortcutsPortal');
 // Ohne App-Kennung zeigt Windows keine Benachrichtigungen (muss zur appId im package.json passen).
