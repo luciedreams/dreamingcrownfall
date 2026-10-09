@@ -583,6 +583,16 @@
                     if (hit([i.label, i.hint, page.title].join(' '))) rows.push(dcfAppSwitch(i, appState));
                 }
             }
+            if (page.id === 'about' && hit(['tour guide help how to play explain introduction', page.title].join(' '))) {
+                const card = dcfEl('div', 'mcfo-set__card');
+                const row = dcfEl('button', 'mcfo-set__row');
+                row.type = 'button';
+                row.style.cssText = 'width:100%;font:inherit;text-align:left;background:none;border:0;color:inherit;cursor:pointer';
+                row.innerHTML = '<span class="mcfo-set__text"><span class="mcfo-set__label">Take the tour</span><span class="mcfo-set__hint">How the game works and what the app adds, step by step. Any time you like.</span></span><span aria-hidden="true">›</span>';
+                row.addEventListener('click', () => startTour());
+                card.appendChild(row);
+                rows.push(card);
+            }
             if (page.id === 'hud' && hit([page.title, page.blurb, 'overlay always on top bar column opacity tickets king'].join(' '))) rows.push(dcfOpenRow(page, page.title, page.blurb));
             for (const title of page.parts || []) {
                 const section = SETTINGS_SECTIONS.find(s => s.title === title);

@@ -362,6 +362,8 @@ function buildTrayMenu() {
     tray.setContextMenu(Menu.buildFromTemplate([
         { label: 'Show', click: show },
         { label: 'HUD (F2)', type: 'checkbox', checked: !!hud?.isOpen(), click: () => hud?.toggle() },
+        { label: 'Take the tour', click: () => { win.show(); win.focus(); if (active === HOME) select(lastGame);
+            views[active]?.view.webContents.executeJavaScript('window.dcfStartTour && window.dcfStartTour()').catch(() => {}); } },
         { label: 'Reload all tabs', click: () => { loadAppLayer(); views.forEach((v) => v.view.webContents.reloadIgnoringCache()); } },
         { label: 'Check for updates', click: () => { showSettingsPage('about'); updater?.check(); } },
         { label: 'Test notification', click: () => notifier?.test() },
