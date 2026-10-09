@@ -289,9 +289,11 @@ function createWindow() {
     saveAccounts();
     removeOrphanSessions();
 
-    win.on('resize', layout);
-    win.on('enter-full-screen', layout);
-    win.on('leave-full-screen', layout);
+    // Unter X11 (Mint/.deb) kommt Maximieren ohne 'resize' oder mit alten Maßen an → die Views
+    // blieben alt groß, unten abgeschnitten. Deshalb alle Fenster-Ereignisse plus ein Nachlauf.
+    let settle = 0;
+    const relayout = () => { layout(); clearTimeout(settle); settle = setTimeout(layout, 150); };
+    for (const ev of ['resize', 'maximize', 'unmaximize', 'restore', 'enter-full-screen', 'leave-full-screen']) win.on(ev, relayout);
     select(0);
 }
 
