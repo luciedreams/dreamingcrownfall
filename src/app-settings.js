@@ -11,6 +11,7 @@ const autostart = require('./autostart.js');
 // Nur Ja/Nein-Schalter; Pfad = Schlüssel in der Datei.
 const SCHEMA = {
     'windows.popOut': true,
+    'stability.recover': true,
     'notify.enabled': true,
     'notify.onlyWhenAway': true,
     'notify.mention': true,

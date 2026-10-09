@@ -18,6 +18,8 @@ const loadAddons = require('./addons.js');
 const autostart = require('./autostart.js');
 const appSettings = require('./app-settings.js');
 const startDiscord = require('./discord.js');
+const startVitals = require('./vitals.js');
+const initPerfReport = require('./perf-report.js');
 
 const START_URL = 'https://marblecrownfall.com/';
 const TAB_BAR_HEIGHT = 36;
@@ -86,7 +88,7 @@ const webPrefs = (acc) => ({
     nodeIntegrationInSubFrames: true, // Preload auch in den Overlay-iframes (Inventar, Achievements)
 });
 
-let win = null, tabBar = null, tray = null, notifier = null, addons = null, updater = null;
+let win = null, tabBar = null, tray = null, notifier = null, addons = null, updater = null, vitals = null;
 let active = 0;
 const views = []; // je Account: { acc, view, name, guest, playerId, avatar }
 
@@ -244,6 +246,7 @@ function addAccount(acc, focus = false) {
     wc.on('before-input-event', (e, input) => handleKeys(e, input, wc));
     wc.on('did-start-loading', pushTabs);
     wc.on('did-stop-loading', () => refreshIdentity(v));
+    vitals?.watch(v);
     win.contentView.addChildView(view);
     view.setVisible(false);
     wc.loadURL(START_URL);
@@ -330,6 +333,8 @@ if (!app.requestSingleInstanceLock()) {
     app.whenReady().then(async () => {
         console.log(`[dcf] DreamingCrownfall ${app.getVersion()}`);
         appSettings.init();
+        initPerfReport();
+        vitals = startVitals({ views, setting: appSettings.get, label });
         loadAppLayer();
         createWindow();
         createTray();

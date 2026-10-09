@@ -35,7 +35,7 @@
     // one of the special cards. Every section of SETTINGS_SECTIONS appears exactly once.
     const DCF_NAV = [
         { group: 'App', pages: [
-            { id: 'general', title: 'General', icon: 'general', blurb: 'How the app starts, its windows and your accounts.', app: 'general' },
+            { id: 'general', title: 'General', icon: 'general', blurb: 'How the app starts, its windows, stability and your accounts.', app: 'general' },
             { id: 'notifications', title: 'Notifications', icon: 'bell', blurb: 'Desktop notifications for every account, also while the window is in the background.', app: 'notifications' },
             { id: 'discord', title: 'Discord', icon: 'discord', blurb: 'Show on your Discord profile that you are playing.', app: 'discord' },
         ]},
@@ -60,6 +60,7 @@
     // Settings that belong to the app (window.dcfApp), with what the search finds them by.
     const DCF_APP_ITEMS = [
         { page: 'general', part: 'windows', key: 'windows.popOut', label: 'Every window on its own', hint: 'Inventory, leaderboards, shop and the other windows open as windows of their own, to move anywhere, also onto another screen. Off: they open inside the game as before, and ⧉ in a window\'s title bar takes that one out. The chat always opens inside the game.' },
+        { page: 'general', part: 'stability', key: 'stability.recover', label: 'Recover on its own', hint: 'A tab that hangs for 30 seconds or crashes reloads itself; a page that does not load tries again. After sleep or a lost internet connection every tab reloads once, so chat and tickets do not sit on a dead connection.' },
         { page: 'general', key: 'app.autostart', label: 'Start with your computer', hint: 'Starts hidden in the tray when you log in, so notifications keep coming and your sessions stay fresh without opening the window.' },
         { page: 'notifications', key: 'notify.enabled', label: 'Desktop notifications', hint: 'All notifications of the app. Switch off to silence everything at once.' },
         { page: 'notifications', key: 'notify.onlyWhenAway', label: 'Only when you are not looking', hint: 'Nothing pops up for the account you have in front of you. Hidden tabs, another app in front or the window in the tray still notify.', needs: 'notify.enabled' },
@@ -242,7 +243,7 @@
         const state = api.settings();
         const items = DCF_APP_ITEMS.filter(i => i.page === page.id);
         if (page.id === 'general') {
-            for (const [title, group] of [['Start', undefined], ['Windows', 'windows']]) {
+            for (const [title, group] of [['Start', undefined], ['Windows', 'windows'], ['Stability', 'stability']]) {
                 const part = dcfPart(title);
                 const card = dcfEl('div', 'mcfo-set__card');
                 for (const i of items.filter(x => x.part === group)) card.appendChild(dcfAppSwitch(i, state));
@@ -299,6 +300,7 @@
             part.appendChild(btns);
             box.appendChild(part);
             box.appendChild(dcfUpdatePart());
+            box.appendChild(dcfPerfPart(mk));
             const reset = dcfPart('Start over');
             reset.appendChild(dcfEl('p', 'dcf-set__note', 'Every in-game setting back to its default: theme, switches, sliders. Your accounts, loadouts and the app settings stay.'));
             const rb = dcfEl('div', 'dcf-set__btns');
@@ -331,6 +333,27 @@
         available: u => `Version ${u.version} is out. This kind of install cannot update itself: download the new file from the release page.`,
         error: u => 'Could not check: ' + (u.error || 'unknown error'),
     };
+    // ---- performance report (app, src/perf-report.js) ------------------------------------------
+    // The settings close first: their blurred backdrop would be measured, not the game.
+    function dcfPerfPart(mk) {
+        const part = dcfPart('Performance report');
+        const api = dcfApi();
+        part.appendChild(dcfEl('p', 'dcf-set__note', 'Records 10 seconds of the game in this tab: frame rate, how busy it keeps your computer and which parts of the game take the time. Saved as a text file in your profile, nothing is sent anywhere. Handy for the game\'s developer when it runs slowly.'));
+        const btns = dcfEl('div', 'dcf-set__btns');
+        const b = mk('Record a performance report', async () => {
+            if (!api || !api.perfReport) return;
+            closeAppSettings();
+            notice('Recording the performance report: 10 seconds, just let the game run …');
+            const r = await api.perfReport().catch(e => ({ ok: false, why: String(e && e.message || e) }));
+            if (r && r.ok) notice('Performance report saved. Its folder is open now.');
+            else notice(escapeHtml(`No performance report. ${r && r.why || 'Something went wrong'}`), 'error');
+        });
+        if (!api || !api.perfReport) b.disabled = true;
+        btns.appendChild(b);
+        part.appendChild(btns);
+        return part;
+    }
+
     function dcfUpdatePart() {
         const part = dcfPart('Updates');
         const api = dcfApi();
