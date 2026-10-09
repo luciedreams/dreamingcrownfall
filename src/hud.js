@@ -8,8 +8,10 @@
 // King und Royal Celebration kommen aus dem Snapshot des Notifiers.
 
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
-const { BrowserWindow, ipcMain, webContents } = require('electron');
+const { execFile } = require('child_process');
+const { app, BrowserWindow, ipcMain, webContents } = require('electron');
 const config = require('./hud-config.js');
 
 const FAST_MS = 10 * 1000;
@@ -34,7 +36,31 @@ const API_JS = `(async () => {
     };
 })()`;
 
-module.exports = function createHud({ views, kingNow, icon, onToggle }) {
+// „Immer oben“ unter KDE/Wayland: alwaysOnTop kommt dort nicht an (KWin führte das HUD mit
+// keepAbove=false, gemessen 09.10.). Stattdessen setzt ein kurzes KWin-Skript keepAbove für genau
+// dieses Fenster (Titel + eigene PID) — nur zur Laufzeit, nichts wird in die KWin-Einstellungen
+// geschrieben. Andere Desktops/X11/Windows: Electrons alwaysOnTop reicht.
+const KDE_WAYLAND = process.platform === 'linux' && /wayland/i.test(process.env.XDG_SESSION_TYPE || '')
+    && /kde/i.test(process.env.XDG_CURRENT_DESKTOP || '');
+function kwinKeepAbove() {
+    if (!KDE_WAYLAND) return;
+    const name = 'dreamingcrownfall-hud-above';
+    const file = path.join(app.getPath('temp'), `${name}-${process.pid}.js`);
+    const script = `for (const w of workspace.windowList()) if (w.caption === 'DreamingCrownfall HUD' && w.pid === ${process.pid}) { w.keepAbove = true; w.skipSwitcher = true; }`;
+    try { fs.writeFileSync(file, script); } catch { return; }
+    const q = (args, cb) => execFile('qdbus6', args, (err, out) => (err ? execFile('qdbus', args, cb) : cb(null, out)));
+    q(['org.kde.KWin', '/Scripting', 'org.kde.kwin.Scripting.unloadScript', name], () => {
+        q(['org.kde.KWin', '/Scripting', 'org.kde.kwin.Scripting.loadScript', file, name], (err, out) => {
+            const id = String(out || '').trim();
+            if (err || !/^\d+$/.test(id)) { console.error('[dcf] HUD: KWin-Skript ging nicht'); return; }
+            q(['org.kde.KWin', `/Scripting/Script${id}`, 'org.kde.kwin.Script.run'], () => {
+                setTimeout(() => q(['org.kde.KWin', '/Scripting', 'org.kde.kwin.Scripting.unloadScript', name], () => {}), 1000);
+            });
+        });
+    });
+}
+
+module.exports = function createHud({ views, kingNow, icon, onToggle, refocus = () => {} }) {
     let win = null, fast = null, slow = null;
     const header = new Map(), api = new Map(); // view-Eintrag → letzte Werte
     const live = (v) => !v.guest && !v.view.webContents.isDestroyed() && !v.view.webContents.isLoading();
@@ -87,7 +113,17 @@ module.exports = function createHud({ views, kingNow, icon, onToggle }) {
         });
         win.setAlwaysOnTop(true, 'screen-saver');
         win.loadFile(path.join(__dirname, 'hud.html'));
-        win.once('ready-to-show', () => { win.showInactive(); readHeaders(); readApi(); });
+        // Unter Wayland nimmt das HUD trotz showInactive den Fokus (KDE ignoriert es): dann geht er
+        // ans Spiel zurück, sonst landete das nächste F2 im HUD.
+        win.once('ready-to-show', () => {
+            win.showInactive(); readHeaders(); readApi();
+            setTimeout(kwinKeepAbove, 150);
+            setTimeout(() => { if (win && !win.isDestroyed() && win.isFocused()) refocus(); }, 80);
+        });
+        // F2 auch im HUD selbst (falls es doch den Fokus hat): schließt es.
+        win.webContents.on('before-input-event', (e, input) => {
+            if (input.type === 'keyDown' && input.key === 'F2' && !input.control && !input.alt) { e.preventDefault(); close(); }
+        });
         win.on('closed', () => { win = null; clearInterval(fast); clearInterval(slow); fast = slow = null; onToggle(false); broadcast(); });
         fast = setInterval(readHeaders, FAST_MS);
         slow = setInterval(readApi, SLOW_MS);

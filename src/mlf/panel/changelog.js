@@ -1,5 +1,9 @@
     // Newest first. The first entry is what What's new shows after a fresh install.
     const CHANGELOG = [
+        { v: '0.3.2', date: '2026-10-09', items: [
+            'Fixed: F2 closes the HUD again. On Linux with Wayland the HUD took the keyboard when it opened, so the second F2 went nowhere; now the game keeps it.',
+            'Fixed: on KDE with Wayland the HUD really stays on top. Before, a click into the game window put it behind, and F2 needed two presses to bring it back.',
+        ] },
         { v: '0.3.1', date: '2026-10-09', items: [
             'Fixed: in Settings › HUD, clicking a switch under "What it shows" moved the row up instead of switching it.',
             'Fixed: the Background slider in Settings › HUD slides smoothly; before, the page redrew under the mouse while dragging.',

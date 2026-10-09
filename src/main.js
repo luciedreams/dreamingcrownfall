@@ -403,7 +403,8 @@ if (!app.requestSingleInstanceLock()) {
         vitals = startVitals({ views, setting: appSettings.get, label });
         loadAppLayer();
         createWindow();
-        hud = createHud({ views, icon: ICON, kingNow: () => notifier?.kingNow() || null, onToggle: () => buildTrayMenu() });
+        hud = createHud({ views, icon: ICON, kingNow: () => notifier?.kingNow() || null, onToggle: () => buildTrayMenu(),
+            refocus: () => { win.focus(); activeContents()?.focus(); } });
         createTray();
         startShortcuts({ setting: appSettings.get, onSettingsChange: appSettings.onChange, actions: shortcutActions });
         updater = startUpdater({ icon: ICON });
