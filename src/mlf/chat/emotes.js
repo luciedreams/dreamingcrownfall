@@ -602,8 +602,43 @@
         return `${g.joined} joined, ~${min} min left`;
     }
 
+    // Discovered calls (app 0.1.4): an animal counts as found once its participation achievement
+    // (iconKey secret:animal:<id>:participation) is unlocked for this account. Fetched with the
+    // paw (apply()'s beat) and on opening, kept ten minutes. null = not known (request failed):
+    // then the whole list shows, as before.
+    const ANIMAL_FOUND_MS = 10 * 60 * 1000;
+    let animalFound = null, animalFoundAt = 0, animalFoundBusy = null;
+    function loadAnimalFound() {
+        if (animalFoundBusy) return animalFoundBusy;
+        if (Date.now() - animalFoundAt < ANIMAL_FOUND_MS) return Promise.resolve();
+        animalFoundBusy = fetch('/api/achievements', { credentials: 'same-origin' })
+            .then(r => (r.ok ? r.json() : null))
+            .then(d => {
+                if (!d || d.ok === false) return;
+                const found = new Set();
+                (function walk(o) {
+                    if (Array.isArray(o)) { for (const x of o) walk(x); return; }
+                    if (!o || typeof o !== 'object') return;
+                    const m = typeof o.iconKey === 'string' && o.iconKey.match(/^secret:animal:([a-z]+):participation$/);
+                    if (m && o.unlocked === true) found.add(m[1]);
+                    for (const v of Object.values(o)) if (v && typeof v === 'object') walk(v);
+                })(d);
+                animalFound = found;
+            })
+            .catch(() => {})
+            // Also after a failure: the answer is big, not again before the ten minutes are up.
+            .finally(() => { animalFoundAt = Date.now(); animalFoundBusy = null; });
+        return animalFoundBusy;
+    }
+
     function drawAnimalButton() {
-        const on = !!settings.chatAnimalBtn && !signedOut();
+        let on = !!settings.chatAnimalBtn && !signedOut();
+        // Only found calls: the list comes with apply()'s beat (ten minutes apart), and with no
+        // animal found yet the paw stays away altogether.
+        if (on && settings.chatAnimalFound) {
+            loadAnimalFound();
+            if (animalFound && !animalFound.size) on = false;
+        }
         const form = chatRoot() && chatRoot().querySelector('[data-role="chat-form"]');
         const send = form && form.querySelector('[data-role="chat-send"], .mcf-chat__send');
         let btn = document.querySelector('.mcfo-animal-btn');
@@ -638,41 +673,70 @@
             if (cd.pause) next.textContent = `Next new gathering in ~${minsFrom(cd.pause)} min`;
             else { next.textContent = 'A new gathering can start now'; next.setAttribute('data-ready', ''); }
             const list = m.querySelector('.mcfo-ani__list');
-            const order = g ? [g.animal, ...ANIMAL_CALLS.filter(a => a !== g.animal)] : ANIMAL_CALLS;
-            for (const a of order) {
-                const live = !!g && a === g.animal;
-                const b = document.createElement('button');
-                b.type = 'button';
-                b.className = 'mcfo-ani__row' + (live ? ' mcfo-ani__row--live' : '') + (live && g.mine ? ' mcfo-ani__row--joined' : '');
-                b.innerHTML = '<span class="mcfo-ani__emoji"></span><span class="mcfo-ani__name"></span><span class="mcfo-ani__call"></span>';
-                b.querySelector('.mcfo-ani__emoji').textContent = a.emojis[0];
-                b.querySelector('.mcfo-ani__name').textContent = a.label;
-                b.querySelector('.mcfo-ani__call').textContent = !live ? '!' + a.call : g.mine ? 'Joined \u2713' : 'Join !' + a.call;
-                if (live) {
-                    const sub = document.createElement('span');
-                    sub.className = 'mcfo-ani__live';
-                    sub.textContent = (g.mine ? 'You are in: ' : 'Gathering: ') + animalLiveText(g);
-                    b.appendChild(sub);   // a row of its own, across name and call
-                } else if (cd.rest[a.id] && cd.rest[a.id] > cd.pause) {
-                    // Its own hour outlasts the pause for all: worth saying per animal.
-                    b.classList.add('mcfo-ani__row--rest');
-                    const sub = document.createElement('span');
-                    sub.className = 'mcfo-ani__rest';
-                    sub.textContent = `Resting, ~${minsFrom(cd.rest[a.id])} min`;
-                    b.appendChild(sub);
-                }
-                b.title = 'Send !' + a.call;
-                b.addEventListener('click', e => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    closeMenus();
-                    // A refusal ("The pack is resting.") comes back as the game's own chat line.
-                    const r = sendChatLine('!' + a.call);
-                    if (!r.ok) notice(escapeHtml(`!${a.call} not sent. ${r.why}.`), 'error');
-                });
-                list.appendChild(b);
-            }
+            drawAnimalRows(list, g, cd);
         });
-        if (menu) placePanel(anchor, menu);
+        if (!menu) return;
+        placePanel(anchor, menu);
+        // The discovered list may be older than ten minutes: fetch, then redraw if it changed.
+        if (settings.chatAnimalFound) {
+            const before = animalFound ? [...animalFound].join() : null;
+            const p = loadAnimalFound();
+            if (p) p.then(() => {
+                if (!menu.isConnected || (animalFound ? [...animalFound].join() : null) === before) return;
+                drawAnimalRows(menu.querySelector('.mcfo-ani__list'), g, cd);
+                placePanel(anchor, menu);
+            });
+        }
+    }
+
+    function drawAnimalRows(list, g, cd) {
+        list.replaceChildren();
+        // Only the calls this account has found (also while a gathering of another one runs).
+        const shown = settings.chatAnimalFound && animalFound ? ANIMAL_CALLS.filter(a => animalFound.has(a.id)) : ANIMAL_CALLS;
+        const order = g && shown.includes(g.animal) ? [g.animal, ...shown.filter(a => a !== g.animal)] : shown;
+        if (!order.length) {
+            const none = document.createElement('div');
+            none.className = 'mcfo-ani__none';
+            none.textContent = 'No animal calls found yet.';
+            list.appendChild(none);
+        } else if (order.length < ANIMAL_CALLS.length) {
+            const more = document.createElement('div');
+            more.className = 'mcfo-ani__none';
+            more.textContent = `${order.length} of ${ANIMAL_CALLS.length} found`;
+            list.appendChild(more);
+        }
+        for (const a of order) {
+            const live = !!g && a === g.animal;
+            const b = document.createElement('button');
+            b.type = 'button';
+            b.className = 'mcfo-ani__row' + (live ? ' mcfo-ani__row--live' : '') + (live && g.mine ? ' mcfo-ani__row--joined' : '');
+            b.innerHTML = '<span class="mcfo-ani__emoji"></span><span class="mcfo-ani__name"></span><span class="mcfo-ani__call"></span>';
+            b.querySelector('.mcfo-ani__emoji').textContent = a.emojis[0];
+            b.querySelector('.mcfo-ani__name').textContent = a.label;
+            b.querySelector('.mcfo-ani__call').textContent = !live ? '!' + a.call : g.mine ? 'Joined \u2713' : 'Join !' + a.call;
+            if (live) {
+                const sub = document.createElement('span');
+                sub.className = 'mcfo-ani__live';
+                sub.textContent = (g.mine ? 'You are in: ' : 'Gathering: ') + animalLiveText(g);
+                b.appendChild(sub);   // a row of its own, across name and call
+            } else if (cd.rest[a.id] && cd.rest[a.id] > cd.pause) {
+                // Its own hour outlasts the pause for all: worth saying per animal.
+                b.classList.add('mcfo-ani__row--rest');
+                const sub = document.createElement('span');
+                sub.className = 'mcfo-ani__rest';
+                sub.textContent = `Resting, ~${minsFrom(cd.rest[a.id])} min`;
+                b.appendChild(sub);
+            }
+            b.title = 'Send !' + a.call;
+            b.addEventListener('click', e => {
+                e.preventDefault();
+                e.stopPropagation();
+                closeMenus();
+                // A refusal ("The pack is resting.") comes back as the game's own chat line.
+                const r = sendChatLine('!' + a.call);
+                if (!r.ok) notice(escapeHtml(`!${a.call} not sent. ${r.why}.`), 'error');
+            });
+            list.appendChild(b);
+        }
     }
 

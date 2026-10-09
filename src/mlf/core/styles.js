@@ -806,6 +806,7 @@
         .mcfo-menu button.mcfo-ani__row--rest { opacity: 0.55; }
         .mcfo-menu button.mcfo-ani__row--rest:hover { opacity: 0.85; }
         .mcfo-ani__rest { grid-column: 2 / -1; margin-top: -4px; font-size: 11px; color: #e9b37a; white-space: nowrap; }
+        .mcfo-ani__none { margin: 0 0 6px; font-size: 11.5px; line-height: 1.35; color: #8da2b7; }
         .mcfo-ani__foot { margin-top: 8px; font-size: 11px; line-height: 1.35; color: #8da2b7; }
         .mcfo-menu--tomato { width: 250px; padding: 10px 12px 12px; }
         .mcfo-tom__head { font-weight: 800; font-size: 13px; letter-spacing: 0.05em; text-transform: uppercase; color: #ff9a8a;
