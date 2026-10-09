@@ -2,7 +2,7 @@
   "name": "dreamingcrownfall",
   "productName": "DreamingCrownfall",
   "desktopName": "dreamingcrownfall.desktop",
-  "version": "0.1.3",
+  "version": "0.2.0",
   "description": "Marble Crownfall as a desktop app: several accounts in tabs, desktop notifications, windows you can move anywhere.",
   "main": "src/main.js",
   "author": "DreamingLucie",
