@@ -161,7 +161,8 @@
             .dcf-hudprev__bar .dcf-set__note { margin: 0; }
             .dcf-hudrow { position: relative; display: flex; align-items: center; gap: 10px; padding: 9px 14px 9px 16px; }
             .dcf-hudrow + .dcf-hudrow { border-top: 1px solid var(--ds-line2); }
-            .dcf-hudrow__name { flex: 1; font-weight: 600; }
+            .dcf-hudrow__name { flex: 1; font-weight: 600; cursor: pointer; }
+            .dcf-hudrow__sw { position: relative; display: inline-flex; cursor: pointer; }
             .dcf-hudrow[data-off] .dcf-hudrow__name { color: var(--ds-dim); }
             .dcf-hudrow__mv { font: inherit; width: 28px; height: 26px; border-radius: 7px; border: 1px solid var(--ds-line2); background: transparent; color: var(--ds-muted); cursor: pointer; }
             .dcf-hudrow__mv:hover:not(:disabled) { color: var(--ds-text); border-color: var(--ds-violet); }
@@ -423,9 +424,12 @@
         const drawItems = () => {
             card.replaceChildren();
             cfg.items.forEach((it, i) => {
-                const row = dcfEl('label', 'dcf-hudrow');
+                // A div, not a label: a click anywhere in a label goes to its FIRST control, and
+                // that was the ↑ button — every click on the switch moved the row instead.
+                const row = dcfEl('div', 'dcf-hudrow');
                 if (!it.on) row.setAttribute('data-off', '');
-                const name = dcfEl('span', 'dcf-hudrow__name', (lib && lib.HUD_ITEMS[it.id]) || it.id);
+                const name = dcfEl('label', 'dcf-hudrow__name', (lib && lib.HUD_ITEMS[it.id]) || it.id);
+                name.htmlFor = 'dcf-hud-item-' + it.id;
                 const mv = (dir, label) => {
                     const b = dcfEl('button', 'dcf-hudrow__mv', label);
                     b.type = 'button';
@@ -442,12 +446,15 @@
                 };
                 const input = dcfEl('input', 'mcfo-switch__input');
                 input.type = 'checkbox';
+                input.id = 'dcf-hud-item-' + it.id;
                 input.checked = it.on;
                 input.addEventListener('change', () => {
                     cfg = Object.assign({}, cfg, { items: cfg.items.map(x => x.id === it.id ? { id: x.id, on: input.checked } : x) });
                     save(); drawItems();
                 });
-                row.append(name, mv(-1, '↑'), mv(1, '↓'), input, Object.assign(dcfEl('span', 'mcfo-switch'), { ariaHidden: 'true' }));
+                const sw = dcfEl('label', 'dcf-hudrow__sw');
+                sw.append(input, Object.assign(dcfEl('span', 'mcfo-switch'), { ariaHidden: 'true' }));
+                row.append(name, mv(-1, '↑'), mv(1, '↓'), sw);
                 card.appendChild(row);
             });
         };
