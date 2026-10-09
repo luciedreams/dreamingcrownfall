@@ -9,7 +9,7 @@
   someone mentions you in chat · one of your accounts takes or loses the throne · a Royal Celebration starts ·
   a Rebellion starts · an achievement unlocks · a gift arrives · the shop has an item for one of your open shop quests.
   Clicking a notification brings up the right tab.
-- **Windows you can put anywhere.** Inventory, Dailies, Shop, Leaderboards, Settings and every other window opens as a real window of its own: move it to another screen, resize it, Alt+Tab to it. Closing it closes the window. The chat stays in the game and gets a **⧉** button to pop it out.
+- **Windows you can put anywhere.** Inventory, Dailies, Shop, Leaderboards, Settings and every other window opens as a real window of its own: move it to another screen, resize it, Alt+Tab to it. Closing it closes the window. The chat stays in the game and gets a **⧉** button to pop it out. Prefer them inside the game? Settings › General › *Every window on its own* off, and **⧉** takes out just the one you want.
 - **Emoji in chat.** `:)` becomes 🙂 as you type, `:fire` suggests 🔥, and an emoji button opens every emoji with search, recent ones and skin tones. What is sent is plain Unicode, so everybody sees it.
 - **Discord Rich Presence, opt-in.** "Playing Marble Crownfall", with the account you are looking at and "👑 King for 12 min" while one of yours sits on the throne (Settings › Discord; each part can be switched off).
 - **Settings that are easy to find.** One panel with categories and a search over every switch.

@@ -1,5 +1,11 @@
     // Newest first. The first entry is what What's new shows after a fresh install.
     const CHANGELOG = [
+        { v: '0.2.0', date: '2026-10-09', items: [
+            'Your choice of windows: Settings › General › "Every window on its own". Switched off, windows open inside the game as before, and ⧉ in a title bar takes out just that one. It works at once, also on the windows already open.',
+            'Secret game features stay secret until you have found or unlocked them.',
+            'Fixed: switching Enhanced chat (and other switches that others depend on) left the settings window blank.',
+            'Fixed: on Linux with X11 (Mint, Ubuntu …), a maximized window cut off the bottom of the game.',
+        ] },
         { v: '0.1.3', date: '2026-10-09', items: [
             'The Linux .deb (Debian, Ubuntu, Mint …) now updates itself like the Windows version and the AppImage: it downloads in the background, and "Restart now" installs it after asking for your password once.',
         ] },
