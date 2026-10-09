@@ -1,5 +1,8 @@
     // Newest first. The first entry is what What's new shows after a fresh install.
     const CHANGELOG = [
+        { v: '0.3.1', date: '2026-10-09', items: [
+            'Fixed: in Settings › HUD, clicking a switch under "What it shows" moved the row up instead of switching it.',
+        ] },
         { v: '0.3.0', date: '2026-10-09', items: [
             'Home: with two or more accounts, a tab on the far left shows all of them at a glance — tickets and whether they are earning, points, gold, diamonds, daily quests, what is waiting to be claimed, and who is King.',
             'The HUD: F2 opens a small window that stays on top of everything. Build it your way in Settings › HUD — pick what it shows and in which order, bar or column, size, style and how see-through it is, with a live preview.',
