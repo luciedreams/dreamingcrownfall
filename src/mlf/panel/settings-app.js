@@ -92,7 +92,7 @@
                 position: relative; display: grid; grid-template-columns: 250px 1fr;
                 width: min(1180px, 100%); height: min(88vh, 900px);
                 background: linear-gradient(180deg, var(--ds-bg1), var(--ds-bg2));
-                border: 1px solid var(--ds-line); border-radius: 18px; overflow: hidden;
+                border: 1px solid var(--ds-line); border-radius: 18px; overflow: clip;
                 box-shadow: 0 30px 90px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.06);
                 animation: dcf-pn-rise 200ms cubic-bezier(.2, .8, .2, 1);
             }
@@ -157,7 +157,10 @@
             .dcf-set .mcfo-set { position: static; inset: auto; overflow: visible; padding: 0; color: var(--ds-text); font-size: 13.5px; }
             .dcf-set .mcfo-set__crumb, .dcf-set .mcfo-set__foot { display: none; }
             .dcf-set .mcfo-set__card { background: var(--ds-card); border: 1px solid var(--ds-line2); border-radius: 12px; overflow: hidden; }
-            .dcf-set .mcfo-set__row { padding: 13px 16px; }
+            /* The hidden checkbox is absolute: without its own row as anchor it sat on the panel, and a
+               redraw after a click scrolled the whole panel after it (blank window). clip above keeps
+               the panel from scrolling at all; only the content does. */
+            .dcf-set .mcfo-set__row { position: relative; padding: 13px 16px; }
             .dcf-set .mcfo-set__row:hover { background: rgba(180, 138, 232, 0.06); }
             .dcf-set .mcfo-set__item + .mcfo-set__item { border-top: 1px solid var(--ds-line2); }
             .dcf-set .mcfo-set__label { color: var(--ds-text); font-size: 14px; }
