@@ -12,8 +12,7 @@
         if (new URLSearchParams(location.search).get('mlf') === 'classic') return;
         const pw = (typeof unsafeWindow !== 'undefined' && unsafeWindow) || window;
         try { pw.__MCF_ACHIEVEMENT_REVIEW_FIXTURE__ = pw.JSON.parse('{"mcfoNewPage":true}'); } catch (e) { return; }
-        const html = document.documentElement;
-        html.setAttribute('data-mcfo-newach', '1');
+        withRoot(html => html.setAttribute('data-mcfo-newach', '1'));
         document.addEventListener('DOMContentLoaded', () => {
             const old = document.getElementById('achievement-root');
             if (!old) return;
@@ -24,10 +23,10 @@
             const st = document.createElement('style');
             st.id = 'mcfo-newach-css';
             st.textContent = INV_NEW_CSS + ACH_NEW_CSS;
-            (document.head || html).appendChild(st);
+            (document.head || document.documentElement).appendChild(st);
             const sc = document.createElement('script');
             sc.textContent = '(' + achOverhaulApp.toString() + ')();';
-            (document.head || html).appendChild(sc);
+            (document.head || document.documentElement).appendChild(sc);
         }, { once: true });
     }
     const ACH_NEW_CSS = `

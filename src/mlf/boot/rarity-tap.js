@@ -51,9 +51,9 @@
         const pw = (typeof unsafeWindow !== 'undefined' && unsafeWindow) || window;
         const innerFetch = pw.fetch;   // the crown list cache's, when it is installed
         if (typeof innerFetch !== 'function') return;
-        const html = document.documentElement;
         const last = new Map();        // page -> the whole list, last seen
-        const info = (page, d) => { try { html.setAttribute('data-mcfo-rarinfo', JSON.stringify(invRarInfo(page, d))); } catch (e) {} };
+        // documentElement only when it is used: at the app's start it may not exist yet (see withRoot).
+        const info = (page, d) => { try { document.documentElement.setAttribute('data-mcfo-rarinfo', JSON.stringify(invRarInfo(page, d))); } catch (e) {} };
         pw.fetch = function (input, init) {
             let url, method;
             try {

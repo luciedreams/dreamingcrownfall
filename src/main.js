@@ -247,9 +247,12 @@ function wireGameContents(wc, v) {
     wc.setWindowOpenHandler(({ url, frameName }) => {
         // MLF-Fenster als Systemfenster: leeres Fenster derselben Seite, das die App-Schicht befüllt.
         if (url === 'about:blank' && /^mlfpop-/.test(frameName)) {
+            // Mit Preload wie die Tabs: die Seite im Fenster (Inventar, Achievements …) lädt beim Umzug
+            // neu, und ohne Preload kam dort die Spiel-Ebene nicht hinein — neues Inventar und neue
+            // Achievements blieben aus (Luce, 09.10.). Das about:blank-Fenster selbst lässt der Preload in Ruhe.
             return { action: 'allow', overrideBrowserWindowOptions: {
                 autoHideMenuBar: true, icon: ICON, backgroundColor: '#0b121a',
-                webPreferences: { partition: v.acc.partition, contextIsolation: true, sandbox: true },
+                webPreferences: webPrefs(v.acc),
             } };
         }
         if (staysInApp(url)) {

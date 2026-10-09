@@ -6,13 +6,22 @@
     // root takes the old id - the loadout bar and the rest of 12e find it as before - and the
     // app goes into the page. Off with Settings > Inventory > New inventory, or for one visit
     // with ?mlf=classic (the "Classic inventory" link).
+    // The app's preload starts earlier than a userscript manager's document-start: there may be no
+    // <html> element yet (document.documentElement is null). In Tampermonkey it always existed, so
+    // code here took it once at the start — in the app that broke the new inventory and the new
+    // achievements page. Run fn as soon as the element is there.
+    function withRoot(fn) {
+        if (document.documentElement) { fn(document.documentElement); return; }
+        const mo = new MutationObserver(() => { if (document.documentElement) { mo.disconnect(); fn(document.documentElement); } });
+        mo.observe(document, { childList: true });
+    }
+
     function invOverhaulBoot() {
         try {
             const s = JSON.parse(localStorage.getItem('mcf_overhaul_settings') || '{}');
             if (s.invOverhaul === false) return;
         } catch (e) { /* no settings yet: on */ }
         if (new URLSearchParams(location.search).get('mlf') === 'classic') return;
-        const html = document.documentElement;
         const grab = () => {
             const r = document.getElementById('inventory-root');
             if (!r || r.hasAttribute('data-mcfo-newinv')) return false;
@@ -30,7 +39,7 @@
             const tag = document.querySelector('script[src*="/immutable-assets/"][src$="/inventory.js"]');
             const m = tag && tag.getAttribute('src').match(/\/immutable-assets\/([^/]+)\//);
             if (!old || !m) { if (old) { old.id = 'inventory-root'; old.hidden = false; } return; }
-            html.setAttribute('data-mcfo-newinv', '1');
+            document.documentElement.setAttribute('data-mcfo-newinv', '1');
             const main = document.createElement('main');
             main.id = 'inventory-root';
             main.className = 'inventoryMain mcfPageContent mi-root';
@@ -39,10 +48,10 @@
             const st = document.createElement('style');
             st.id = 'mcfo-newinv-css';
             st.textContent = INV_NEW_CSS;
-            (document.head || html).appendChild(st);
+            (document.head || document.documentElement).appendChild(st);
             const sc = document.createElement('script');
             sc.textContent = '(' + invOverhaulApp.toString() + ')(' + JSON.stringify({ build: m[1] }) + ');';
-            (document.head || html).appendChild(sc);
+            (document.head || document.documentElement).appendChild(sc);
         }, { once: true });
     }
     const INV_NEW_CSS = `
