@@ -14,6 +14,10 @@
 - **Emoji in chat.** `:)` becomes 🙂 as you type, `:fire` suggests 🔥, and an emoji button opens every emoji with search, recent ones and skin tones. What is sent is plain Unicode, so everybody sees it.
 - **Discord Rich Presence, opt-in.** "Playing Marble Crownfall", with the account you are looking at and "👑 King for 12 min" while one of yours sits on the throne (Settings › Discord; each part can be switched off).
 - **Settings that are easy to find.** One panel with categories and a search over every switch.
+- **A HUD you design yourself.** F2 opens a small always-on-top window: King and throne time, a running Royal Celebration, tickets (in total or per account), who is earning, gold and diamonds, rewards to claim, a clock — pick the pieces and their order, bar or column, size, style and how see-through it is (Settings › HUD, with a live preview).
+- **Shortcuts outside the app, if you like:** Ctrl+Alt+M shows or hides the window, Ctrl+Alt+N goes to the next account, Ctrl+Alt+C puts the cursor in the chat (Settings › General; off until you switch them on).
+- **Media keys** steer the music player, and the desktop's media controls show the track.
+- **Remembers its window**: size, maximized, and where the system allows it, the position.
 - **Recovers on its own.** A tab that hangs or crashes reloads itself, and after sleep or a lost internet connection every tab reloads once, so chat and tickets keep going (Settings › General › *Recover on its own*).
 - **Performance report.** Settings › About records 10 seconds of the game: frame rate, how busy it keeps your computer and which parts of the game take the time — something to send to the game's developer when it runs slowly.
 - **No browser, no extension.** Everything is part of the app and updates with it.

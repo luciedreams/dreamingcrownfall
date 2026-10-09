@@ -202,6 +202,7 @@ module.exports = function startNotifier({ views, icon, isWatching, isFocused, fo
         }
         // Royal Celebration: je ID einmal; was beim ersten Abruf schon läuft, ist Wasserstand.
         const rc = d?.royalCelebration;
+        st.rc = rc && ['pending', 'ready', 'active'].includes(String(rc.state)) ? { multiplier: rc.multiplier || null, state: String(rc.state), playerId: rc.playerId || null } : null;
         if (rc && rc.id && !st.celebs.has(rc.id)) {
             st.celebs.add(rc.id);
             if (st.kingSeen && ['pending', 'ready', 'active'].includes(String(rc.state))) {
@@ -289,7 +290,7 @@ module.exports = function startNotifier({ views, icon, isWatching, isFocused, fo
 
     // Für Home: der aktuelle King, egal ob eigener Account.
     function kingNow() {
-        return st.king ? { playerId: st.king, name: st.kingName, since: st.kingSince || Date.now() } : null;
+        return st.king ? { playerId: st.king, name: st.kingName, since: st.kingSince || Date.now(), rc: st.rc || null } : null;
     }
 
     return { resetAccount, test, kingOfMine, kingNow };

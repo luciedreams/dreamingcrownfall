@@ -12,6 +12,7 @@ const autostart = require('./autostart.js');
 const SCHEMA = {
     'windows.popOut': true,
     'stability.recover': true,
+    'shortcuts.global': false,
     'notify.enabled': true,
     'notify.onlyWhenAway': true,
     'notify.mention': true,

@@ -19,6 +19,14 @@ if (host === 'marblecrownfall.com' || host.endsWith('.marblecrownfall.com')) {
             testNotification: () => ipcRenderer.send('dcf:notify:test'),
             perfReport: () => ipcRenderer.invoke('dcf:perf:report'),
             displayHz: () => ipcRenderer.sendSync('dcf:display:hz'),
+            hud: {
+                get: () => ipcRenderer.sendSync('dcf:hud:get'),
+                set: (cfg) => ipcRenderer.send('dcf:hud:set', JSON.parse(JSON.stringify(cfg || {}))),
+                toggle: () => ipcRenderer.send('dcf:hud:toggle'),
+                data: () => ipcRenderer.invoke('dcf:hud:data'),
+                renderer: () => ipcRenderer.sendSync('dcf:hud:renderer'),
+                onChange: (cb) => { if (typeof cb === 'function') ipcRenderer.on('dcf:hud:changed', (_e, s) => { try { cb(s); } catch (err) {} }); },
+            },
             update: {
                 state: () => ipcRenderer.invoke('dcf:update:state'),
                 check: () => ipcRenderer.invoke('dcf:update:check'),

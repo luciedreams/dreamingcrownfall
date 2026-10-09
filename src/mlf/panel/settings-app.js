@@ -26,6 +26,7 @@
         box: '<path d="M21 8l-9-5-9 5 9 5 9-5Z"/><path d="M3 8v8l9 5 9-5V8"/><path d="M12 13v8"/>',
         sound: '<path d="M11 5 6 9H2v6h4l5 4V5Z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M19 5a10 10 0 0 1 0 14"/>',
         info: '<circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h0"/>',
+        hud: '<rect x="2" y="6" width="20" height="6" rx="2"/><path d="M6 9h.01M10 9h4M18 9h.01"/><path d="M5 16h14M8 19h8"/>',
         search: '<circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/>',
         close: '<path d="M18 6 6 18M6 6l12 12"/>',
     };
@@ -35,9 +36,10 @@
     // one of the special cards. Every section of SETTINGS_SECTIONS appears exactly once.
     const DCF_NAV = [
         { group: 'App', pages: [
-            { id: 'general', title: 'General', icon: 'general', blurb: 'How the app starts, its windows, stability and your accounts.', app: 'general' },
+            { id: 'general', title: 'General', icon: 'general', blurb: 'How the app starts, its windows, shortcuts, stability and your accounts.', app: 'general' },
             { id: 'notifications', title: 'Notifications', icon: 'bell', blurb: 'Desktop notifications for every account, also while the window is in the background.', app: 'notifications' },
             { id: 'discord', title: 'Discord', icon: 'discord', blurb: 'Show on your Discord profile that you are playing.', app: 'discord' },
+            { id: 'hud', title: 'HUD', icon: 'hud', blurb: 'A small always-on-top window with what you want to keep an eye on. F2 opens and closes it.', app: 'hud' },
         ]},
         { group: 'Game', pages: [
             { id: 'appearance', title: 'Appearance', icon: 'palette', blurb: 'Theme, colours and how windows look over the board.', parts: ['Theme', 'Windows'] },
@@ -61,6 +63,7 @@
     const DCF_APP_ITEMS = [
         { page: 'general', part: 'windows', key: 'windows.popOut', label: 'Every window on its own', hint: 'Inventory, leaderboards, shop and the other windows open as windows of their own, to move anywhere, also onto another screen. Off: they open inside the game as before, and ⧉ in a window\'s title bar takes that one out. The chat always opens inside the game.' },
         { page: 'general', part: 'stability', key: 'stability.recover', label: 'Recover on its own', hint: 'A tab that hangs for 30 seconds or crashes reloads itself; a page that does not load tries again. After sleep or a lost internet connection every tab reloads once, so chat and tickets do not sit on a dead connection.' },
+        { page: 'general', part: 'shortcuts', key: 'shortcuts.global', label: 'Shortcuts outside the app', hint: 'Work while you are in another program too: Ctrl+Alt+M shows or hides the window, Ctrl+Alt+N goes to your next account, Ctrl+Alt+C puts the cursor in the chat. On Linux with Wayland the desktop asks once whether the app may have them. Inside the app, F2 opens and closes the HUD, a slim always-on-top bar with the King, a Royal Celebration and your tickets.' },
         { page: 'general', key: 'app.autostart', label: 'Start with your computer', hint: 'Starts hidden in the tray when you log in, so notifications keep coming and your sessions stay fresh without opening the window.' },
         { page: 'notifications', key: 'notify.enabled', label: 'Desktop notifications', hint: 'All notifications of the app. Switch off to silence everything at once.' },
         { page: 'notifications', key: 'notify.onlyWhenAway', label: 'Only when you are not looking', hint: 'Nothing pops up for the account you have in front of you. Hidden tabs, another app in front or the window in the tray still notify.', needs: 'notify.enabled' },
@@ -151,6 +154,28 @@
             .dcf-set__btn--main { border: 0; color: #1a1026; background: linear-gradient(180deg, #ffe08f, #f2b84b); }
             .dcf-set__btn--main:hover { background: linear-gradient(180deg, #ffe7a6, #f5c25f); }
             .dcf-set__btn:disabled { opacity: 0.5; cursor: default; }
+            /* ---- HUD page ---- */
+            .dcf-hudprev { display: flex; align-items: center; justify-content: center; min-height: 120px; padding: 24px; border-radius: 12px; overflow: auto;
+                border: 1px solid var(--ds-line2); background: repeating-conic-gradient(#2b2339 0% 25%, #211a2d 0% 50%) 0 0 / 22px 22px; }
+            .dcf-hudprev__bar { display: flex; align-items: center; gap: 12px; margin-top: 12px; flex-wrap: wrap; }
+            .dcf-hudprev__bar .dcf-set__note { margin: 0; }
+            .dcf-hudrow { position: relative; display: flex; align-items: center; gap: 10px; padding: 9px 14px 9px 16px; }
+            .dcf-hudrow + .dcf-hudrow { border-top: 1px solid var(--ds-line2); }
+            .dcf-hudrow__name { flex: 1; font-weight: 600; }
+            .dcf-hudrow[data-off] .dcf-hudrow__name { color: var(--ds-dim); }
+            .dcf-hudrow__mv { font: inherit; width: 28px; height: 26px; border-radius: 7px; border: 1px solid var(--ds-line2); background: transparent; color: var(--ds-muted); cursor: pointer; }
+            .dcf-hudrow__mv:hover:not(:disabled) { color: var(--ds-text); border-color: var(--ds-violet); }
+            .dcf-hudrow__mv:disabled { opacity: 0.3; cursor: default; }
+            .dcf-hudrow .mcfo-switch { margin-left: 6px; cursor: pointer; }
+            .dcf-hudlook { display: grid; grid-template-columns: 110px 1fr; gap: 14px 16px; align-items: center; padding: 16px; }
+            .dcf-hudlook > span { color: var(--ds-muted); font-weight: 600; }
+            .dcf-seg { display: inline-flex; justify-self: start; border: 1px solid var(--ds-line); border-radius: 9px; overflow: hidden; }
+            .dcf-seg button { font: inherit; font-size: 12.5px; font-weight: 700; padding: 7px 14px; border: 0; background: transparent; color: var(--ds-muted); cursor: pointer; }
+            .dcf-seg button + button { border-left: 1px solid var(--ds-line2); }
+            .dcf-seg button[aria-pressed="true"] { background: rgba(180, 138, 232, 0.24); color: var(--ds-text); }
+            .dcf-hudlook__range { display: flex; align-items: center; gap: 12px; }
+            .dcf-hudlook__range input { flex: 1; max-width: 320px; accent-color: #b48ae8; }
+            .dcf-hudlook__range b { min-width: 44px; font-variant-numeric: tabular-nums; }
             .dcf-set__btn--danger { border-color: rgba(224, 122, 122, 0.4); color: #f2b3b3; }
             .dcf-set__btn--danger:hover { background: rgba(224, 122, 122, 0.12); }
             .dcf-set__btns { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
@@ -243,7 +268,7 @@
         const state = api.settings();
         const items = DCF_APP_ITEMS.filter(i => i.page === page.id);
         if (page.id === 'general') {
-            for (const [title, group] of [['Start', undefined], ['Windows', 'windows'], ['Stability', 'stability']]) {
+            for (const [title, group] of [['Start', undefined], ['Windows', 'windows'], ['Shortcuts', 'shortcuts'], ['Stability', 'stability']]) {
                 const part = dcfPart(title);
                 const card = dcfEl('div', 'mcfo-set__card');
                 for (const i of items.filter(x => x.part === group)) card.appendChild(dcfAppSwitch(i, state));
@@ -270,6 +295,8 @@
             btns.appendChild(test);
             ev.appendChild(btns);
             box.appendChild(ev);
+        } else if (page.id === 'hud') {
+            dcfHudPage(box, api);
         } else if (page.id === 'discord') {
             const part = dcfPart('Rich Presence');
             const card = dcfEl('div', 'mcfo-set__card');
@@ -333,6 +360,140 @@
         available: u => `Version ${u.version} is out. This kind of install cannot update itself: download the new file from the release page.`,
         error: u => 'Could not check: ' + (u.error || 'unknown error'),
     };
+    // ---- HUD (app, src/hud*.js) ----------------------------------------------------------------
+    // The drawing comes from the app itself (src/hud-render.js, the same file the HUD window loads),
+    // so preview and HUD can never look different. Every change goes to the app at once: the open
+    // HUD follows while you click.
+    let dcfHudLib = null;
+    function dcfHudRenderer(api) {
+        if (dcfHudLib) return dcfHudLib;
+        try {
+            const src = api.hud.renderer();
+            dcfHudLib = new Function(src + '\nreturn { hudCss, renderHud, HUD_ITEMS };')();
+            const st = document.createElement('style');
+            st.textContent = dcfHudLib.hudCss();
+            document.head.appendChild(st);
+        } catch (e) { dcfHudLib = null; }
+        return dcfHudLib;
+    }
+    // Real values where there are some; examples where not, so every switched-on piece shows.
+    function dcfHudSample(d) {
+        d = d || {};
+        const per = d.perAccount && d.perAccount.length ? d.perAccount : [{ name: dcfMyName() || 'You', tickets: 1240, earning: true }, { name: 'Alt', tickets: 980, earning: false }];
+        return {
+            king: d.king || { name: 'cookingsumEP', since: Date.now() - 14 * 60000, mine: false },
+            rc: d.rc || { multiplier: 2, state: 'active' },
+            tickets: d.tickets != null ? d.tickets : per.reduce((n, a) => n + (a.tickets || 0), 0),
+            perAccount: per,
+            earning: d.earning && d.earning.total ? d.earning : { n: per.filter(a => a.earning).length, total: per.length },
+            gold: d.gold != null ? d.gold : 12803, diamonds: d.diamonds != null ? d.diamonds : 455, claim: d.claim != null ? d.claim : 2,
+        };
+    }
+    function dcfHudPage(box, api) {
+        if (!api.hud) { box.appendChild(dcfEl('p', 'dcf-set__empty', 'The HUD needs a newer version of the app.')); return; }
+        const lib = dcfHudRenderer(api);
+        let { cfg, open } = api.hud.get();
+        let data = null;
+        const save = () => { api.hud.set(cfg); drawPreview(); };
+
+        // Preview
+        const prevPart = dcfPart('Preview', 'Shown with your real values; a Royal Celebration only appears while one runs.');
+        const stage = dcfEl('div', 'dcf-hudprev');
+        const hud = dcfEl('div');
+        stage.appendChild(hud);
+        const bar = dcfEl('div', 'dcf-hudprev__bar');
+        const openBtn = dcfEl('button', 'dcf-set__btn dcf-set__btn--main');
+        openBtn.type = 'button';
+        openBtn.addEventListener('click', () => api.hud.toggle());
+        bar.append(openBtn, dcfEl('p', 'dcf-set__note', 'F2 opens and closes it while the app is in front. Drag it anywhere by the HUD itself.'));
+        prevPart.append(stage, bar);
+        box.appendChild(prevPart);
+        const drawOpen = () => { openBtn.textContent = open ? 'Close the HUD' : 'Open the HUD'; };
+        function drawPreview() { if (lib) lib.renderHud(hud, cfg, dcfHudSample(data)); else hud.textContent = 'Preview unavailable.'; }
+        drawOpen();
+        drawPreview();
+        api.hud.data().then(d => { data = d; if (hud.isConnected) drawPreview(); }).catch(() => {});
+
+        // What it shows: switch + order
+        const itemsPart = dcfPart('What it shows', 'Switch pieces on and off; the arrows set the order.', () => {
+            api.hud.set(Object.assign({}, cfg, { items: [] })); dcfRender();   // the app fills in the defaults
+        });
+        const card = dcfEl('div', 'mcfo-set__card');
+        const drawItems = () => {
+            card.replaceChildren();
+            cfg.items.forEach((it, i) => {
+                const row = dcfEl('label', 'dcf-hudrow');
+                if (!it.on) row.setAttribute('data-off', '');
+                const name = dcfEl('span', 'dcf-hudrow__name', (lib && lib.HUD_ITEMS[it.id]) || it.id);
+                const mv = (dir, label) => {
+                    const b = dcfEl('button', 'dcf-hudrow__mv', label);
+                    b.type = 'button';
+                    b.title = dir < 0 ? 'Move up' : 'Move down';
+                    b.disabled = dir < 0 ? i === 0 : i === cfg.items.length - 1;
+                    b.addEventListener('click', e => {
+                        e.preventDefault();
+                        const items = cfg.items.slice();
+                        [items[i], items[i + dir]] = [items[i + dir], items[i]];
+                        cfg = Object.assign({}, cfg, { items });
+                        save(); drawItems();
+                    });
+                    return b;
+                };
+                const input = dcfEl('input', 'mcfo-switch__input');
+                input.type = 'checkbox';
+                input.checked = it.on;
+                input.addEventListener('change', () => {
+                    cfg = Object.assign({}, cfg, { items: cfg.items.map(x => x.id === it.id ? { id: x.id, on: input.checked } : x) });
+                    save(); drawItems();
+                });
+                row.append(name, mv(-1, '↑'), mv(1, '↓'), input, Object.assign(dcfEl('span', 'mcfo-switch'), { ariaHidden: 'true' }));
+                card.appendChild(row);
+            });
+        };
+        drawItems();
+        itemsPart.appendChild(card);
+        box.appendChild(itemsPart);
+
+        // Look
+        const lookPart = dcfPart('Look', '', () => {
+            api.hud.set(Object.assign({}, cfg, { layout: null, size: null, style: null, opacity: null })); dcfRender();
+        });
+        const look = dcfEl('div', 'mcfo-set__card dcf-hudlook');
+        const seg = (key, options) => {
+            const s = dcfEl('div', 'dcf-seg');
+            const draw = () => { for (const b of s.children) b.setAttribute('aria-pressed', String(b.dataset.v === cfg[key])); };
+            for (const [v, label] of options) {
+                const b = dcfEl('button', null, label);
+                b.type = 'button';
+                b.dataset.v = v;
+                b.addEventListener('click', () => { cfg = Object.assign({}, cfg, { [key]: v }); save(); draw(); });
+                s.appendChild(b);
+            }
+            draw();
+            return s;
+        };
+        const range = dcfEl('div', 'dcf-hudlook__range');
+        const slider = dcfEl('input');
+        slider.type = 'range'; slider.min = '30'; slider.max = '100'; slider.step = '1'; slider.value = String(cfg.opacity);
+        const val = dcfEl('b', null, cfg.opacity + ' %');
+        slider.addEventListener('input', () => { cfg = Object.assign({}, cfg, { opacity: Number(slider.value) }); val.textContent = slider.value + ' %'; save(); });
+        range.append(slider, val);
+        look.append(
+            dcfEl('span', null, 'Layout'), seg('layout', [['bar', 'Bar'], ['column', 'Column']]),
+            dcfEl('span', null, 'Size'), seg('size', [['s', 'Small'], ['m', 'Medium'], ['l', 'Large']]),
+            dcfEl('span', null, 'Style'), seg('style', [['app', 'App'], ['dark', 'Dark'], ['glass', 'Glass']]),
+            dcfEl('span', null, 'Background'), range,
+        );
+        lookPart.appendChild(look);
+        box.appendChild(lookPart);
+
+        // Opened or closed elsewhere (F2, tray): follow.
+        if (!dcfHudPage.listening && api.hud.onChange) {
+            dcfHudPage.listening = true;
+            api.hud.onChange(s => { if (dcfSet && dcfSet.page === 'hud' && !dcfSet.query) dcfRender(); });
+        }
+    }
+
     // ---- performance report (app, src/perf-report.js) ------------------------------------------
     // The settings close first: their blurred backdrop would be measured, not the game.
     function dcfPerfPart(mk) {
@@ -421,6 +582,7 @@
                     if (hit([i.label, i.hint, page.title].join(' '))) rows.push(dcfAppSwitch(i, appState));
                 }
             }
+            if (page.id === 'hud' && hit([page.title, page.blurb, 'overlay always on top bar column opacity tickets king'].join(' '))) rows.push(dcfOpenRow(page, page.title, page.blurb));
             for (const title of page.parts || []) {
                 const section = SETTINGS_SECTIONS.find(s => s.title === title);
                 if (!section) continue;

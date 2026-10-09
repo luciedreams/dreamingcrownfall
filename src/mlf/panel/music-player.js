@@ -276,6 +276,24 @@
         return el;
     }
 
+    // Media keys and the desktop's media controls (app 0.3.0): the soundtrack announces itself as
+    // a Media Session, so play/pause/next/previous on the keyboard, in KDE's media applet or on
+    // Windows' volume overlay steer this player and show the track.
+    let musicSessionWired = false;
+    function musicMediaSession(track) {
+        const ms = navigator.mediaSession;
+        if (!ms || typeof MediaMetadata !== 'function') return;
+        if (!musicSessionWired) {
+            musicSessionWired = true;
+            const on = (action, fn) => { try { ms.setActionHandler(action, fn); } catch (e) { /* unsupported action */ } };
+            on('play', () => { const id = musicFind(music.id) ? music.id : musicOrder()[0]; if (id) musicPlay(id); });
+            on('pause', () => musicPause());
+            on('nexttrack', () => musicSkip(1));
+            on('previoustrack', () => musicSkip(-1));
+        }
+        if (track) ms.metadata = new MediaMetadata({ title: track.title, artist: 'Marble Crownfall', album: track.album });
+    }
+
     // Starting anything silences the game's own music first, with the game's own button.
     function musicPlay(id) {
         const track = musicFind(id);
@@ -301,6 +319,7 @@
             music.note = 'The browser would not start the sound. Click the page once, then press Play again.';
             if (music.redraw) music.redraw();
         });
+        musicMediaSession(track);
         musicRemember();
         musicSync();
     }

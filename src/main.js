@@ -21,6 +21,9 @@ const startDiscord = require('./discord.js');
 const startVitals = require('./vitals.js');
 const initPerfReport = require('./perf-report.js');
 const createHome = require('./home.js');
+const windowState = require('./window-state.js');
+const startShortcuts = require('./shortcuts.js');
+const createHud = require('./hud.js');
 
 const START_URL = 'https://marblecrownfall.com/';
 const TAB_BAR_HEIGHT = 36;
@@ -30,6 +33,8 @@ const TRAY_ICON = path.join(__dirname, 'assets', 'tray.png');
 // Testprofil (eigene Sitzungen, eigene Einzelinstanz): DCF_PROFILE=<ordner> electron .
 if (process.env.DCF_PROFILE) app.setPath('userData', path.resolve(process.env.DCF_PROFILE));
 app.setName('DreamingCrownfall');
+// Globale Tastenkürzel unter Wayland gehen nur über das Desktop-Portal (shortcuts.js).
+app.commandLine.appendSwitch('enable-features', 'GlobalShortcutsPortal');
 // Ohne App-Kennung zeigt Windows keine Benachrichtigungen (muss zur appId im package.json passen).
 if (process.platform === 'win32') app.setAppUserModelId('io.github.luciedreams.dreamingcrownfall');
 
@@ -93,7 +98,7 @@ let win = null, tabBar = null, tray = null, notifier = null, addons = null, upda
 let active = 0;
 const HOME = -1;      // active === HOME: der Home-Tab (Übersicht, erst ab zwei Accounts)
 let lastGame = 0;     // zuletzt gewählter Spiel-Tab (für Discord, Settings aus dem Tray)
-let home = null;
+let home = null, hud = null;
 const views = []; // je Account: { acc, view, name, guest, playerId, avatar }
 
 // ---- App-Schicht und MLF an den Preload ------------------------------------------------------
@@ -196,6 +201,7 @@ function handleKeys(e, input, wc) {
     else if (k === 'F5' || (ctrl && k.toLowerCase() === 'r')) input.shift ? wc.reloadIgnoringCache() : wc.reload();
     else if (k === 'F12' || (ctrl && input.shift && k.toLowerCase() === 'i')) wc.toggleDevTools();
     else if (k === 'F11') { win.setFullScreen(!win.isFullScreen()); }
+    else if (k === 'F2' && !ctrl && !input.alt) hud?.toggle();
     else if (ctrl && (k === '+' || k === '=')) wc.setZoomLevel(wc.getZoomLevel() + 0.5);
     else if (ctrl && k === '-') wc.setZoomLevel(wc.getZoomLevel() - 0.5);
     else if (ctrl && k === '0') wc.setZoomLevel(0);
@@ -291,13 +297,16 @@ async function removeAccount(i) {
 // ---- Fenster ----------------------------------------------------------------------------------
 
 function createWindow() {
+    const ws = windowState.load({ width: 1600, height: 1000 + TAB_BAR_HEIGHT });
     win = new BaseWindow({
-        width: 1600, height: 1000 + TAB_BAR_HEIGHT,
+        width: ws.width, height: ws.height, ...(ws.x != null ? { x: ws.x, y: ws.y } : {}),
         title: 'DreamingCrownfall',
         icon: ICON,
         backgroundColor: '#14101c',
         show: !autostart.startHidden, // Autostart: erst im Tray, Fenster über „Show“
     });
+    if (ws.maximized) win.maximize();
+    windowState.track(win);
     win.setMenu(null);
 
     tabBar = new WebContentsView({ webPreferences: {
@@ -333,10 +342,16 @@ function showSettingsPage(page) {
 function createTray() {
     tray = new Tray(nativeImage.createFromPath(TRAY_ICON));
     tray.setToolTip('DreamingCrownfall');
+    tray.on('click', () => { win.show(); win.focus(); });
+    buildTrayMenu();
+}
+// Neu gebaut, wenn sich ein Häkchen von außen ändert (HUD per F2).
+function buildTrayMenu() {
+    if (!tray) return;
     const show = () => { win.show(); win.focus(); };
-    tray.on('click', show);
     tray.setContextMenu(Menu.buildFromTemplate([
         { label: 'Show', click: show },
+        { label: 'HUD (F2)', type: 'checkbox', checked: !!hud?.isOpen(), click: () => hud?.toggle() },
         { label: 'Reload all tabs', click: () => { loadAppLayer(); views.forEach((v) => v.view.webContents.reloadIgnoringCache()); } },
         { label: 'Check for updates', click: () => { showSettingsPage('about'); updater?.check(); } },
         { label: 'Test notification', click: () => notifier?.test() },
@@ -347,6 +362,17 @@ function createTray() {
         { label: 'Quit', click: () => app.quit() },
     ]));
 }
+
+// Ziele der globalen Tastenkürzel.
+const shortcutActions = {
+    toggle() { if (win.isVisible() && win.isFocused()) win.hide(); else { win.show(); win.focus(); } },
+    next() { win.show(); win.focus(); select(active === HOME ? 0 : (active + 1) % views.length); },
+    chat() {
+        win.show(); win.focus();
+        if (active === HOME) select(lastGame);
+        views[active]?.view.webContents.executeJavaScript(`(() => { const c = [...document.querySelectorAll('.mcf-chat__form [data-role="chat-input"], .mcf-chat__form textarea.mcfo-chatgrow')].find((e) => e.offsetParent); if (c) c.focus(); })()`).catch(() => {});
+    },
+};
 
 if (!app.requestSingleInstanceLock()) {
     app.quit();
@@ -360,7 +386,9 @@ if (!app.requestSingleInstanceLock()) {
         vitals = startVitals({ views, setting: appSettings.get, label });
         loadAppLayer();
         createWindow();
+        hud = createHud({ views, icon: ICON, kingNow: () => notifier?.kingNow() || null, onToggle: () => buildTrayMenu() });
         createTray();
+        startShortcuts({ setting: appSettings.get, onSettingsChange: appSettings.onChange, actions: shortcutActions });
         updater = startUpdater({ icon: ICON });
         addons = loadAddons({ views, icon: ICON });
         const watching = () => win && win.isVisible() && !win.isMinimized() && win.isFocused();
