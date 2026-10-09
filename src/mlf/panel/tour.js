@@ -10,29 +10,91 @@
     let tourState = null;   // { root, spot, card, steps, i, raf, keyHandler } while running
 
     const tourRole = r => document.querySelector(`[data-role="${r}"]`);
-    const tourByText = (sel, re) => [...document.querySelectorAll(sel)].find(e => re.test((e.textContent || '').trim()) && e.getBoundingClientRect().width > 0) || null;
+    const tourMetric = m => document.querySelector(`[data-role="metric-cell"][data-metric-role="${m}"]`);
+    const tourByText = (sel, re) => [...document.querySelectorAll(sel)].find(e => re.test((e.textContent || '').trim()) && tourVisible(e)) || null;
+    const tourIsKing = () => !!document.querySelector('[data-role="bid-area"][data-king-toll-mode="true"]');
 
+    // Really there for the eye: in the page, on screen, not hidden or faded out, and not under
+    // anything else (an open window, a folded panel) — checked at a few points of the element.
+    // The tour itself is hidden for the check, or it would cover everything.
+    function tourVisible(el) {
+        if (!el || !el.isConnected) return false;
+        const r = el.getBoundingClientRect();
+        if (r.width < 6 || r.height < 6 || r.right < 0 || r.bottom < 0 || r.left > innerWidth || r.top > innerHeight) return false;
+        for (let e = el; e && e !== document.documentElement; e = e.parentElement) {
+            const cs = getComputedStyle(e);
+            if (cs.display === 'none' || cs.visibility === 'hidden' || Number(cs.opacity) < 0.05) return false;
+        }
+        const root = tourState && tourState.root;
+        if (root) root.style.visibility = 'hidden';
+        try {
+            return [[0.5, 0.5], [0.2, 0.5], [0.8, 0.5], [0.5, 0.25], [0.5, 0.75]].some(([fx, fy]) => {
+                const x = r.left + r.width * fx, y = r.top + r.height * fy;
+                if (x < 0 || y < 0 || x >= innerWidth || y >= innerHeight) return false;
+                const hit = document.elementFromPoint(x, y);
+                return !!hit && (el === hit || el.contains(hit) || hit.contains(el));
+            });
+        } finally { if (root) root.style.visibility = ''; }
+    }
+
+    // Each step names where its subject can be, best first: { find, text?, when? }. The first one
+    // that is really on screen is shown, with its own text if it has one; none at all — the card
+    // stands in the middle and says where the thing is right now (missing). So the tour fits
+    // whatever has been switched on, moved or folded, and who you are at the moment (King, guest).
     const TOUR_STEPS = [
         { part: 'The game', title: 'Welcome to the arena',
           text: 'A short tour: first how Marble Crownfall works, then what this app adds on top. Arrow keys page through, Esc ends it whenever you like.' },
-        { part: 'The game', find: () => tourRole('lane-panel'), place: 'right', title: 'Tiles run here',
-          text: 'Each lane moves through bidding, the tile reveal, the live run and the results. Watch one tile from start to finish first; every tile has a rarity, and rarity changes the numbers on it.' },
-        { part: 'The game', find: () => tourRole('metric-cell'), place: 'below', title: 'Tickets',
-          text: 'Tickets pay for your bids. You earn them while it says "Active: Earning Tickets": an accepted bid or a King attack keeps you earning for 15 minutes; watching alone does not. They arrive in three-minute steps.' },
-        { part: 'The game', find: () => tourRole('bid-rail') || tourRole('bid-area'), place: 'above', title: 'Bid with the chips',
-          text: 'While a lane takes bids, each chip bids at once and adds its number: 5 twice is 10. The 8 highest bids get in, up to 8 more are drawn by chance weighted by their bids. A paid bid is spent when the tile starts, even if you are not drawn.' },
-        { part: 'The game', find: () => document.querySelector('[data-role="metric-cell"][data-metric-role="current-points"]'), place: 'below', title: 'Your marble, your Points',
-          text: 'Your marble runs on its own. Buckets add or subtract Points, pink and cyan ones multiply, ÷ divides, the black ∞ sets them to zero, and eliminators pop the marble. Current Points is your balance; the result row shows the Prize and your Run Score.' },
-        { part: 'The game', find: () => tourRole('king-tile-frame') || tourRole('king-pane'), place: 'right', title: 'The King',
-          text: 'The second contest: the King sits at the top behind a wall of blocks. ATTACK sends your marble in, and breaking blocks costs your Points. Reach the throne and the Crown is yours. The King earns Gold at every tile reveal and sets the toll.' },
-        { part: 'The game', find: () => document.querySelector('[data-role="metric-cell"][data-metric-role="gold"]'), place: 'below', title: 'Gold and Diamonds',
-          text: 'Gold comes from the throne, Daily Quests, achievements and gifts, and buys Shop items, King beverages and gifts. Diamonds are the premium currency: Rebellions, Shop items and gifts.' },
-        { part: 'The game', find: () => tourByText('button', /^Rebellion$/i), place: 'above', title: 'Rebellion',
-          text: 'Paid in Diamonds: protected entries over several tiles and a score boost around your marble. Look at tier and cost first, a Rebellion cannot be cancelled. Best left until the basic loop feels familiar.' },
-        { part: 'The game', find: () => tourRole('session-cell'), place: 'below', title: 'Tilesets',
-          text: 'The set of tiles changes over the day. Current and Next show what is on now and what comes; Events lists more.' },
-        { part: 'The game', find: () => tourRole('chat-pane'), place: 'left', title: 'Chat',
-          text: 'Everyone in the arena, in one room. Signed in, you can write, throw tomatoes and more.' },
+        { part: 'The game', place: 'right', title: 'Tiles run here',
+          text: 'Each lane moves through bidding, the tile reveal, the live run and the results. Watch one tile from start to finish first; every tile has a rarity, and rarity changes the numbers on it.',
+          at: [{ find: () => [...document.querySelectorAll('[data-role="lane-panel"]')].find(tourVisible) }, { find: () => tourRole('main-region') }],
+          missing: 'The lanes fill the middle of the game; right now something covers them.' },
+        { part: 'The game', place: 'below', title: 'Tickets',
+          text: 'Tickets pay for your bids. You earn them while it says "Active: Earning Tickets": an accepted bid or a King attack keeps you earning for 15 minutes; watching alone does not. They arrive in three-minute steps.',
+          at: [{ find: () => tourMetric('tickets') }],
+          missing: 'Your tickets stand on the first card of the header. Tickets pay for your bids; an accepted bid or a King attack keeps you earning them for 15 minutes.' },
+        { part: 'The game', place: 'above', title: 'Bid with the chips',
+          text: 'While a lane takes bids, each chip bids at once and adds its number: 5 twice is 10. The 8 highest bids get in, up to 8 more are drawn by chance weighted by their bids. A paid bid is spent when the tile starts, even if you are not drawn.',
+          at: [
+            { when: tourIsKing, find: () => tourRole('bid-area'), title: 'You are King: the toll',
+              text: 'While you wear the Crown, the ticket chips make room for the toll: what every player pays in Points to enter. A higher toll also adds to the Gold you earn at each tile reveal. The chips come back once the throne passes on. For everyone else, each chip bids at once and adds its number; the 8 highest bids get in, up to 8 more are drawn.' },
+            { find: () => tourRole('bid-rail') },
+            { find: () => tourRole('bid-area') },
+            { find: () => document.querySelector('.mcfo-rail-toggle'),
+              text: 'The ticket rail is folded: this arrow opens it. While a lane takes bids, each chip bids at once and adds its number; the 8 highest bids get in, up to 8 more are drawn by chance weighted by their bids.' },
+          ],
+          missing: 'The ticket chips sit at the bottom of the game while a lane takes bids: each chip bids at once and adds its number. The 8 highest bids get in, up to 8 more are drawn by chance weighted by their bids.' },
+        { part: 'The game', place: 'below', title: 'Your marble, your Points',
+          text: 'Your marble runs on its own. Buckets add or subtract Points, pink and cyan ones multiply, ÷ divides, the black ∞ sets them to zero, and eliminators pop the marble. Current Points is your balance; the result row shows the Prize and your Run Score.',
+          at: [{ find: () => tourMetric('current-points') }],
+          missing: 'Your marble runs on its own. Buckets add or subtract Points, pink and cyan ones multiply, ÷ divides, the black ∞ sets them to zero, and eliminators pop the marble. Current Points, in the header, is your balance.' },
+        { part: 'The game', place: 'right', title: 'The King',
+          text: 'The second contest: the King sits at the top behind a wall of blocks. ATTACK sends your marble in, and breaking blocks costs your Points. Reach the throne and the Crown is yours. The King earns Gold at every tile reveal and sets the toll.',
+          at: [
+            { when: tourIsKing, find: () => tourRole('king-tile-frame') || tourRole('king-pane'), title: 'The King — that is you',
+              text: 'You sit at the top behind your wall of blocks; challengers send their marbles in with ATTACK and pay for every block they break with their Points. Whoever reaches the throne takes the Crown. Meanwhile you earn Gold at every tile reveal and set the toll.' },
+            { find: () => tourRole('king-tile-frame') }, { find: () => tourRole('king-pane') },
+          ],
+          missing: 'The king tile shows the throne: the King sits at the top behind a wall of blocks, and ATTACK sends your marble in to break through — every block costs your Points.' },
+        { part: 'The game', place: 'below', title: 'Gold and Diamonds',
+          text: 'Gold comes from the throne, Daily Quests, achievements and gifts, and buys Shop items, King beverages and gifts. Diamonds are the premium currency: Rebellions, Shop items and gifts.',
+          at: [{ find: () => tourMetric('gold') }, { find: () => tourMetric('diamonds') }],
+          missing: 'Gold comes from the throne, Daily Quests, achievements and gifts; Diamonds are the premium currency for Rebellions, Shop items and gifts. Both stand in the header.' },
+        { part: 'The game', place: 'above', title: 'Rebellion',
+          text: 'Paid in Diamonds: protected entries over several tiles and a score boost around your marble. Look at tier and cost first, a Rebellion cannot be cancelled. Best left until the basic loop feels familiar.',
+          at: [{ find: () => document.querySelector('.mcfo-rebellion') }, { find: () => tourByText('button', /^Rebellion$/i) }],
+          missing: 'Rebellions are paid in Diamonds: protected entries over several tiles and a score boost around your marble. The Rebellion button sits by the ticket chips or in the footer; it cannot be cancelled once started.' },
+        { part: 'The game', place: 'below', title: 'Tilesets',
+          text: 'The set of tiles changes over the day. This shows what is on now and what comes next; Events lists more.',
+          at: [{ find: () => tourRole('session-cell') }, { find: () => tourRole('tileset-indicator') }, { find: () => tourByText('button, a', /^Events\b/i) }],
+          missing: 'The set of tiles changes over the day; the header and the Events page show what is on now and what comes next.' },
+        { part: 'The game', place: 'left', title: 'Chat',
+          text: 'Everyone in the arena, in one room. Signed in, you can write, throw tomatoes and more.',
+          at: [
+            { when: () => !document.querySelector('.mcf-chat[data-collapsed="true"]'), find: () => tourRole('chat-pane') },
+            { find: () => document.querySelector('.mcfo-chatrail'), text: 'The chat is folded into this rail: click it to open it. Everyone in the arena, in one room; signed in, you can write, throw tomatoes and more.' },
+            { find: () => tourRole('chat-collapse'), text: 'The chat is folded away: this opens it again. Everyone in the arena, in one room; signed in, you can write, throw tomatoes and more.' },
+          ],
+          missing: 'Your chat is not on this screen right now — in a window of its own, or folded away. Everyone in the arena talks there; signed in, you can write, throw tomatoes and more.' },
         { part: 'The app', title: 'Accounts in tabs',
           text: 'Every tab at the very top of the window is one account with its own login; "+" adds one, Ctrl+1 to 9 switch. With two or more there is Home: every account at a glance, with what is waiting to be claimed.' },
         { part: 'The app', title: 'Settings',
@@ -44,6 +106,17 @@
         { part: 'The app', title: 'Notifications and more',
           text: 'Desktop notifications for the throne, celebrations, gifts, achievements and shop items for your quests, also in the background. Tabs recover by themselves after a crash, sleep or a lost connection. Have fun in the arena!' },
     ];
+
+    // Where a step points right now: { el, title, text } — el null means the middle of the screen.
+    function tourResolve(step) {
+        for (const c of step.at || []) {
+            if (c.when && !c.when()) continue;
+            let el = null;
+            try { el = c.find(); } catch (e) {}
+            if (tourVisible(el)) return { el, title: c.title || step.title, text: c.text || step.text };
+        }
+        return { el: null, title: step.title, text: step.at ? (step.missing || step.text) : step.text };
+    }
 
     function tourStyles() {
         if (document.getElementById(TOUR_CSS_ID)) return;
@@ -101,7 +174,7 @@
         if (!tourState) return;
         const { spot, card, steps, i } = tourState;
         const step = steps[i];
-        const el = step.find ? step.find() : null;
+        const el = tourState.target;
         const r = el && el.getBoundingClientRect();
         const W = innerWidth, H = innerHeight, cw = card.offsetWidth, ch = card.offsetHeight, gap = 40, pad = 6;
         const arrow = tourState.arrow;
@@ -163,6 +236,9 @@
     function tourDraw() {
         const { card, steps, i } = tourState;
         const step = steps[i];
+        const at = tourResolve(step);
+        tourState.target = at.el;
+        tourState.shown = at;
         const kicker = tourEl('div', 'dcf-tour__kicker');
         kicker.append(tourEl('span', null, step.part), tourEl('span', null, `${i + 1} / ${steps.length}`));
         const dots = tourEl('div', 'dcf-tour__dots');
@@ -184,7 +260,7 @@
         next.type = 'button';
         next.addEventListener('click', () => tourGo(1));
         foot.append(skip, tourEl('span', 'grow'), back, next);
-        card.replaceChildren(kicker, tourEl('div', 'dcf-tour__title', step.title), tourEl('p', 'dcf-tour__text', step.text), dots, foot);
+        card.replaceChildren(kicker, tourEl('div', 'dcf-tour__title', at.title), tourEl('p', 'dcf-tour__text', at.text), dots, foot);
         tourPlace();
         next.focus({ preventScroll: true });
     }
@@ -236,7 +312,12 @@
         let last = 0;
         const follow = t => {
             if (!tourState) return;
-            if (t - last > 250) { last = t; tourPlace(); }
+            if (t - last > 250) {
+                last = t;
+                // Folded, opened, moved, crowned in the meantime? Then the step finds its subject anew.
+                const now = tourResolve(tourState.steps[tourState.i]);
+                if (now.el !== tourState.target || now.text !== tourState.shown.text) tourDraw(); else tourPlace();
+            }
             tourState.raf = requestAnimationFrame(follow);
         };
         tourState.raf = requestAnimationFrame(follow);

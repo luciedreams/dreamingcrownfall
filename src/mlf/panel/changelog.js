@@ -1,5 +1,8 @@
     // Newest first. The first entry is what What's new shows after a fresh install.
     const CHANGELOG = [
+        { v: '0.3.3', date: '2026-10-09', items: [
+            'The tour fits however you have set the app up: it finds each thing where it is right now — moved by a setting, folded into a rail, in a window of its own — and says so when something is not on screen. While you are King it explains the throne and the toll instead of the ticket chips.',
+        ] },
         { v: '0.3.2', date: '2026-10-09', items: [
             'Fixed: F2 closes the HUD again. On Linux with Wayland the HUD took the keyboard when it opened, so the second F2 went nowhere; now the game keeps it.',
             'Fixed: on KDE with Wayland the HUD really stays on top. Before, a click into the game window put it behind, and F2 needed two presses to bring it back.',
