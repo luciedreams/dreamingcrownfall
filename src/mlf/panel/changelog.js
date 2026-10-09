@@ -1,5 +1,16 @@
     // Newest first. The first entry is what What's new shows after a fresh install.
     const CHANGELOG = [
+        { v: '0.3.0', date: '2026-10-09', items: [
+            'Home: with two or more accounts, a tab on the far left shows all of them at a glance — tickets and whether they are earning, points, gold, diamonds, daily quests, what is waiting to be claimed, and who is King.',
+            'The HUD: F2 opens a small window that stays on top of everything. Build it your way in Settings › HUD — pick what it shows and in which order, bar or column, size, style and how see-through it is, with a live preview.',
+            'A guided tour of the game and the app, step by step with a spotlight on the game. Start it any time: Settings › About, the settings search ("tour"), the tray menu or the Tour button here.',
+            'New installations start exactly like the website; a few welcome steps let you keep it plain or switch everything on. The gear at the top right of the tab bar (or Ctrl+,) always opens the settings.',
+            'Tabs recover on their own: a tab that hangs or crashes reloads itself, and after sleep or a lost connection every tab reloads once (Settings › General).',
+            'Frame rate cap "Auto" (Settings › Performance): as smooth as your computer keeps up with, in steps that stay on your screen\'s beat, so the picture runs evenly instead of stuttering.',
+            'Performance report (Settings › About): records 10 seconds of the game and saves what took the time — something to send to the game\'s developer when it runs slowly.',
+            'Shortcuts that work outside the app too, if you switch them on: Ctrl+Alt+M shows or hides the window, Ctrl+Alt+N goes to the next account, Ctrl+Alt+C puts the cursor in the chat.',
+            'Media keys steer the music player, and the window remembers its size.',
+        ] },
         { v: '0.2.0', date: '2026-10-09', items: [
             'Your choice of windows: Settings › General › "Every window on its own". Switched off, windows open inside the game as before, and ⧉ in a title bar takes out just that one. It works at once, also on the windows already open.',
             'Secret game features stay secret until you have found or unlocked them.',
