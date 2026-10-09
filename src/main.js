@@ -367,7 +367,7 @@ function buildTrayMenu() {
         { label: 'Reload all tabs', click: () => { loadAppLayer(); views.forEach((v) => v.view.webContents.reloadIgnoringCache()); } },
         { label: 'Check for updates', click: () => { showSettingsPage('about'); updater?.check(); } },
         { label: 'Test notification', click: () => notifier?.test() },
-        { label: 'Start with system (in the tray)', type: 'checkbox', checked: autostart.enabled(),
+        { label: 'Start with system', type: 'checkbox', checked: autostart.enabled(),
           click: (item) => { try { appSettings.setAutostart(item.checked); } catch (e) { console.error(`[dcf] Autostart: ${e.message}`); } } },
         { label: 'DevTools (current tab)', click: () => activeContents()?.openDevTools({ mode: 'detach' }) },
         { type: 'separator' },

@@ -1,6 +1,7 @@
     // Newest first. The first entry is what What's new shows after a fresh install.
     const CHANGELOG = [
         { v: '0.3.3', date: '2026-10-09', items: [
+            'Starting with your computer: choose whether the app waits in the tray or opens its window right away (Settings › General › Start in the tray).',
             'The tour fits however you have set the app up: it finds each thing where it is right now — moved by a setting, folded into a rail, in a window of its own — and says so when something is not on screen. While you are King it explains the throne and the toll instead of the ticket chips.',
         ] },
         { v: '0.3.2', date: '2026-10-09', items: [

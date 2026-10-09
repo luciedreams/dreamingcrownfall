@@ -1,5 +1,6 @@
-// Mit dem System starten — unsichtbar im Tray (--hidden), damit Sitzungen, Benachrichtigungen und
-// Add-ons laufen, auch wenn man die App nicht selbst öffnet. Standardmäßig aus, Schalter im Tray.
+// Mit dem System starten — wahlweise unsichtbar im Tray (--hidden, Standard), damit Sitzungen,
+// Benachrichtigungen und Add-ons laufen, ohne dass ein Fenster aufgeht, oder gleich sichtbar
+// (App-Schalter 'autostart.hidden', seit 0.3.3). Standardmäßig aus, Schalter in Settings › General und im Tray.
 // Windows/macOS: Login-Item von Electron. Linux: Eintrag in ~/.config/autostart/.
 
 const fs = require('fs');
@@ -25,10 +26,11 @@ module.exports = {
 
     enabled() {
         if (process.platform === 'linux') return fs.existsSync(desktopFile());
-        return app.getLoginItemSettings({ args: [HIDDEN_ARG] }).openAtLogin;
+        return app.getLoginItemSettings({ args: [HIDDEN_ARG] }).openAtLogin || app.getLoginItemSettings({ args: [] }).openAtLogin;
     },
 
-    set(on) {
+    set(on, hidden = true) {
+        const args = hidden ? [HIDDEN_ARG] : [];
         if (process.platform === 'linux') {
             const f = desktopFile();
             try { fs.unlinkSync(path.join(path.dirname(f), 'marblelucefall.desktop')); } catch {} // Eintrag vor der Umbenennung
@@ -38,14 +40,17 @@ module.exports = {
                 '[Desktop Entry]',
                 'Type=Application',
                 'Name=DreamingCrownfall',
-                'Comment=Marble Crownfall desktop app (starts in the tray)',
-                `Exec=${command()} ${HIDDEN_ARG}`,
+                `Comment=Marble Crownfall desktop app${hidden ? ' (starts in the tray)' : ''}`,
+                `Exec=${command()}${hidden ? ' ' + HIDDEN_ARG : ''}`,
                 'Terminal=false',
                 'X-GNOME-Autostart-enabled=true',
                 '',
             ].join('\n'));
             return;
         }
-        app.setLoginItemSettings({ openAtLogin: on, args: [HIDDEN_ARG] });
+        // Beide Varianten abmelden, dann die gewählte eintragen (sonst blieben zwei Login-Items).
+        app.setLoginItemSettings({ openAtLogin: false, args: [HIDDEN_ARG] });
+        app.setLoginItemSettings({ openAtLogin: false, args: [] });
+        if (on) app.setLoginItemSettings({ openAtLogin: true, args });
     },
 };

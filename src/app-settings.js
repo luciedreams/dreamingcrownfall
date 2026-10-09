@@ -15,6 +15,7 @@ const SCHEMA = {
     'windows.popOut': true,
     'stability.recover': true,
     'shortcuts.global': false,
+    'autostart.hidden': true,   // Autostart im Tray (sonst mit sichtbarem Fenster)
     'notify.enabled': true,
     'notify.onlyWhenAway': true,
     'notify.mention': true,
@@ -62,13 +63,17 @@ module.exports = {
         ipcMain.on('dcf:settings:get', (e) => { e.returnValue = snapshot(); });
         ipcMain.on('dcf:settings:set', (_e, key, value) => {
             if (key === 'app.autostart' && typeof value === 'boolean') {
-                try { autostart.set(value); } catch (err) { console.error(`[dcf] Autostart: ${err.message}`); }
+                try { autostart.set(value, values['autostart.hidden'] !== false); } catch (err) { console.error(`[dcf] Autostart: ${err.message}`); }
                 broadcast();
                 return;
             }
             if (!(key in SCHEMA) || typeof value !== 'boolean' || values[key] === value) return;
             values[key] = value;
             save();
+            // Tray oder sichtbar umgestellt: einen bestehenden Autostart-Eintrag gleich neu schreiben.
+            if (key === 'autostart.hidden' && autostart.enabled()) {
+                try { autostart.set(true, value); } catch (err) { console.error(`[dcf] Autostart: ${err.message}`); }
+            }
             broadcast();
         });
     },
@@ -82,5 +87,5 @@ module.exports = {
     },
     onChange: (cb) => listeners.push(cb),
     // Für das Tray-Menü, damit beide Stellen dasselbe zeigen.
-    setAutostart(on) { autostart.set(on); broadcast(); },
+    setAutostart(on) { autostart.set(on, values['autostart.hidden'] !== false); broadcast(); },
 };

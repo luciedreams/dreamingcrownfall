@@ -160,7 +160,7 @@
             const sw = welEl('div', 'dcf-wel__switches');
             sw.append(welSwitch(api, 'notify.enabled', 'Desktop notifications'),
                 welSwitch(api, 'windows.popOut', 'Windows of the game as windows of their own'),
-                welSwitch(api, 'app.autostart', 'Start with your computer (in the tray)'));
+                welSwitch(api, 'app.autostart', 'Start with your computer'));
             body.append(choices, sw, welEl('p', null, 'All of it can be changed later in Settings. A short tour shows how the game works and what the app adds.'));
             foot.append(btn('Back', 'dcf-wel__btn', back), btn('Start playing', 'dcf-wel__btn', () => welFinish()),
                 btn('Take the tour', 'dcf-wel__btn dcf-wel__btn--main', () => welFinish('tour')));
