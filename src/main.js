@@ -33,6 +33,11 @@ const TRAY_ICON = path.join(__dirname, 'assets', 'tray.png');
 // Testprofil (eigene Sitzungen, eigene Einzelinstanz): DCF_PROFILE=<ordner> electron .
 if (process.env.DCF_PROFILE) app.setPath('userData', path.resolve(process.env.DCF_PROFILE));
 app.setName('DreamingCrownfall');
+// Sichtbarer Name: die Testumgebung (dcf-test, DCF_PROFILE) heißt in Titeln und im Tray „Dev Edition“,
+// damit sie neben der installierten App nicht zu verwechseln ist. app.setName bleibt — daran hängt der
+// Schlüssel, mit dem die Logins im Profil verschlüsselt sind.
+const EDITION = process.env.DCF_EDITION ?? (process.env.DCF_PROFILE ? 'Dev Edition' : '');
+const APP_TITLE = EDITION ? `DreamingCrownfall ${EDITION}` : 'DreamingCrownfall';
 
 // App-Log: was die App auf die Konsole schreibt, auch nach <Profil>/logs/app.log (ab 1 MB eine
 // Generation app.old.log). Aus dem Menü gestartet sieht sonst niemand die Konsole — so lässt sich
@@ -151,7 +156,7 @@ function tabState() {
 function pushTabs() {
     if (tabBar && !tabBar.webContents.isDestroyed()) tabBar.webContents.send('tabs:state', tabState());
     const cur = views[active];
-    if (win) win.setTitle(active === HOME ? 'DreamingCrownfall – Home' : cur ? `DreamingCrownfall – ${label(cur)}` : 'DreamingCrownfall');
+    if (win) win.setTitle(active === HOME ? `${APP_TITLE} – Home` : cur ? `${APP_TITLE} – ${label(cur)}` : APP_TITLE);
     home?.push();
 }
 
@@ -270,7 +275,7 @@ function wireGameContents(wc, v) {
         wireGameContents(child.webContents, v);
         if (/^mlfpop-/.test(frameName || '')) {
             // Fenstertitel = MLF-Titel + Account, damit drei Inventare nicht verwechselt werden.
-            child.on('page-title-updated', (e, t) => { e.preventDefault(); child.setTitle(`${t} – ${label(v)}`); });
+            child.on('page-title-updated', (e, t) => { e.preventDefault(); child.setTitle(`${t} – ${label(v)}${EDITION ? ` · ${EDITION}` : ''}`); });
             child.webContents.on('before-input-event', (e, input) => {
                 if (input.type === 'keyDown' && (input.key === 'F12' || ((input.control || input.meta) && input.shift && input.key.toLowerCase() === 'i'))) {
                     child.webContents.toggleDevTools(); e.preventDefault();
@@ -335,7 +340,7 @@ function createWindow() {
     const ws = windowState.load({ width: 1600, height: 1000 + TAB_BAR_HEIGHT });
     win = new BaseWindow({
         width: ws.width, height: ws.height, ...(ws.x != null ? { x: ws.x, y: ws.y } : {}),
-        title: 'DreamingCrownfall',
+        title: APP_TITLE,
         icon: ICON,
         backgroundColor: '#14101c',
         show: !autostart.startHidden, // Autostart: erst im Tray, Fenster über „Show“
@@ -379,7 +384,7 @@ function showSettingsPage(page) {
 
 function createTray() {
     tray = new Tray(nativeImage.createFromPath(TRAY_ICON));
-    tray.setToolTip('DreamingCrownfall');
+    tray.setToolTip(APP_TITLE);
     tray.on('click', () => { win.show(); win.focus(); });
     buildTrayMenu();
 }
