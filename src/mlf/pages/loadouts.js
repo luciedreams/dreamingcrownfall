@@ -65,6 +65,8 @@
         // and /random-enabled work the same way. Keys shared with the bot's /loadout.
         kranz: loMarble('Wreath', '/api/inventory/wreaths'),
         aura:  loMarble('Rebellion aura', '/api/inventory/rebellion-auras'),
+        // Royal crests (game v0.10.6a): the same marble-style page again. Key shared with the bot.
+        wappen: loMarble('Royal crest', '/api/inventory/royal-crests'),
         titelChat:  loContext('Title in chat', '/api/inventory/royal-titles', 'royal_title_chat'),
         titelThron: loContext('Title on the throne', '/api/inventory/royal-titles', 'royal_title_throne'),
         titelFeier: loContext('Title in celebrations', '/api/inventory/royal-titles', 'royal_title_celebration'),
@@ -265,12 +267,14 @@
         bidding_indicator_style: [['indikator', 'Loadout'], ['indikator', 'Pool', 'pool']],
         rebellion_aura_style:   [['aura', 'Loadout'], ['aura', 'Pool', 'pool']],
         wreaths:                [['kranz', 'Loadout'], ['kranz', 'Pool', 'pool']],
+        royal_crests:           [['wappen', 'Loadout'], ['wappen', 'Pool', 'pool']],
         royal_title:            [['titelChat', 'Chat'], ['titelThron', 'Throne'], ['titelFeier', 'Celebration']],
         default_toll:           [['tollThron', 'Throne'], ['tollFeier', 'Celeb. start'], ['tollEnde', 'Celeb. end']],
     };
     const LO_NONE = { marble_trails: ['trail', 'No trail'], marble_borders: ['border', 'No border'],
                       bidding_indicator_style: ['indikator', 'No indicator'],
-                      rebellion_aura_style: ['aura', 'Default aura'], wreaths: ['kranz', 'No wreath'] };
+                      rebellion_aura_style: ['aura', 'Default aura'], wreaths: ['kranz', 'No wreath'],
+                      royal_crests: ['wappen', 'No crest'] };
     const loDocs = new Set();
     let loUi = { mode: '', confirm: null, pick: '' };   // mode: '' | 'save' | 'import'
 

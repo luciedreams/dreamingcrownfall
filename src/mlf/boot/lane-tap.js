@@ -116,17 +116,18 @@
     //            plainFallback carries the same colours and is neutralised with it. Checked against
     //            the game's own resolveChatCosmeticRenderModel: each part comes out as the plain model.
     //            Hiding ALL chat cosmetics uses the game's own button in the chat header instead (below).
-    //   king     snapshot.kingCosmetics.wreath (king socket /king/ws and /api/king/snapshot); the crown
+    //   king     snapshot.kingCosmetics.wreath and .crest (king socket /king/ws and /api/king/snapshot;
+    //            without a crest recipe the game keeps its plain celebration shield); the crown
     //            is the 3D overlay layer and is hidden by CSS, as the Maximum performance level does.
     // Read straight from storage here: the settings (section 1) only exist once the page is there.
     // The bidding-indicator store (biddingIndicators/assignmentStore.js) keeps what it accepted for
     // the rest of a run, so marbles change with the next run on each lane; chat lines from the next
     // message on.
-    const COS_GROUPS = { marbles: ['trail', 'border', 'aura', 'indicator'], chat: ['chatColour', 'chatBg', 'chatName', 'kingBubble'], king: ['crown', 'wreath'] };
+    const COS_GROUPS = { marbles: ['trail', 'border', 'aura', 'indicator'], chat: ['chatColour', 'chatBg', 'chatName', 'kingBubble'], king: ['crown', 'wreath', 'crest'] };
     const COS_GROUP_KEYS = { marbles: 'hideCosMarbles', chat: 'hideCosChat', king: 'hideCosKing' };
     const COS_KEYS = { trail: 'hideTrails', border: 'hideBorders', aura: 'hideAuras', indicator: 'bidIndicatorMode',
                        chatColour: 'hideChatColours', chatBg: 'hideChatBackgrounds', chatName: 'hideUsernameStyles', kingBubble: 'hideKingBubbles',
-                       crown: 'hideCrown', wreath: 'hideWreath' };
+                       crown: 'hideCrown', wreath: 'hideWreath', crest: 'hideCrest' };
     const COS_MARBLE_FIELDS = { biddingIndicatorAssignments: 'indicator', marbleTrailAssignments: 'trail',
                                 marbleBorderAssignments: 'border', rebellionAuraAssignments: 'aura' };
     const CHAT_COS_SCHEMA = 'mcf.chat-cosmetic-snapshot/v1';
@@ -151,7 +152,7 @@
         if (typeof txt !== 'string') return false;
         for (const [field, part] of Object.entries(COS_MARBLE_FIELDS)) if (cosHide[part] && txt.indexOf('"' + field + '"') !== -1) return true;
         if (cosChatParts() && txt.indexOf(CHAT_COS_SCHEMA) !== -1) return true;
-        return !!cosHide.wreath && txt.indexOf('"kingCosmetics"') !== -1;
+        return !!(cosHide.wreath || cosHide.crest) && txt.indexOf('"kingCosmetics"') !== -1;
     }
     function chatCosStrip(v) {
         const slot = v.panel && v.panel.sourceSlot;
@@ -248,8 +249,11 @@
     function cosReviver(k, v) {
         const part = COS_MARBLE_FIELDS[k];
         if (part) return cosHide[part] ? undefined : v;
-        if (k === 'kingCosmetics' && cosHide.wreath && v && typeof v === 'object' && v.wreath) {
-            const o = Object.assign({}, v); delete o.wreath; return o;
+        if (k === 'kingCosmetics' && v && typeof v === 'object' && ((cosHide.wreath && v.wreath) || (cosHide.crest && v.crest))) {
+            const o = Object.assign({}, v);
+            if (cosHide.wreath) delete o.wreath;
+            if (cosHide.crest) delete o.crest;
+            return o;
         }
         if (v && typeof v === 'object' && v.schema === CHAT_COS_SCHEMA) return chatCosStrip(v);
         return v;

@@ -1,5 +1,11 @@
     // Newest first. The first entry is what What's new shows after a fresh install.
     const CHANGELOG = [
+        { v: '0.5.0', date: '2026-10-13', items: [
+            'Royal Crests (game v0.10.6a) in the inventory: their own page under King with previews, details, Equip, Random and the pool, and a Royal Crest slot in the Overview. Before, the inventory did not show them at all.',
+            'Loadouts save and put on your Royal Crest too, pool included.',
+            'Settings \u203a Cosmetics: Hide the Royal Crest - the game\'s plain shield instead of the King\'s crest in a Royal Celebration.',
+            'Default Tolls say how they work since the game update: your choices apply from your next reign on, and picking a toll that is used elsewhere swaps the two.',
+        ] },
         { v: '0.4.2', date: '2026-10-13', items: [
             'Linux: an Arch package for Arch, CachyOS, Manjaro and friends — straight from pacman: add the app\'s repository to /etc/pacman.conf once (see the README), then "sudo pacman -Sy dreamingcrownfall", and every "pacman -Syu" brings new versions. It installs the app with a fixed menu entry, so a pin in the taskbar survives updates — with the AppImage every update has a new file name and the pin pointed to nothing. The app still updates itself as well (it asks for your password on "Restart now").',
             'Fixed: "Start with your computer" kept pointing to the AppImage of the version it was switched on with — after an update the app no longer started with the computer. It now follows the app on every start.',

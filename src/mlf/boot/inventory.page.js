@@ -36,6 +36,7 @@
             royal_title: '<path d="M5 5h14v4H5zM8 9v10M16 9v10M6 19h12"/>',
             default_toll: '<circle cx="12" cy="12" r="8"/><path d="M12 8v8M9.5 10.5c0-1.4 5-1.4 5 0s-5 1.6-5 3 5 1.4 5 0"/>',
             wreaths: '<path d="M12 20c-5-1-8-5-8-10M12 20c5-1 8-5 8-10M6 9l-2 1M5 13l-2 0M8 16l-2 1M18 9l2 1M19 13l2 0M16 16l2 1"/>',
+            royal_crests: '<path d="M12 3l7 3v5c0 5-3 8-7 10-4-2-7-5-7-10V6z"/><circle cx="12" cy="11" r="3"/>',
             marble_trails: '<circle cx="17" cy="7" r="3.5"/><path d="M14 9c-3 2-6 4-11 9M12 7c-3 1-5 3-8 6"/>',
             marble_borders: '<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="5"/>',
             bidding_indicator_style: '<circle cx="6" cy="12" r="3.5"/><rect x="11" y="8" width="10" height="8" rx="2"/>',
@@ -58,6 +59,10 @@
             { id: 'royal_title', label: 'Royal Title', group: 'King', kind: 'title', url: '/api/inventory/royal-titles', endpoint: 'royal-titles', singular: 'Title', plural: 'Royal Titles' },
             { id: 'default_toll', label: 'Default Toll', group: 'King', kind: 'toll', url: '/api/inventory/default-tolls', endpoint: 'default-tolls', singular: 'Toll', plural: 'Default Tolls' },
             MARBLE('wreaths', 'Wreaths', 'wreaths', 'marbleBorderRecipe', 'marbleBorders/wreathPreview.js', 'renderWreathPreview', 'Wreath', 'Wreaths', 'No Wreath', { group: 'King', wreath: true }),
+            // Royal Crests (game v0.10.6a): the shield around the king's picture in a Royal Celebration.
+            // The game draws their inventory page with the same marble-style code as wreaths
+            // (equipment, /selected, /random-pool, /random-enabled), random resolves once per reign.
+            MARBLE('royal_crests', 'Royal Crests', 'royal-crests', 'royalCrestRecipe', 'royalCrests/productPreview.js', 'renderRoyalCrestPreview', 'Crest', 'Royal Crests', 'No Crest', { group: 'King', crest: true }),
             MARBLE('marble_trails', 'Marble Trails', 'marble-trails', 'marbleTrailRecipe', 'marbleTrails/productPreview.js', 'renderMarbleTrailPreview', 'Trail', 'Trails', 'No Trail', { companions: ['border'] }),
             MARBLE('marble_borders', 'Marble Borders', 'marble-borders', 'marbleBorderRecipe', 'marbleBorders/productPreview.js', 'renderMarbleBorderPreview', 'Border', 'Borders', 'No Border', { companions: ['trail'] }),
             MARBLE('bidding_indicator_style', 'Bidding Indicators', 'bidding-indicators', 'biddingIndicatorRecipe', 'biddingIndicators/productPreview.js', 'renderBiddingIndicatorPreview', 'Bidding Indicator', 'Bidding Indicators', 'Native default', { wide: true }),
@@ -186,6 +191,8 @@
                 get('crownComponentLabels.js'), get('chatCosmeticLabels.js'), get('marbleBorders/componentLabels.js'),
                 get('marbleTrails/componentLabels.js'), get('rebellionAuras/componentLabels.js'), get('biddingIndicators/componentLabels.js'),
             ]);
+            // Crests on their own: a game build without them must not take the whole inventory down.
+            list.push(await get('royalCrests/productPreview.js').catch(() => ({})));
             const all = Object.assign({}, ...list);
             if (typeof all.renderCrownItemPreview !== 'function' || typeof all.renderChatCosmeticPreview !== 'function') throw new Error('renderers_changed');
             return all;
@@ -486,7 +493,7 @@
             const comp = safe(() => p.kind === 'crown' ? mods.renderCrownComponents(i)
                 : p.kind === 'chat' || p.kind === 'font' ? mods.renderChatCosmeticComponents(i)
                 : p.aura ? mods.renderAuraComponents(i) : p.id === 'bidding_indicator_style' ? mods.renderBiddingIndicatorComponents(i)
-                : p.wreath ? mods.renderWreathComponents(i) : p.id === 'marble_trails' ? mods.renderTrailComponents(i)
+                : p.wreath ? mods.renderWreathComponents(i) : p.crest ? mods.renderRoyalCrestComponents(i) : p.id === 'marble_trails' ? mods.renderTrailComponents(i)
                 : p.kind === 'marble' ? mods.renderBorderComponents(i) : '', '');
             const prov = safe(() => mods.renderCosmeticProvenance(i), '');
             let actions = '';
@@ -495,7 +502,9 @@
                     return `<button type="button" class="mi-btn${on ? ' mi-btn--on' : ''}" data-act="context" data-slot="${esc(c.slotType)}" ${on ? 'disabled' : ''}>${on ? '✓ ' : ''}${esc(c.label)}</button>`; }).join('');
                 const unlock = i.unlock && i.unlock.kind === 'achievement' ? (i.unlock.title ? `Unlocked by the “${esc(i.unlock.title)}” achievement.` : 'Unlocked by an achievement.')
                     : (i.metadata && i.metadata.unlockDescription) ? esc(i.metadata.unlockDescription) : 'Included for every player';
-                actions = `<p class="mi-note">Use it for</p><div class="mi-actions">${actions}</div><p class="mi-note">${unlock}</p>`;
+                // Game v0.10.6a: tolls are saved for the next reign, and each one fills one occasion only.
+                const tollRule = p.kind === 'toll' ? '<p class="mi-note">Applies from your next reign on. Each toll you own fills one occasion (you have two No Change); picking one that is used elsewhere swaps the two.</p>' : '';
+                actions = `<p class="mi-note">Use it for</p><div class="mi-actions">${actions}</div>${tollRule}<p class="mi-note">${unlock}</p>`;
             } else if (p.kind === 'font') {
                 actions = `<div class="mi-actions">
                     <button type="button" class="mi-btn mi-btn--main" data-act="font" data-slot="ordinary" ${m.ordinary === id ? 'disabled' : ''}>${m.ordinary === id ? '✓ Ordinary chat' : 'Use in ordinary chat'}</button>
@@ -609,14 +618,14 @@
 
         // ---- overview: everything you wear, one tile per slot --------------------------------------
         const SLOTS = [
-            ['crowns', 'Crown'], ['wreaths', 'Wreath'], ['royal_title', 'Royal Title'], ['default_toll', 'Default Toll'],
+            ['crowns', 'Crown'], ['wreaths', 'Wreath'], ['royal_crests', 'Royal Crest'], ['royal_title', 'Royal Title'], ['default_toll', 'Default Toll'],
             ['marble_borders', 'Border'], ['marble_trails', 'Trail'], ['bidding_indicator_style', 'Bidding Indicator'], ['rebellion_aura_style', 'Rebellion Aura'],
             ['chat_font_colors', 'Chat Font Color'], ['chat_background_style', 'Chat Background'], ['username_style', 'Username Style'], ['king_chat_bubble_style', 'King Chat Bubble'],
         ];
         async function renderOverview(gen) {
             $detail.innerHTML = '';
             $head.innerHTML = `<div class="mi-title"><span class="mi-title__icon">${icon('overview')}</span><h1>What you wear</h1><span class="mi-count">Click a slot to change it</span><div class="mi-ctl">${RELOAD}</div></div>`;
-            const groups = [['King', SLOTS.slice(0, 4)], ['Marble', SLOTS.slice(4, 8)], ['Chat', SLOTS.slice(8)]];
+            const groups = [['King', SLOTS.slice(0, 5)], ['Marble', SLOTS.slice(5, 9)], ['Chat', SLOTS.slice(9)]];
             $body.innerHTML = `<div class="mi-over">${groups.map(([g, slots]) => `<section><h2>${g}</h2><div class="mi-over__grid">${slots.map(([id, label]) =>
                 `<button type="button" class="mi-slot" data-slot="${id}"><span class="mi-slot__label">${icon(id)}${esc(label)}</span><div class="mi-slot__pic"><div class="mi-status"><span>…</span></div></div><b class="mi-slot__name"></b><span class="mi-slot__sub"></span></button>`).join('')}</div></section>`).join('')}</div>`;
             const order = ['crowns', 'marble_borders', 'marble_trails', ...SLOTS.map(s => s[0])];

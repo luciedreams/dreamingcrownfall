@@ -7,7 +7,7 @@
     // (the one thing the frame's page and the script in the top window share). Read only:
     // the answer goes on to the game unchanged.
     const INV_RAR_MODULE = { 'marble-trails': 'marble_trails', 'marble-borders': 'marble_borders',
-        'rebellion-auras': 'rebellion_aura_style', 'bidding-indicators': 'bidding_indicator_style', 'wreaths': 'wreaths' };
+        'rebellion-auras': 'rebellion_aura_style', 'bidding-indicators': 'bidding_indicator_style', 'wreaths': 'wreaths', 'royal-crests': 'royal_crests' };
     // The game's own reading (inventoryFilters.js): no rarity is "default" - No Treatment, No Crown, Basic ...
     const invRarToken = i => String((i && i.rarity) || 'default').trim().toLowerCase() || 'default';
     // The page a list belongs to, or null. main: the list itself, not one of its sub-paths.

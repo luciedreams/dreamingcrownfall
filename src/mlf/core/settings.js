@@ -174,6 +174,7 @@
                 { key: 'hideCosKing', def: false, redraw: true, group: true, label: 'Hide all King cosmetics' },
                 { key: 'hideCrown', def: false, label: 'Hide the crown', hint: 'No crown on the King tile.' },
                 { key: 'hideWreath', def: false, label: 'Hide the wreath', hint: 'No wreath around the King\'s picture. Takes hold with the next King update.' },
+                { key: 'hideCrest', def: false, label: 'Hide the Royal Crest', hint: 'The game\'s plain shield instead of the King\'s crest in a Royal Celebration. Takes hold with the next King update.' },
             ]},
         ]},
         { title: 'Chat', blurb: 'Slim rail, pop-out window, growing message box and the enhanced chat.', items: [
