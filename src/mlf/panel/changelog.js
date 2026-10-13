@@ -1,5 +1,8 @@
     // Newest first. The first entry is what What's new shows after a fresh install.
     const CHANGELOG = [
+        { v: '0.4.1', date: '2026-10-13', items: [
+            'A new app icon: the crown — in the taskbar, the tray, the installer and inside the app (settings, patch notes, welcome). Your Discord profile shows it too.',
+        ] },
         { v: '0.4.0', date: '2026-10-13', items: [
             'HUD: gold, diamonds and points per account, and points across all accounts (Settings › HUD). Values per account now stand under each other in the bar as well, so the bar stays short with several accounts.',
             'Home: a daily quest table under the account cards — one row per quest with its difficulty, one column per account with its progress, "Ready to claim" or "Claimed". Click a name or a cell to go to that account.',
