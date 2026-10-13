@@ -363,6 +363,9 @@ function createWindow() {
     let settle = 0;
     const relayout = () => { layout(); clearTimeout(settle); settle = setTimeout(layout, 150); };
     for (const ev of ['resize', 'maximize', 'unmaximize', 'restore', 'enter-full-screen', 'leave-full-screen']) win.on(ev, relayout);
+    // Hauptfenster zu = App beenden. 'window-all-closed' allein reicht nicht: das HUD und
+    // ausgekoppelte Fenster sind auch Fenster und hielten die App sonst am Leben.
+    win.on('closed', () => app.quit());
     select(0);
 }
 
