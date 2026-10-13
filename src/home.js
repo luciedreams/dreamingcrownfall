@@ -5,7 +5,8 @@
 //   Kopfzeile des Spiels  → Tickets und ihr Status („Earning …“ / „Inactive …“), live vom Socket
 //   /api/stats/me         → Punkte, Gold, VIP, Thron-Werte der Episode
 //   /api/king/beverages/me → Diamanten (balances.diamonds)
-//   /api/dailies          → Quests (erledigt/abholbar) und Daily Items (abholbar), Regeln wie in der Spiel-Ebene
+//   /api/dailies          → Quests (erledigt/abholbar, dazu jede einzeln mit Fortschritt für die
+//                           Quest-Tabelle) und Daily Items (abholbar), Regeln wie in der Spiel-Ebene
 // King: aus dem Snapshot des Notifiers (alle 15 s).
 
 const path = require('path');
@@ -36,6 +37,17 @@ const COLLECT_JS = `(async () => {
             total: quests.length,
             done: quests.filter((q) => q.complete === true).length,
             claimable: quests.filter((q) => q.complete === true && q.claimState !== 'claimed' && q.claimState !== 'pending').length,
+            // Quests sind auf allen Accounts dieselben (gleiche definitionId + target), nur Fortschritt
+            // und Abholstand unterscheiden sich — Home legt sie danach zu einer Tabelle zusammen.
+            list: quests.map((q) => ({
+                id: String(q.definitionId || q.instanceId || q.title || ''),
+                title: q.title || 'Quest',
+                difficulty: String(q.difficulty || '').toLowerCase(),
+                progress: Number(q.progress) || 0,
+                target: Number(q.target) || 1,
+                complete: q.complete === true,
+                claimed: q.claimState === 'claimed',
+            })),
         },
         items: {
             total: items.length,

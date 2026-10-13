@@ -68,6 +68,29 @@
     .open { border: 1px solid var(--line); background: rgba(139, 92, 246, 0.14); color: var(--text); border-radius: 8px; padding: 6px 12px; font: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer; }
     .open:hover { background: rgba(139, 92, 246, 0.28); border-color: var(--violet); }
     .empty { color: var(--dim); font-size: 13px; padding: 18px 0 6px; }
+    /* Quest-Tabelle: eine Zeile je Quest, eine Spalte je Account */
+    .quests { margin-top: 26px; }
+    .quests h2 { margin: 0 0 12px; font-size: 13px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+    .qwrap { overflow-x: auto; border: 1px solid var(--line2); border-radius: 16px; background: var(--card); }
+    .qt { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+    .qt th, .qt td { padding: 11px 14px; text-align: left; vertical-align: middle; }
+    .qt thead th { color: var(--dim); font-size: 10.5px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; border-bottom: 1px solid var(--line2); white-space: nowrap; }
+    .qt thead th.acc-col { cursor: pointer; }
+    .qt thead th.acc-col:hover { color: var(--text); }
+    .qt thead th.acc-col.king { color: var(--gold); }
+    .qt thead .sub { display: block; margin-top: 2px; color: var(--muted); font-size: 11.5px; letter-spacing: 0; text-transform: none; font-weight: 600; }
+    .qt tbody tr + tr td { border-top: 1px solid rgba(180, 138, 232, 0.07); }
+    .qt tbody td.cell { cursor: pointer; min-width: 120px; }
+    .qt tbody td.cell:hover { background: rgba(255, 255, 255, 0.03); }
+    .qname { display: flex; align-items: center; gap: 9px; min-width: 220px; }
+    .diff { flex: none; padding: 2px 7px; border-radius: 6px; font-size: 10px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; border: 1px solid currentColor; opacity: 0.85; }
+    .diff.easy { color: var(--green); } .diff.medium { color: var(--warn); } .diff.hard { color: #ff7a8a; }
+    .prog { display: flex; flex-direction: column; gap: 5px; }
+    .prog span { color: var(--muted); font-size: 12.5px; }
+    .prog .meter { height: 5px; }
+    .done { color: var(--green); font-size: 12.5px; font-weight: 700; }
+    .qt .chip.claim { display: inline-block; }
+    .none { color: var(--dim); }
 </style>
 </head>
 <body>
@@ -78,6 +101,10 @@
     </header>
     <div class="bar"><div class="king" id="king"></div><span id="reset"></span><span class="sep"></span><span id="age"></span><button id="refresh" type="button">Refresh</button></div>
     <div class="grid" id="grid"></div>
+    <section class="quests" id="quests" hidden>
+        <h2>Daily quests</h2>
+        <div class="qwrap"><table class="qt" id="qt"></table></div>
+    </section>
 </main>
 <script>
     const $ = (id) => document.getElementById(id);
@@ -157,6 +184,61 @@
         return c;
     }
 
+    // Quest-Tabelle: Zeilen = Quests (Reihenfolge wie beim ersten Account, der sie hat), Spalten =
+    // angemeldete Accounts. Ein Klick auf einen Namen oder eine Zelle öffnet den Tab des Accounts.
+    function questTable(s) {
+        const acc = s.accounts.filter((a) => !a.guest);
+        const rows = new Map();
+        for (const a of acc) for (const q of a.quests?.list || []) if (!rows.has(q.id)) rows.set(q.id, q);
+        $('quests').hidden = !rows.size;
+        if (!rows.size) return;
+
+        const head = el('tr');
+        head.append(el('th', null, 'Quest'));
+        for (const a of acc) {
+            const th = el('th', 'acc-col' + (s.king && s.king.mine === a.index ? ' king' : ''), a.name);
+            const q = a.quests;
+            th.append(el('span', 'sub', q && q.total ? `${q.done} / ${q.total} done` : '…'));
+            th.onclick = () => window.home.select(a.index);
+            head.append(th);
+        }
+        const thead = el('thead');
+        thead.append(head);
+
+        const tbody = el('tbody');
+        for (const [id, q] of rows) {
+            const tr = el('tr');
+            const name = el('div', 'qname');
+            if (q.difficulty) name.append(el('span', 'diff ' + q.difficulty, q.difficulty));
+            name.append(el('span', null, q.title));
+            const first = el('td');
+            first.append(name);
+            tr.append(first);
+            for (const a of acc) {
+                const td = el('td', 'cell');
+                td.onclick = () => window.home.select(a.index);
+                const mine = (a.quests?.list || []).find((x) => x.id === id);
+                if (!mine) td.append(el('span', 'none', a.quests ? '–' : '…'));
+                else if (mine.claimed) td.append(el('span', 'done', '✓ Claimed'));
+                else if (mine.complete) td.append(el('span', 'chip claim', 'Ready to claim'));
+                else {
+                    const p = el('div', 'prog');
+                    const n = Math.min(mine.progress, mine.target);
+                    p.append(el('span', null, `${fmt(n)} / ${fmt(mine.target)}`));
+                    const meter = el('div', 'meter');
+                    const fill = el('i');
+                    fill.style.width = `${Math.round(n / mine.target * 100)}%`;
+                    meter.append(fill);
+                    p.append(meter);
+                    td.append(p);
+                }
+                tr.append(td);
+            }
+            tbody.append(tr);
+        }
+        $('qt').replaceChildren(thead, tbody);
+    }
+
     function render(s) {
         last = s;
         const acc = s.accounts.filter((a) => !a.guest);
@@ -176,6 +258,7 @@
         const grid = $('grid');
         grid.replaceChildren(...s.accounts.map((a) => card(a, k)));
         if (!s.accounts.length) grid.replaceChildren(el('div', 'empty', 'No accounts yet.'));
+        questTable(s);
     }
 
     $('refresh').onclick = () => window.home.refresh();

@@ -9,6 +9,10 @@ const HUD_ITEMS = {
     ticketsPer: 'Tickets per account',
     earning: 'Accounts earning tickets',
     money: 'Gold and diamonds (all accounts)',
+    goldPer: 'Gold per account',
+    diamondsPer: 'Diamonds per account',
+    points: 'Points (all accounts)',
+    pointsPer: 'Points per account',
     claim: 'Rewards to claim',
     clock: 'Clock',
 };
@@ -37,6 +41,7 @@ function hudCss() {
     .dcf-hud--glass .dcf-hud__sub { color: #e2dcef; }
     .dcf-hud__num { font-variant-numeric: tabular-nums; }
     .dcf-hud__gold { color: #ffd36e; }
+    .dcf-hud__dia { color: #9fd3ff; }
     .dcf-hud__rc { color: #ffb7e3; }
     .dcf-hud__dim { color: #8f84a6; font-weight: 500; }
     .dcf-hud__dot { width: 0.5em; height: 0.5em; border-radius: 50%; background: #7d7194; flex: none; }
@@ -56,11 +61,30 @@ function hudCss() {
 function renderHud(root, cfg, d, { onClose = null } = {}) {
     const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
     const fmt = (n) => (n == null ? '–' : Number(n).toLocaleString('en-US'));
+    // Punkte gehen in die Milliarden — kurz wie auf Home (1.2B), sonst sprengen sie die Leiste.
+    const short = (n) => {
+        if (n == null) return '–';
+        const a = Math.abs(n);
+        for (const [v, u] of [[1e12, 'T'], [1e9, 'B'], [1e6, 'M'], [1e3, 'K']]) if (a >= v) return (n / v).toFixed(a >= v * 100 ? 0 : 1).replace(/\.0$/, '') + u;
+        return String(n);
+    };
     const mins = (ms) => { const m = Math.max(0, Math.round(ms / 60000)); return m >= 60 ? `${Math.floor(m / 60)} h ${m % 60} min` : `${m} min`; };
     root.className = `dcf-hud dcf-hud--${cfg.layout} dcf-hud--${cfg.size} dcf-hud--${cfg.style}`;
     root.style.setProperty('--a', String(cfg.opacity / 100));
     root.replaceChildren();
     const seg = (...kids) => { const s = el('div', 'dcf-hud__seg'); s.append(...kids); root.append(s); return s; };
+    // Ein Wert je Account: Symbol vorn, dann Name + Wert wie bei „Tickets per account“.
+    const perSeg = (icon, cls, key, f) => {
+        const list = d.perAccount || [];
+        if (!list.length) return;
+        const box = el('span', 'dcf-hud__per');
+        for (const a of list) {
+            const x = el('span', 'dcf-hud__acc');
+            x.append(el('span', null, a.name), el('span', `dcf-hud__sub dcf-hud__num${cls ? ' ' + cls : ''}`, f(a[key])));
+            box.append(x);
+        }
+        seg(el('span', cls, icon), box);
+    };
 
     for (const { id, on } of cfg.items) {
         if (!on) continue;
@@ -85,6 +109,15 @@ function renderHud(root, cfg, d, { onClose = null } = {}) {
             seg(el('span', 'dcf-hud__dot' + (e.n ? ' dcf-hud__dot--on' : '')), el('span', null, `${e.n}/${e.total} earning`));
         } else if (id === 'money') {
             seg(el('span', 'dcf-hud__gold dcf-hud__num', `🪙 ${fmt(d.gold)}`), el('span', 'dcf-hud__num', `💎 ${fmt(d.diamonds)}`));
+        } else if (id === 'goldPer') {
+            perSeg('🪙', 'dcf-hud__gold', 'gold', fmt);
+        } else if (id === 'diamondsPer') {
+            perSeg('💎', 'dcf-hud__dia', 'diamonds', fmt);
+        } else if (id === 'points') {
+            const s = seg(el('span', null, '⭐'), el('span', 'dcf-hud__num', short(d.points)));
+            if (d.points != null) s.title = fmt(d.points);
+        } else if (id === 'pointsPer') {
+            perSeg('⭐', '', 'points', short);
         } else if (id === 'claim') {
             seg(d.claim ? el('span', 'dcf-hud__gold', `🎁 ${d.claim} to claim`) : el('span', 'dcf-hud__dim', d.claim === 0 ? '🎁 all claimed' : '🎁 …'));
         } else if (id === 'clock') {

@@ -14,6 +14,10 @@ const ITEMS = [
     { id: 'ticketsPer', on: false }, // Tickets je Account
     { id: 'earning', on: false },    // wie viele Accounts gerade Tickets verdienen
     { id: 'money', on: false },      // Gold und Diamanten aller Accounts
+    { id: 'goldPer', on: false },    // Gold je Account
+    { id: 'diamondsPer', on: false }, // Diamanten je Account
+    { id: 'points', on: false },     // Punkte aller Accounts
+    { id: 'pointsPer', on: false },  // Punkte je Account
     { id: 'claim', on: true },       // Abholbares (Quest-Belohnungen + Daily Items)
     { id: 'clock', on: false },      // Uhr
 ];

@@ -384,7 +384,11 @@
     // Real values where there are some; examples where not, so every switched-on piece shows.
     function dcfHudSample(d) {
         d = d || {};
-        const per = d.perAccount && d.perAccount.length ? d.perAccount : [{ name: dcfMyName() || 'You', tickets: 1240, earning: true }, { name: 'Alt', tickets: 980, earning: false }];
+        const per = d.perAccount && d.perAccount.length ? d.perAccount.map(a => Object.assign({}, a)) : [
+            { name: dcfMyName() || 'You', tickets: 1240, earning: true, gold: 9310, diamonds: 320, points: 48200000 },
+            { name: 'Alt', tickets: 980, earning: false, gold: 3493, diamonds: 135, points: 12700000 }];
+        // Gold/diamonds/points only arrive while the HUD fetches them — examples until then.
+        per.forEach((a, i) => { if (a.gold == null) a.gold = [9310, 3493][i % 2]; if (a.diamonds == null) a.diamonds = [320, 135][i % 2]; if (a.points == null) a.points = [48200000, 12700000][i % 2]; });
         return {
             king: d.king || { name: 'cookingsumEP', since: Date.now() - 14 * 60000, mine: false },
             rc: d.rc || { multiplier: 2, state: 'active' },
@@ -392,6 +396,7 @@
             perAccount: per,
             earning: d.earning && d.earning.total ? d.earning : { n: per.filter(a => a.earning).length, total: per.length },
             gold: d.gold != null ? d.gold : 12803, diamonds: d.diamonds != null ? d.diamonds : 455, claim: d.claim != null ? d.claim : 2,
+            points: d.points != null ? d.points : per.reduce((n, a) => n + (a.points || 0), 0),
         };
     }
     function dcfHudPage(box, api) {

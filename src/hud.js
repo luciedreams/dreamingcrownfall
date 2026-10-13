@@ -4,7 +4,7 @@
 // durchsichtig (Deckkraft), zeigt sich, ohne den Fokus zu nehmen, und passt seine Größe dem
 // Inhalt an. Abgerufen wird nur, was eingeschaltet ist, und nur solange es offen ist:
 //   Kopfzeile jedes Spiel-Tabs (Tickets + Status)  alle 10 s  — kein API-Aufruf
-//   /api/stats/me, /api/king/beverages/me, /api/dailies  alle 60 s  — nur für Gold/Diamanten/Abholbares
+//   /api/stats/me, /api/king/beverages/me, /api/dailies  alle 60 s  — nur für Gold/Diamanten/Punkte/Abholbares
 // King und Royal Celebration kommen aus dem Snapshot des Notifiers.
 
 const fs = require('fs');
@@ -16,6 +16,7 @@ const config = require('./hud-config.js');
 
 const FAST_MS = 10 * 1000;
 const SLOW_MS = 60 * 1000;
+const API_ITEMS = ['money', 'goldPer', 'diamondsPer', 'points', 'pointsPer', 'claim']; // brauchen API_JS
 
 const HEADER_JS = `(() => { const c = document.querySelector('[data-role="metric-cell"][data-metric-role="tickets"]');
     if (!c) return null;
@@ -30,6 +31,7 @@ const API_JS = `(async () => {
     const items = Array.isArray(daily?.dailyItems?.items) ? daily.dailyItems.items : [];
     return {
         gold: stats?.current?.currentGold ?? null,
+        points: stats?.current?.currentPoints ?? null,
         diamonds: bev?.balances?.diamonds ?? null,
         claim: quests.filter((q) => q.complete === true && q.claimState !== 'claimed' && q.claimState !== 'pending').length
              + items.filter((i) => i.status !== 'claimed' && i.status !== 'locked').length,
@@ -74,10 +76,14 @@ module.exports = function createHud({ views, kingNow, icon, onToggle, refocus = 
             king: k ? { name: mine >= 0 ? (views[mine].name || k.name) : k.name, since: k.since, mine: mine >= 0 } : null,
             rc: k?.rc || null,
             tickets: sum(header, 'tickets'),
-            perAccount: acc.map((v) => ({ name: v.name || 'Account', tickets: header.get(v)?.tickets ?? null, earning: !!header.get(v)?.earning })),
+            perAccount: acc.map((v) => ({
+                name: v.name || 'Account', tickets: header.get(v)?.tickets ?? null, earning: !!header.get(v)?.earning,
+                gold: api.get(v)?.gold ?? null, diamonds: api.get(v)?.diamonds ?? null, points: api.get(v)?.points ?? null,
+            })),
             earning: { n: acc.filter((v) => header.get(v)?.earning).length, total: acc.length },
             gold: sum(api, 'gold'),
             diamonds: sum(api, 'diamonds'),
+            points: sum(api, 'points'),
             claim: sum(api, 'claim'),
         };
     }
@@ -95,7 +101,7 @@ module.exports = function createHud({ views, kingNow, icon, onToggle, refocus = 
         send();
     }
     async function readApi() {
-        if (!config.enabled('money') && !config.enabled('claim')) return;
+        if (!API_ITEMS.some(config.enabled)) return;
         await Promise.all(views.filter(live).map(async (v) => {
             const d = await v.view.webContents.executeJavaScript(API_JS).catch(() => null);
             if (d) api.set(v, d);
