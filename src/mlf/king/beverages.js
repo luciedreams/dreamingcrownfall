@@ -1,8 +1,8 @@
     // =========================================================================================
     // 7. BEVERAGES BESIDE THE ATTACK BUTTON
     // =========================================================================================
-    // Four buttons flanking the attack button — Water and Lava on the left, Milk and Acid on the
-    // right — each opening the three sizes with BOTH prices, so the currency stays a choice the
+    // Six buttons flanking the attack button — Water, Lava and Bomb on the left, Milk, Acid and
+    // Mystery on the right (Bomb and Mystery since game v0.10.6a) — each opening the three sizes with BOTH prices, so the currency stays a choice the
     // way the game's own panel offers it. An earlier version bought gold-only straight from the
     // king tile; that took the decision away and put the controls somewhere they did not belong.
     //
@@ -21,10 +21,16 @@
           gold: { small: 225, medium: 525, large: 1200 }, diamonds: { small: 40, medium: 70, large: 100 } },
         { type: 'lava',  label: 'Lava',  side: 'left',  fill: '#e34116', stroke: '#ffbd69', text: '#ffffff',
           gold: { small: 150, medium: 450, large: 1050 }, diamonds: { small: 35, medium: 65, large: 95 } },
+        { type: 'bomb',  label: 'Bomb',  side: 'left',  fill: '#252633', stroke: '#ffcc65', text: '#ffffff',
+          gold: { small: 225, medium: 525, large: 1200 }, diamonds: { small: 40, medium: 70, large: 100 } },
         { type: 'milk',  label: 'Milk',  side: 'right', fill: '#f5f0dc', stroke: '#ffffff', text: '#182026',
           gold: { small: 180, medium: 600, large: 1350 }, diamonds: { small: 40, medium: 70, large: 100 } },
         { type: 'acid',  label: 'Acid',  side: 'right', fill: '#55c94d', stroke: '#c8ff80', text: '#ffffff',
           gold: { small: 180, medium: 600, large: 1350 }, diamonds: { small: 40, medium: 70, large: 100 } },
+        // Mystery is an order, not a bubble: it delivers a random mix of the others (or ready-made
+        // composites), so the board has no colour for it - this violet is the script's own.
+        { type: 'mystery', label: 'Mystery', side: 'right', fill: '#5b3a9e', stroke: '#d6b8ff', text: '#ffffff',
+          gold: { small: 225, medium: 600, large: 1350 }, diamonds: { small: 40, medium: 70, large: 100 } },
     ];
     const BEV_SIZES = [['small', 'Small'], ['medium', 'Medium'], ['large', 'Large']];
     const BEV_CURRENCIES = [['gold', 'Gold'], ['diamonds', 'Diamond']];
@@ -223,6 +229,15 @@
             + '<path d="M10.2 2.8v5.1L5.3 17.9a2.3 2.3 0 0 0 2.1 3.4h9.2a2.3 2.3 0 0 0 2.1-3.4L13.8 7.9V2.8" fill="none" stroke="#16330f" stroke-width="1.3" stroke-linejoin="round"/>'
             + '<path d="M9 2.8h6" stroke="#16330f" stroke-width="1.6" stroke-linecap="round"/>'
             + '<circle cx="10.5" cy="16.5" r="1.1" fill="#c8ff80"/><circle cx="13.6" cy="18.6" r="0.9" fill="#c8ff80"/><circle cx="12.6" cy="10.8" r="0.8" fill="#55c94d"/></svg>',
+        bomb: '<svg class="mcfo-drink__icon" viewBox="0 0 24 24" aria-hidden="true">'
+            + '<circle cx="10.5" cy="14" r="7" fill="#252633" stroke="#ffcc65" stroke-width="1.3"/>'
+            + '<rect x="13.2" y="5.6" width="4" height="3.4" rx="0.8" transform="rotate(40 15.2 7.3)" fill="#4a4b5c" stroke="#ffcc65" stroke-width="1.1"/>'
+            + '<path d="M17 5.4c1-1.6 2.4-2 3.4-1.4" fill="none" stroke="#ffcc65" stroke-width="1.3" stroke-linecap="round"/>'
+            + '<circle cx="20.6" cy="3.6" r="1.3" fill="#ff8d45"/><path d="M7.4 11.6a3.6 3.6 0 0 1 2.6-2.2" fill="none" stroke="#8d8fa6" stroke-width="1.4" stroke-linecap="round"/></svg>',
+        mystery: '<svg class="mcfo-drink__icon" viewBox="0 0 24 24" aria-hidden="true">'
+            + '<circle cx="12" cy="12" r="9" fill="#5b3a9e" stroke="#20123d" stroke-width="1.3"/>'
+            + '<path d="M9.2 9.4a2.9 2.9 0 1 1 4.2 2.6c-.9.5-1.4 1.1-1.4 2.2v.6" fill="none" stroke="#f3e8ff" stroke-width="2" stroke-linecap="round"/>'
+            + '<circle cx="12" cy="17.6" r="1.2" fill="#f3e8ff"/></svg>',
     };
 
     function buildKingTray() {
@@ -255,7 +270,11 @@
                     b.title = bev.label;
                     b.setAttribute('aria-label', bev.label);
                 } else {
-                    b.textContent = bev.label;
+                    // Name plus symbol: three to a side (6.61) leave too little room for the names in
+                    // a narrow window, so there the symbol takes over (container query in the CSS).
+                    b.innerHTML = '<span class="mcfo-drink__label"></span>' + DRINK_ICONS[bev.type];
+                    b.firstChild.textContent = bev.label;
+                    b.title = bev.label;
                     b.style.background = bev.fill;
                     b.style.borderColor = bev.stroke;
                     b.style.color = bev.text;
@@ -290,11 +309,28 @@
         }
     }
 
+    // Names or symbols (6.61): with names on, a name that does not fit its button turns BOTH sides to
+    // symbols - one side of names and one of symbols would look like two different things. Measured
+    // with the names shown, so the attribute is taken off first; six buttons, so this is cheap.
+    function fitDrinkLabels() {
+        const stacks = [...document.querySelectorAll('.mcf-king-action-content .mcfo-stack[data-mcfo-icons="0"]')];
+        if (!stacks.length) return;
+        stacks.forEach(st => st.removeAttribute('data-mcfo-tight'));
+        const cut = stacks.some(st => [...st.querySelectorAll('.mcfo-drink__label')].some(l => l.clientWidth > 0 && l.scrollWidth > l.clientWidth + 1));
+        if (cut) stacks.forEach(st => st.setAttribute('data-mcfo-tight', '1'));
+    }
+
+    let drinkFitResize = null;
     function watchTray() {
         const tray = role('king-action-tray');
         if (!tray || tray.getAttribute('data-mcfo-watched') === '1') return;
         tray.setAttribute('data-mcfo-watched', '1');
-        new MutationObserver(() => { buildKingTray(); buildAttackAssist(); syncDrinkHeight(); placeKingTray(); }).observe(tray, { childList: true, subtree: true });
+        new MutationObserver(() => { buildKingTray(); buildAttackAssist(); syncDrinkHeight(); placeKingTray(); fitDrinkLabels(); }).observe(tray, { childList: true, subtree: true });
+        // The width changes with the window and the chat, without the tray's content changing.
+        if (typeof ResizeObserver === 'function') {
+            drinkFitResize = new ResizeObserver(() => requestAnimationFrame(fitDrinkLabels));
+            drinkFitResize.observe(tray);
+        }
     }
 
     // The king tile is fitted into its pane by scale and centred (kingPane.js syncKingTileFit:

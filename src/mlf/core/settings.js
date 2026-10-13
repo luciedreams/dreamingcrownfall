@@ -107,7 +107,7 @@
                   { key: 'kingCornerAlpha', type: 'range', label: 'Visibility', min: 20, max: 100, step: 5, def: 100, unit: '%' },
               ] },
             { key: 'kingTray', label: 'Beverage buttons',
-              hint: 'Water and Lava left of the attack button, Milk and Acid right of it. As symbols they take the look of your theme; the name shows when you point at one.',
+              hint: 'Water, Lava and Bomb left of the attack button, Milk, Acid and Mystery right of it. As symbols they take the look of your theme; the name shows when you point at one.',
               subs: [
                   { key: 'drinkScale', type: 'range', label: 'Button size', min: 70, max: 140, step: 5, def: 100, unit: '%' },
                   { key: 'drinkIcons', type: 'choice', label: 'Show', def: 1, options: [[1, 'Symbols'], [0, 'Names']] },

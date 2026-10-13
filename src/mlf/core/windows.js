@@ -501,6 +501,7 @@
         // The title bar a touch denser than the page, as before (0.82 over 0.78).
         root.setProperty('--mcfo-glass-head', Math.min(0.97, alpha + 0.04).toFixed(2));
         root.setProperty('--mcfo-drink-scale', (settings.drinkScale / 100).toFixed(2));
+        requestAnimationFrame(fitDrinkLabels);   // a bigger font may no longer fit the names (6.61)
         root.setProperty('--mcfo-tsb-scale', (settings.tilesetBannerSize / 100).toFixed(2));
         root.setProperty('--mcfo-kc-scale', (settings.kingCornerSize / 100).toFixed(2));
         root.setProperty('--mcfo-kc-alpha', (settings.kingCornerAlpha / 100).toFixed(2));

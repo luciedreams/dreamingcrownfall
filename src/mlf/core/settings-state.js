@@ -38,7 +38,7 @@
     // a switch. Anything else found in storage is dropped rather than guessed at.
     settingDefaults.throneDrinkSet = [];
     settings.throneDrinkSet = Array.isArray(stored.throneDrinkSet)
-        ? stored.throneDrinkSet.filter(k => /^(water|lava|milk|acid)\|(small|medium|large)\|(gold|diamonds)$/.test(k)) : [];
+        ? stored.throneDrinkSet.filter(k => /^(water|lava|milk|acid|bomb|mystery)\|(small|medium|large)\|(gold|diamonds)$/.test(k)) : [];
     // The music player (6.22, section 11e): off unless switched on, and until then the game plays
     // its music its own way. The tracks taken out of the rotation are kept as the paths the game's
     // own manifest gives them; anything else found in storage is dropped rather than guessed at.

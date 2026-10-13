@@ -1,5 +1,9 @@
     // Newest first. The first entry is what What's new shows after a fresh install.
     const CHANGELOG = [
+        { v: '0.5.1', date: '2026-10-13', items: [
+            'Bomb and Mystery beverages (game v0.10.6a) beside the attack button: Water, Lava and Bomb on the left, Milk, Acid and Mystery on the right, each with its sizes and both prices like the others. They also count for the quest dots and for the beverages poured on the throne.',
+            'With names shown, the buttons switch to their symbols by themselves when a name would be cut - six buttons leave less room than four.',
+        ] },
         { v: '0.5.0', date: '2026-10-13', items: [
             'Royal Crests (game v0.10.6a) in the inventory: their own page under King with previews, details, Equip, Random and the pool, and a Royal Crest slot in the Overview. Before, the inventory did not show them at all.',
             'Loadouts save and put on your Royal Crest too, pool included.',

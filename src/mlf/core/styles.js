@@ -155,7 +155,7 @@
            measured at 11px/800 the widest label ("Water") is 30px, so a button is 42px and a pair
            90px. It fits, with 5px to spare.
            Order is deliberate and the same on both sides: the harmless one first, the harmful one
-           second — Water then Lava, Milk then Acid. */
+           second — Water then Lava, Milk then Acid. Bomb and Mystery (game v0.10.6a) come third. */
         /* The pair fills its column instead of hugging the outer edge. Sized to the text they
            left most of a 197px column empty while sitting at the far rim — the space was there
            all along, the buttons just did not ask for it. With flex they follow the window: about
@@ -187,6 +187,16 @@
             transition: transform 90ms ease, filter 90ms ease;
         }
         .mcfo-drink:hover { transform: translateY(-1px); filter: brightness(1.12); }
+        /* Named buttons carry their symbol as well (6.61). Six buttons share the tray since Bomb and
+           Mystery came, and a name no longer fits everywhere: at 1920px "Water" and "Mystery" got 48px
+           and were cut. fitDrinkLabels measures the names and, when one is cut, both sides show the
+           symbol instead (data-mcfo-tight); the name stays as tooltip. Measured rather than a fixed
+           breakpoint, because the size slider and the theme's font move it. */
+        .mcfo-drink__label { overflow: hidden; text-overflow: ellipsis; }
+        .mcfo-drink:not(.mcfo-drink--icon) > .mcfo-drink__icon { display: none; }
+        .mcfo-stack[data-mcfo-tight] > .mcfo-drink > .mcfo-drink__label { display: none; }
+        .mcfo-stack[data-mcfo-tight] > .mcfo-drink:not(.mcfo-drink--icon) > .mcfo-drink__icon { display: block; }
+        .mcfo-stack[data-mcfo-tight] > .mcfo-drink:not(.mcfo-drink--icon) { padding: 0; }
         /* Symbols instead of names (6.12): the symbol carries the meaning, so the button itself can
            take the page's look — the stock button colours here, which a theme recolours like the rest
            of this sheet, and a Deluxe skin's own buttons (SKIN_BUTTONS). The name stays as a tooltip
@@ -727,7 +737,9 @@
         html[data-mcfo-qbev~="water"] .mcfo-drink[data-mcfo-drink="water"] > .mcfo-questdot,
         html[data-mcfo-qbev~="lava"]  .mcfo-drink[data-mcfo-drink="lava"]  > .mcfo-questdot,
         html[data-mcfo-qbev~="milk"]  .mcfo-drink[data-mcfo-drink="milk"]  > .mcfo-questdot,
-        html[data-mcfo-qbev~="acid"]  .mcfo-drink[data-mcfo-drink="acid"]  > .mcfo-questdot { display: block; }
+        html[data-mcfo-qbev~="acid"]  .mcfo-drink[data-mcfo-drink="acid"]  > .mcfo-questdot,
+        html[data-mcfo-qbev~="bomb"]  .mcfo-drink[data-mcfo-drink="bomb"]  > .mcfo-questdot,
+        html[data-mcfo-qbev~="mystery"] .mcfo-drink[data-mcfo-drink="mystery"] > .mcfo-questdot { display: block; }
         /* The tier a quest asks for, in the Rebellion / Royal Celebration popup. Gold, and a small
            tag on the top edge; the armed state (red) still wins, it is the more urgent one. */
         .mcfo-menu--reb .mcfo-reb__tier { position: relative; }
