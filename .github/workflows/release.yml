@@ -63,6 +63,6 @@ jobs:
             --notes "Package repository for pacman (Arch, CachyOS, Manjaro). Not a version of its own — see the newest DreamingCrownfall release for what changed. Setup in the README."
           gh release upload arch -R "$REPO" --clobber "$PKG" dreamingcrownfall.db dreamingcrownfall.files dreamingcrownfall.db.tar.gz dreamingcrownfall.files.tar.gz
           # Nur die neueste Version behalten.
-          gh release view arch -R "$REPO" --json assets --jq '.assets[].name' | grep '\.pkg\.tar\.' | grep -v -x -F "$PKG" | while read -r old; do
+          gh release view arch -R "$REPO" --json assets --jq '.assets[].name' | { grep '\.pkg\.tar\.' || true; } | { grep -v -x -F "$PKG" || true; } | while read -r old; do
             gh release delete-asset arch "$old" -R "$REPO" -y
           done
