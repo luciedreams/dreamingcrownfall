@@ -1,4 +1,4 @@
-# Baut bei jedem Versions-Tag (v0.1.0 …) Windows-Installer und Linux-AppImage und legt sie
+# Baut bei jedem Versions-Tag (v0.1.0 …) Windows-Installer und Linux-Pakete (AppImage, .deb, .pacman) und legt sie
 # als GitHub-Release ab. Die App aktualisiert sich daraus selbst (electron-updater).
 name: Release
 
@@ -23,6 +23,9 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      # Das Arch-Paket (.pacman) packt fpm mit bsdtar.
+      - if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libarchive-tools
       - run: npx electron-builder --publish always
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

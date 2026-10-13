@@ -30,9 +30,9 @@
 Download the newest file from [Releases](https://github.com/luciedreams/dreamingcrownfall/releases/latest).
 
 - **Windows:** `DreamingCrownfall-Setup-<version>.exe`. The installer is not signed yet, so Windows shows *"Windows protected your PC"* on the first start: click **More info → Run anyway**.
-- **Linux:** `DreamingCrownfall-<version>.deb` for Debian, Ubuntu, Mint and friends, or `DreamingCrownfall-<version>.AppImage` for everything else (make it executable with `chmod +x DreamingCrownfall-*.AppImage` and start it).
+- **Linux:** `DreamingCrownfall-<version>.deb` for Debian, Ubuntu, Mint and friends, `DreamingCrownfall-<version>.pacman` for Arch, CachyOS, Manjaro and friends (`sudo pacman -U DreamingCrownfall-*.pacman`), or `DreamingCrownfall-<version>.AppImage` for everything else (make it executable with `chmod +x DreamingCrownfall-*.AppImage` and start it). The .deb and the .pacman install the app with a fixed menu entry, so a pin in the taskbar survives updates; an AppImage gets a new file name with every update.
 
-All three update themselves from the releases. The .deb asks for your password when you click "Restart now" to install an update. They look on every start and every six hours; **Settings › About › Check for updates** (or the tray menu) looks right away.
+All of them update themselves from the releases. The .deb and the .pacman ask for your password when you click "Restart now" to install an update. They look on every start and every six hours; **Settings › About › Check for updates** (or the tray menu) looks right away.
 
 ## Add-ons
 
@@ -59,7 +59,7 @@ The app talks to `marblecrownfall.com` (the game), `twitch.tv` (sign-in, inside 
 ```bash
 npm ci
 npm start              # run from the folder
-npm run dist:linux     # AppImage in dist/
+npm run dist:linux     # AppImage, .deb and .pacman in dist/
 npm run dist:win       # Windows installer in dist/
 ```
 

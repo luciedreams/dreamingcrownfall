@@ -21,8 +21,25 @@ function command() {
     return `${q(process.execPath)} ${q(app.getAppPath())}`;
 }
 
+// Linux: der Eintrag zeigt auf die Datei, mit der die App beim Einschalten lief. Eine AppImage heißt nach
+// jedem Update anders (AppImageLauncher hängt Version und Prüfsumme an) — der Eintrag zeigte dann auf
+// eine Datei, die es nicht mehr gibt, und die App startete nicht mehr mit (13.10.: Eintrag noch auf 0.3.4).
+// Beim Start wird er deshalb nachgezogen. Nicht aus einer Testumgebung (DCF_PROFILE) oder dem Projektordner:
+// die dürfen den echten Autostart nie umschreiben.
+function refresh(hidden) {
+    if (process.platform !== 'linux' || process.env.DCF_PROFILE || process.defaultApp) return;
+    const f = desktopFile();
+    let text;
+    try { text = fs.readFileSync(f, 'utf8'); } catch { return; }   // aus: nichts zu tun
+    const want = `Exec=${command()}${hidden ? ' ' + HIDDEN_ARG : ''}`;
+    if (text.split('\n').includes(want)) return;
+    module.exports.set(true, hidden);
+    console.log(`[dcf] Autostart nachgezogen: ${want}`);
+}
+
 module.exports = {
     startHidden: process.argv.includes(HIDDEN_ARG),
+    refresh,
 
     enabled() {
         if (process.platform === 'linux') return fs.existsSync(desktopFile());

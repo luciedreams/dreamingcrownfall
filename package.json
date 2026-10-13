@@ -37,10 +37,11 @@
     "linux": {
       "target": [
         "AppImage",
-        "deb"
+        "deb",
+        "pacman"
       ],
       "category": "Game",
-      "icon": "build/icon.png",
+      "icon": "build/icons",
       "artifactName": "DreamingCrownfall-${version}.${ext}",
       "syncDesktopName": true,
       "maintainer": "DreamingLucie"
@@ -68,6 +69,18 @@
     ],
     "deb": {
       "artifactName": "DreamingCrownfall-${version}.${ext}"
+    },
+    "pacman": {
+      "depends": [
+        "gtk3",
+        "nss",
+        "alsa-lib",
+        "libxss",
+        "libxtst",
+        "libnotify",
+        "libsecret",
+        "xdg-utils"
+      ]
     }
   }
 }

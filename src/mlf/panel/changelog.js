@@ -1,5 +1,10 @@
     // Newest first. The first entry is what What's new shows after a fresh install.
     const CHANGELOG = [
+        { v: '0.4.2', date: '2026-10-13', items: [
+            'Linux: an Arch package (DreamingCrownfall-<version>.pacman) for Arch, CachyOS, Manjaro and friends. It installs the app with a fixed menu entry, so a pin in the taskbar survives updates — with the AppImage every update has a new file name and the pin pointed to nothing. Updates install from inside the app like with the .deb (it asks for your password on "Restart now").',
+            'Fixed: "Start with your computer" kept pointing to the AppImage of the version it was switched on with — after an update the app no longer started with the computer. It now follows the app on every start.',
+            'Sharper app icon in the start menu and taskbar on Linux (every size instead of one big picture).',
+        ] },
         { v: '0.4.1', date: '2026-10-13', items: [
             'A new app icon: the crown — in the taskbar, the tray, the installer and inside the app (settings, patch notes, welcome). Your Discord profile shows it too.',
         ] },

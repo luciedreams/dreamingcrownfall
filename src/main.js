@@ -430,6 +430,7 @@ if (!app.requestSingleInstanceLock()) {
         // wie die Website. Bestehende Installationen bekommen beides nicht (nichts ändert sich).
         const fresh = !fs.existsSync(ACCOUNTS_FILE());
         appSettings.init();
+        try { autostart.refresh(appSettings.get('autostart.hidden') !== false); } catch (e) { console.error(`[dcf] Autostart: ${e.message}`); }
         if (fresh) appSettings.set('game.plain', true);
         else if (!appSettings.get('app.onboarded')) appSettings.set('app.onboarded', true);
         initPerfReport();
