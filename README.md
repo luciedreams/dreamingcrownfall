@@ -32,6 +32,16 @@ Download the newest file from [Releases](https://github.com/luciedreams/dreaming
 - **Windows:** `DreamingCrownfall-Setup-<version>.exe`. The installer is not signed yet, so Windows shows *"Windows protected your PC"* on the first start: click **More info → Run anyway**.
 - **Linux:** `DreamingCrownfall-<version>.deb` for Debian, Ubuntu, Mint and friends, `DreamingCrownfall-<version>.pacman` for Arch, CachyOS, Manjaro and friends (`sudo pacman -U DreamingCrownfall-*.pacman`), or `DreamingCrownfall-<version>.AppImage` for everything else (make it executable with `chmod +x DreamingCrownfall-*.AppImage` and start it). The .deb and the .pacman install the app with a fixed menu entry, so a pin in the taskbar survives updates; an AppImage gets a new file name with every update.
 
+**Arch, CachyOS, Manjaro — with pacman:** add the app's package repository once, at the end of `/etc/pacman.conf`:
+
+```
+[dreamingcrownfall]
+SigLevel = Optional TrustAll
+Server = https://github.com/luciedreams/dreamingcrownfall/releases/download/arch
+```
+
+Then `sudo pacman -Sy dreamingcrownfall` installs it, and every `sudo pacman -Syu` brings new versions along with the rest of the system. (The packages are not signed; pacman takes them because you added the repository yourself.)
+
 All of them update themselves from the releases. The .deb and the .pacman ask for your password when you click "Restart now" to install an update. They look on every start and every six hours; **Settings › About › Check for updates** (or the tray menu) looks right away.
 
 ## Add-ons

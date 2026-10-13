@@ -29,3 +29,40 @@ jobs:
       - run: npx electron-builder --publish always
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # Eigene pacman-Paketquelle: das Arch-Paket dieser Version und die Paketliste dazu unter dem festen
+  # Release „arch“. Mit
+  #   [dreamingcrownfall]
+  #   SigLevel = Optional TrustAll
+  #   Server = https://github.com/luciedreams/dreamingcrownfall/releases/download/arch
+  # in /etc/pacman.conf installiert `sudo pacman -S dreamingcrownfall`, und `pacman -Syu` bringt neue Versionen.
+  # In einem Arch-Container, weil repo-add zu pacman gehört. Das Release „arch“ ist nie „latest“ — sonst
+  # hielte der Updater der App es für die neueste Version.
+  arch-repo:
+    needs: build
+    runs-on: ubuntu-latest
+    container: archlinux:latest
+    steps:
+      - run: pacman -Syu --noconfirm github-cli
+      - env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_name }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          V="${TAG#v}"
+          PKG="dreamingcrownfall-$V-1-x86_64.pkg.tar.xz"   # electron-builder packt mit xz
+          mkdir repo && cd repo
+          gh release download "$TAG" -R "$REPO" -p "DreamingCrownfall-$V.pacman"
+          mv "DreamingCrownfall-$V.pacman" "$PKG"
+          repo-add dreamingcrownfall.db.tar.gz "$PKG"
+          # repo-add legt .db/.files als Verweise an — hochgeladen werden echte Dateien.
+          for n in db files; do rm "dreamingcrownfall.$n"; cp "dreamingcrownfall.$n.tar.gz" "dreamingcrownfall.$n"; done
+          gh release view arch -R "$REPO" >/dev/null 2>&1 || gh release create arch -R "$REPO" --latest=false \
+            --title "Arch Linux package repository" \
+            --notes "Package repository for pacman (Arch, CachyOS, Manjaro). Not a version of its own — see the newest DreamingCrownfall release for what changed. Setup in the README."
+          gh release upload arch -R "$REPO" --clobber "$PKG" dreamingcrownfall.db dreamingcrownfall.files dreamingcrownfall.db.tar.gz dreamingcrownfall.files.tar.gz
+          # Nur die neueste Version behalten.
+          gh release view arch -R "$REPO" --json assets --jq '.assets[].name' | grep '\.pkg\.tar\.' | grep -v -x -F "$PKG" | while read -r old; do
+            gh release delete-asset arch "$old" -R "$REPO" -y
+          done
