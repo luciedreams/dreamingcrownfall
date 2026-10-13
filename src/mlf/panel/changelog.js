@@ -1,5 +1,8 @@
     // Newest first. The first entry is what What's new shows after a fresh install.
     const CHANGELOG = [
+        { v: '0.5.2', date: '2026-10-13', items: [
+            'Default Tolls can be changed again in the new inventory and through loadouts. Since game v0.10.6a every change has to name the current state of the list, and without it the game answered "Reload inventory before change your Default Tolls".',
+        ] },
         { v: '0.5.1', date: '2026-10-13', items: [
             'Bomb and Mystery beverages (game v0.10.6a) beside the attack button: Water, Lava and Bomb on the left, Milk, Acid and Mystery on the right, each with its sizes and both prices like the others. They also count for the quest dots and for the beverages poured on the throne.',
             'With names shown, the buttons switch to their symbols by themselves when a name would be cut - six buttons leave less room than four.',

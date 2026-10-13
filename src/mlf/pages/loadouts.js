@@ -93,6 +93,12 @@
     }
     async function loFetch(path, method, body) {
         if (method && method !== 'GET' && String(path).startsWith('/api/inventory/crowns')) await invCacheDrop(window);   // 0a
+        // Default tolls: the current revision of the list goes along since game v0.10.6a, read fresh
+        // before every pick (each one counts it up), or the server refuses the change.
+        if (method === 'POST' && path === '/api/inventory/default-tolls/selected' && body && body.expectedRevision === undefined) {
+            const cur = await loFetch('/api/inventory/default-tolls');
+            if (cur.data && cur.data.revision !== undefined) body = Object.assign({}, body, { expectedRevision: cur.data.revision });
+        }
         const r = await fetch(path, {
             method: method || 'GET', credentials: 'include',
             headers: body ? { 'Content-Type': 'application/json', Accept: 'application/json' } : { Accept: 'application/json' },

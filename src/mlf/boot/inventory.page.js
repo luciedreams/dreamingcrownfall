@@ -582,7 +582,11 @@
                     }
                 } else if (kind === 'context' || kind === 'equip') {
                     const slot = kind === 'equip' ? (m.contexts[0] && m.contexts[0].slotType) : extra;
-                    if (slot) { await post(`/api/inventory/${p.endpoint}/selected`, { slotType: slot, inventoryItemId: id }); await load(p.id, true); }
+                    // Default tolls want the list's current revision since game v0.10.6a (expectedRevision),
+                    // or the server answers "Reload inventory before change your Default Tolls". Read fresh:
+                    // every pick counts it up, and a swap changes two occasions at once.
+                    const rev = p.kind === 'toll' ? { expectedRevision: (await api(p.url)).revision } : {};
+                    if (slot) { await post(`/api/inventory/${p.endpoint}/selected`, { slotType: slot, inventoryItemId: id, ...rev }); await load(p.id, true); }
                 }
                 st.msg = '';
             } catch (e) {
