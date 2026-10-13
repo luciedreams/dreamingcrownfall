@@ -1,5 +1,10 @@
     // Newest first. The first entry is what What's new shows after a fresh install.
     const CHANGELOG = [
+        { v: '0.4.0', date: '2026-10-13', items: [
+            'HUD: gold, diamonds and points per account, and points across all accounts (Settings › HUD). Values per account now stand under each other in the bar as well, so the bar stays short with several accounts.',
+            'Home: a daily quest table under the account cards — one row per quest with its difficulty, one column per account with its progress, "Ready to claim" or "Claimed". Click a name or a cell to go to that account.',
+            'Fixed: closing the main window quits the app. The HUD and popped-out windows used to stay open on their own.',
+        ] },
         { v: '0.3.4', date: '2026-10-09', items: [
             'Fixed: the new inventory and the new achievements page work in the app (Settings › Inventory & achievements). They had always shown the game\'s own pages, in windows of their own and inside the game alike.',
             'Linux .deb: when installing an update fails because the password prompt does not come up, the app now offers to open the downloaded package in your system\'s installer, which asks for the password itself. The message no longer says "Could not check".',
