@@ -46,10 +46,13 @@ function hudCss() {
     .dcf-hud__dim { color: #8f84a6; font-weight: 500; }
     .dcf-hud__dot { width: 0.5em; height: 0.5em; border-radius: 50%; background: #7d7194; flex: none; }
     .dcf-hud__dot--on { background: #7fd99a; box-shadow: 0 0 5px #7fd99a; }
-    .dcf-hud__acc { display: inline-flex; align-items: center; gap: 0.35em; }
-    .dcf-hud__acc + .dcf-hud__acc { margin-left: 0.7em; }
-    .dcf-hud--column .dcf-hud__per { display: flex; flex-direction: column; gap: 0.3em; }
-    .dcf-hud--column .dcf-hud__acc + .dcf-hud__acc { margin-left: 0; }
+    /* Werte je Account: in beiden Layouts untereinander, Name links, Wert rechtsbündig — nebeneinander
+       wurde die Bar mit drei, vier Accounts und mehreren solchen Bausteinen endlos lang. */
+    .dcf-hud__per { display: grid; grid-template-columns: auto auto; column-gap: 0.8em; row-gap: 0.25em; }
+    .dcf-hud__acc { display: contents; }
+    .dcf-hud__name { display: inline-flex; align-items: center; gap: 0.35em; }
+    .dcf-hud__per > .dcf-hud__acc > .dcf-hud__sub { text-align: right; }
+    .dcf-hud--bar .dcf-hud__seg--per { padding-top: 0.55em; padding-bottom: 0.55em; }
     .dcf-hud__empty { padding: 0.85em 1em; color: #8f84a6; font-weight: 500; }
     .dcf-hud__x { -webkit-app-region: no-drag; align-self: center; margin: 0 0.35em 0 auto; border: 0; background: none; color: #8f84a6;
         font: inherit; width: 1.8em; height: 1.8em; border-radius: 0.45em; cursor: pointer; }
@@ -80,10 +83,10 @@ function renderHud(root, cfg, d, { onClose = null } = {}) {
         const box = el('span', 'dcf-hud__per');
         for (const a of list) {
             const x = el('span', 'dcf-hud__acc');
-            x.append(el('span', null, a.name), el('span', `dcf-hud__sub dcf-hud__num${cls ? ' ' + cls : ''}`, f(a[key])));
+            x.append(el('span', 'dcf-hud__name', a.name), el('span', `dcf-hud__sub dcf-hud__num${cls ? ' ' + cls : ''}`, f(a[key])));
             box.append(x);
         }
-        seg(el('span', cls, icon), box);
+        seg(el('span', cls, icon), box).classList.add('dcf-hud__seg--per');
     };
 
     for (const { id, on } of cfg.items) {
@@ -100,10 +103,12 @@ function renderHud(root, cfg, d, { onClose = null } = {}) {
             const box = el('span', 'dcf-hud__per');
             for (const a of d.perAccount || []) {
                 const x = el('span', 'dcf-hud__acc');
-                x.append(el('span', 'dcf-hud__dot' + (a.earning ? ' dcf-hud__dot--on' : '')), el('span', null, a.name), el('span', 'dcf-hud__sub', fmt(a.tickets)));
+                const name = el('span', 'dcf-hud__name');
+                name.append(el('span', 'dcf-hud__dot' + (a.earning ? ' dcf-hud__dot--on' : '')), el('span', null, a.name));
+                x.append(name, el('span', 'dcf-hud__sub dcf-hud__num', fmt(a.tickets)));
                 box.append(x);
             }
-            if ((d.perAccount || []).length) seg(box);
+            if ((d.perAccount || []).length) seg(box).classList.add('dcf-hud__seg--per');
         } else if (id === 'earning') {
             const e = d.earning || { n: 0, total: 0 };
             seg(el('span', 'dcf-hud__dot' + (e.n ? ' dcf-hud__dot--on' : '')), el('span', null, `${e.n}/${e.total} earning`));
