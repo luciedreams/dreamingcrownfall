@@ -75,6 +75,8 @@
         { page: 'notifications', key: 'notify.achievement', label: 'Achievements', hint: 'One of your accounts unlocks an achievement.', needs: 'notify.enabled', event: true },
         { page: 'notifications', key: 'notify.gift', label: 'Gifts', hint: 'Another player sends one of your accounts gold or diamonds.', needs: 'notify.enabled', event: true },
         { page: 'notifications', key: 'notify.shopQuest', label: 'Shop items for your quests', hint: 'The shop has an item that completes one of today\'s open shop quests, and the account does not own it yet.', needs: 'notify.enabled', event: true },
+        // Drawn by notificationsCard (11g) on the page; listed here so the search finds it.
+        { page: 'notifications', key: 'notify.unattended', label: 'Unattended viewing', hint: 'The game\'s reward pop-up closes by itself on every account, for long viewing sessions or a stream.', board: true },
         { page: 'discord', key: 'discord.enabled', label: 'Show on Discord', hint: 'Opt-in. Your Discord profile shows "Playing Marble Crownfall" while the app runs. Needs the Discord app (or Vesktop) running on this computer.' },
         { page: 'discord', key: 'discord.showAccount', label: 'Show the account', hint: 'The name of the account in the tab you are looking at.', needs: 'discord.enabled' },
         { page: 'discord', key: 'discord.showKing', label: 'Show when you are King', hint: '"King for 12 min" while one of your accounts sits on the throne.', needs: 'discord.enabled' },
@@ -283,7 +285,7 @@
         } else if (page.id === 'notifications') {
             const main = dcfPart('Notifications');
             const c1 = dcfEl('div', 'mcfo-set__card');
-            for (const i of items.filter(x => !x.event)) c1.appendChild(dcfAppSwitch(i, state));
+            for (const i of items.filter(x => !x.event && !x.board)) c1.appendChild(dcfAppSwitch(i, state));
             main.appendChild(c1);
             box.appendChild(main);
             const ev = dcfPart('What to tell you');
@@ -297,6 +299,10 @@
             btns.appendChild(test);
             ev.appendChild(btns);
             box.appendChild(ev);
+            // The game's own notices on the board (game v0.10.6b), not desktop notifications.
+            const board = dcfPart('On the board', 'The game\'s reward pop-up, for every account.');
+            board.appendChild(notificationsCard(() => dcfRender()));
+            box.appendChild(board);
         } else if (page.id === 'hud') {
             dcfHudPage(box, api);
         } else if (page.id === 'discord') {

@@ -8,7 +8,7 @@ const path = require('path');
 const { app, ipcMain, webContents } = require('electron');
 const autostart = require('./autostart.js');
 
-// Nur Ja/Nein-Schalter; Pfad = Schlüssel in der Datei.
+// Ja/Nein-Schalter, dazu wenige Zahlen mit festem Bereich (RANGES); Pfad = Schlüssel in der Datei.
 const SCHEMA = {
     'app.onboarded': false,   // Willkommen-Schritte erledigt (bestehende Installationen: main.js setzt es)
     'game.plain': false,      // Spiel-Ebene startet wie die Website (neue Installationen ab 0.3.0)
@@ -25,10 +25,23 @@ const SCHEMA = {
     'notify.achievement': true,
     'notify.gift': true,
     'notify.shopQuest': true,
+    // Unattended Viewing Mode des Spiels (v0.10.6b): Diamanten-Popup schließt selbst. Das Spiel merkt es
+    // sich je Tab (localStorage der Partition) — hier EIN Wert für alle Accounts, jeder Tab gleicht ab.
+    'notify.unattended': false,
+    'notify.unattendedSeconds': 20,
     'discord.enabled': false,
     'discord.showAccount': true,
     'discord.showKing': true,
 };
+
+const RANGES = { 'notify.unattendedSeconds': [10, 60] };
+// Gleicher Typ wie der Vorgabewert; Zahlen nur ganz und im Bereich.
+function valid(key, value) {
+    if (!(key in SCHEMA) || typeof value !== typeof SCHEMA[key]) return false;
+    if (typeof value !== 'number') return true;
+    const [min, max] = RANGES[key] || [];
+    return Number.isInteger(value) && value >= min && value <= max;
+}
 
 const file = () => path.join(app.getPath('userData'), 'app-settings.json');
 let values = null;
@@ -38,7 +51,7 @@ function load() {
     let stored = {};
     try { stored = JSON.parse(fs.readFileSync(file(), 'utf8')) || {}; } catch {}
     values = {};
-    for (const [k, def] of Object.entries(SCHEMA)) values[k] = typeof stored[k] === 'boolean' ? stored[k] : def;
+    for (const [k, def] of Object.entries(SCHEMA)) values[k] = valid(k, stored[k]) ? stored[k] : def;
 }
 function save() {
     try { fs.writeFileSync(file(), JSON.stringify(values, null, 2)); }
@@ -67,7 +80,7 @@ module.exports = {
                 broadcast();
                 return;
             }
-            if (!(key in SCHEMA) || typeof value !== 'boolean' || values[key] === value) return;
+            if (!valid(key, value) || values[key] === value) return;
             values[key] = value;
             save();
             // Tray oder sichtbar umgestellt: einen bestehenden Autostart-Eintrag gleich neu schreiben.
@@ -80,7 +93,7 @@ module.exports = {
     get: (key) => values[key],
     // Für den Hauptprozess (Erststart): wie ein Schalter aus der Seite, gleiche Prüfung.
     set(key, value) {
-        if (!(key in SCHEMA) || typeof value !== 'boolean' || values[key] === value) return;
+        if (!valid(key, value) || values[key] === value) return;
         values[key] = value;
         save();
         broadcast();

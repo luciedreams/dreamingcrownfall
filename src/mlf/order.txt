@@ -58,6 +58,7 @@ panel/sound.js
 panel/music-player.js
 panel/player-bar.js
 panel/graphics.js
+panel/notifications.js
 header/tileset-banner.js
 pages/update-check.js
 pages/shop-dailies.js
