@@ -1,5 +1,8 @@
     // Newest first. The first entry is what What's new shows after a fresh install.
     const CHANGELOG = [
+        { v: '0.6.1', date: '2026-10-17', items: [
+            'The footer with your tickets and bids no longer goes missing on your other accounts\' tabs. Tabs in the background loaded at zero size, the game took them for a phone and hid the footer, and switching over did not bring it back until you reloaded.',
+        ] },
         { v: '0.6.0', date: '2026-10-14', items: [
             'Settings › Notifications › On the board: the game\'s Unattended Viewing Mode (game v0.10.6b), for all your accounts at once. While it is on, the diamond reward pop-up no longer covers the board - a short line says what came in and goes after 10 to 60 seconds. Review rewards brings the summary of the account in front back. The game hid the switch behind its sound button, which the settings gear replaces, so it could not be reached before.',
         ] },
