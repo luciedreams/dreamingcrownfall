@@ -87,7 +87,6 @@ function PAGE() {
         .it.main:hover, .it.main:focus-visible { background: linear-gradient(180deg, #ffe7a6, #f5c25f); }
         .it.quit .ic { color: #e07a7a; }
         .it.quit:hover, .it.quit:focus-visible { background: rgba(224, 122, 122, 0.14); }
-        .it.ask { color: #ffb4b4; }
         .foot { margin-top: 10px; text-align: center; font-size: 11.5px; color: var(--dim); text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6); }
         kbd { font: inherit; font-weight: 700; color: var(--muted); padding: 0 5px; border: 1px solid rgba(180, 138, 232, 0.3); border-radius: 4px; }
         @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
@@ -121,7 +120,7 @@ function PAGE() {
     }
 
     window.__dcfEsc = {
-        // cfg: { version, logo, font?, items: [{ id, icon, label, hint?, cls?, stay?, tone? } | { sep: true }] }
+        // cfg: { version, logo, items: [{ id, icon, label, hint?, cls?, stay?, tone? } | { sep: true }] }
         open(cfg) {
             if (cur) return 'open';
             const a = document.activeElement;
@@ -151,17 +150,8 @@ function PAGE() {
                 b.innerHTML = svg(it.icon);
                 const lb = el('span', 'lb', it.label), hn = el('span', 'hn' + (it.tone ? ' ' + it.tone : ''), it.hint || '');
                 b.append(lb, hn);
-                const rec = { b, lb, hn, stay: !!it.stay, confirm: it.confirm || null, asked: false };
-                b.addEventListener('click', () => {
-                    if (rec.confirm && !rec.asked) {
-                        rec.asked = true;
-                        b.classList.add('ask');
-                        lb.textContent = rec.confirm;
-                        hn.textContent = 'click again';
-                        return;
-                    }
-                    if (rec.stay) emit(it.id); else finish(it.id);
-                });
+                const rec = { b, lb, hn, stay: !!it.stay };
+                b.addEventListener('click', () => { if (rec.stay) emit(it.id); else finish(it.id); });
                 items.set(it.id, rec);
                 list.appendChild(b);
                 if (!first) first = b;
@@ -249,7 +239,7 @@ module.exports = function createEscMenu(ctx) {
         const u = updateLook(ctx.updater?.state());
         list.push({ id: 'update', icon: 'refresh', label: u.label, hint: u.hint, tone: u.tone, stay: u.stay });
         list.push({ sep: true });
-        list.push({ id: 'quit', icon: 'power', label: 'Quit', cls: 'quit', confirm: 'Really quit?' });
+        list.push({ id: 'quit', icon: 'power', label: 'Quit', cls: 'quit' });   // ohne Nachfrage wie in Spielen (Luce, 17.10.)
         return list;
     }
 
