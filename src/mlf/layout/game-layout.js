@@ -277,7 +277,7 @@
         { grp: 'bids', id: 'b1', key: '1', text: '×1', name: 'Bid 1', cls: 'bid', target: () => glQ('[data-role="bid-1"]') },
         { grp: 'bids', id: 'b5', key: '5', text: '×5', name: 'Bid 5', cls: 'bid', target: () => glQ('[data-role="bid-5"]') },
         { grp: 'bids', id: 'b10', key: '0', text: '×10', name: 'Bid 10', cls: 'bid', target: () => glQ('[data-role="bid-10"]') },
-        // Every chip beyond ×10 that is unlocked: the game's 25 … 1K and the app's 10K … 1B (0.8.1).
+        // Every chip beyond ×10 that is unlocked: the game's 25 … 1K and the app's 10K … 1B (0.9.0).
         { grp: 'bids', id: 'more', key: 'M', name: 'More', icon: 'more', target: () => glQ('[data-role="bid-10"]'), open: b => glMoreMenu(b) },
         { grp: 'bids', id: 'unbid', key: 'U', name: 'Unbid', icon: 'unbid', target: () => glQ('.mcfo-unbid') },
         // Autobid opens its menu right at the hotbar; the button shows whether it runs and how much.

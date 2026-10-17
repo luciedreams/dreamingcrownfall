@@ -4,7 +4,7 @@
 
 ## What the app adds
 
-- **A game, not a website.** The board as a game client: a resource bar at the top with your pages, a hotbar with keys at the bottom (bid, unbid, Autobid, Rebellion, attack, drinks; as King the toll field and Royal Celebrations), the chat floating in the corner, lanes and King as one arena, pages as side panels — all in the colours of your theme. Settings › General › Layout switches back to the classic layout.
+- **A game, not a website.** The board as a game client: a resource bar at the top with your pages, a hotbar with keys at the bottom (bid — every unlocked chip behind More —, unbid, Autobid, Rebellion, attack, drinks; as King the toll field and Royal Celebrations), the chat floating in the corner, lanes and King as one arena, pages as side panels — all in the colours of your theme. Settings › General › Layout switches back to the classic layout.
 - **Feels like a game client.** No window frame (the account frames are the title bar), smooth fades, loading and maintenance screens that bring tabs back on their own, a game menu on **Esc**, every shortcut on **F1**, its own right-click menu and tooltips, optional interface sounds, and it picks up where you left it.
 - **The community wiki inside the app** — the book button top right.
 - **Planned Rebellions.** Pick a coming tileset and a tier (Rebellion › *Schedule*, or *⚔ Plan* in the list of upcoming tilesets); when that tileset starts, the app presses the game's own Start for you and checks with the game that the Rebellion runs. Planned ones show on the account frame and the Rebellion button and can be cancelled until then. The app has to be running at that time.
@@ -60,7 +60,7 @@ Every `.js` file in the `addons` folder of your profile is loaded when the app s
 | Esc | game menu |
 | F1 | all shortcuts |
 | F2 | HUD |
-| 1 / 5 / 0, U, B, R, F, Q W E A S D | game layout: bid, unbid, Autobid, Rebellion, attack (King: Royal Celebrations), drinks |
+| 1 / 5 / 0, M, U, B, R, F, Q W E A S D | game layout: bid, bigger bids, unbid, Autobid, Rebellion, attack (King: Royal Celebrations), drinks |
 | I P Y J O L | game layout: inventory, profile, achievements, dailies, shop, leaderboards |
 | Ctrl+1 … 9 | switch to account tab |
 | Ctrl+Tab / Ctrl+Shift+Tab | next / previous tab |

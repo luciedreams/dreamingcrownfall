@@ -1,5 +1,12 @@
     // Newest first. The first entry is what What's new shows after a fresh install.
     const CHANGELOG = [
+        { v: '0.9.0', date: '2026-10-17', items: [
+            'The new design now does everything the classic one does. More (M) in the hotbar opens every bid chip you have unlocked beyond \u00d710 — 25, 100, 500, 1K and the bigger ones like 10K or 100K. It stays open, so you can bid again right away.',
+            'Daily rewards waiting? The Dailies button at the top shows how many in gold, and a click claims them all at once. J still opens the Dailies page.',
+            'Quest dots are back in the new design: on Rebellion, Royal Celebrations and the drinks when an open quest needs them (the tooltip says which), and on the Shop button while an offer for one of your shop quests is up.',
+            'The game menu (Esc) has Player gifts and the Music player now. Season, episode and the game\'s build show in the tooltip of the tileset at the top.',
+            '"Claim dailies by themselves" is now called Auto-claim dailies (Settings \u203a Shop & dailies).',
+        ] },
         { v: '0.8.0', date: '2026-10-17', items: [
             'Planned Rebellions. The Rebellion window has two views now: Now, as before, and Schedule — pick one of the coming tilesets, then a tier (two clicks, like buying). When that tileset starts, the app presses the game\'s own Start for you and asks the game whether the Rebellion really runs; nothing is spent before. One plan per tileset slot, another tier replaces it.',
             'You can also plan from the list of upcoming tilesets (\u2694 Plan on every coming slot), and the tileset in the top bar shows the next plan (\u2694x25 00:00) — a click opens it.',
