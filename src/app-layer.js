@@ -36,13 +36,33 @@
         own.textContent = `
             html, body { margin: 0; height: 100%; overflow: hidden; background: #0b121a; }
             body > .mcfo-win.dcf-popped {
-                position: fixed !important; inset: 0 !important;
+                position: fixed !important; inset: 32px 0 0 0 !important;
                 width: auto !important; height: auto !important; min-width: 0 !important; min-height: 0 !important;
                 transform: none !important; border: 0 !important; border-radius: 0 !important; box-shadow: none !important;
             }
             body > .mcfo-win.dcf-popped > .mcfo-win__head,
             body > .mcfo-win.dcf-popped > .mcfo-win__grip,
-            body > .mcfo-win.dcf-popped > .mcfo-win__edge { display: none !important; }`;
+            body > .mcfo-win.dcf-popped > .mcfo-win__edge { display: none !important; }
+            /* Eigene Fensterleiste (seit 0.7.0, kein Systemrahmen): wie die Account-Leiste des Hauptfensters. */
+            .dcf-wbar {
+                position: fixed; left: 0; right: 0; top: 0; height: 32px; z-index: 2147483000; box-sizing: border-box;
+                display: flex; align-items: center; gap: 10px; padding-left: 10px;
+                background: linear-gradient(180deg, #1d1431, #110c1b); border-bottom: 1px solid rgba(180, 138, 232, 0.22);
+                font: 600 12.5px/1 system-ui, sans-serif; color: #ece4f7; user-select: none; -webkit-app-region: drag;
+            }
+            .dcf-wbar img { -webkit-user-drag: none; }
+            .dcf-wbar__logo { width: 20px; height: 20px; flex: none; }
+            .dcf-wbar__title { font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+            .dcf-wbar__sp { flex: 1; }
+            .dcf-wbar__acc { display: flex; align-items: center; gap: 6px; min-width: 0; color: #a99cc0; font-size: 11.5px; white-space: nowrap; }
+            .dcf-wbar__acc img, .dcf-wbar__ini { width: 18px; height: 18px; border-radius: 50%; border: 1.5px solid #6b5a8a; object-fit: cover; flex: none; box-sizing: border-box; }
+            .dcf-wbar__ini { display: grid; place-items: center; font-size: 10px; font-weight: 800; color: #b48ae8; background: #1a1228; }
+            .dcf-wbar__btns { display: flex; align-self: stretch; margin-left: 4px; -webkit-app-region: no-drag; }
+            .dcf-wbar__btn { width: 42px; border: 0; padding: 0; background: none; color: #a99cc0; display: grid; place-items: center; cursor: default; }
+            .dcf-wbar__btn svg { width: 13px; height: 13px; }
+            .dcf-wbar__btn:hover { background: rgba(255, 255, 255, 0.07); color: #ece4f7; }
+            .dcf-wbar__btn--close:hover { background: #c4314b; color: #fff; }
+            .dcf-wbar__btn:focus:not(:focus-visible) { outline: none; }`;
         doc.head.appendChild(own);
     }
     function mirrorRoot(doc) {
@@ -58,12 +78,14 @@
         const title = el.querySelector('.mcfo-win__title')?.textContent || 'DreamingCrownfall';
         const r = el.getBoundingClientRect();
         const popup = window.open('about:blank', `mlfpop-${nextId++}`,
-            `popup,width=${Math.round(r.width)},height=${Math.round(r.height)}`);
+            `popup,width=${Math.round(r.width)},height=${Math.round(r.height) + 32}`);
         if (!popup) return;
         const doc = popup.document;
         mirrorStyles(doc);
         doc.title = title;
         mirrorRoot(doc);
+
+        addBar(popup, title);
 
         const mark = document.createComment('dcf popout');
         el.parentNode.insertBefore(mark, el);
@@ -106,6 +128,56 @@
         popup.addEventListener('pagehide', () => finish(true));
         const poll = setInterval(() => { if (popup.closed) finish(true); }, 500);
         popped.set(el, { popup, finish, closeOnExit });
+    }
+
+    // Leiste des ausgekoppelten Fensters: Krone, Titel, Account, – □ ✕ (Knöpfe über popup.dcfWin, preload.js).
+    const SVG = (inner, w = 1.4) => `<svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="${w}">${inner}</svg>`;
+    const MAX = SVG('<rect x="2.5" y="2.5" width="9" height="9"/>', 1.3);
+    const RESTORE = SVG('<rect x="2" y="4.5" width="7.5" height="7.5"/><path d="M4.5 4.5V2h7.5v7.5H9.5"/>', 1.3);
+    function addBar(popup, title) {
+        const doc = popup.document, api = popup.dcfWin;
+        let info = {};
+        try { info = (api && api.info()) || {}; } catch (e) {}
+        const bar = doc.createElement('div');
+        bar.className = 'dcf-wbar';
+        const logo = doc.createElement('img');
+        logo.className = 'dcf-wbar__logo';
+        logo.alt = '';
+        if (info.icon) logo.src = info.icon;
+        const t = doc.createElement('span');
+        t.className = 'dcf-wbar__title';
+        t.textContent = title;
+        const sp = doc.createElement('span');
+        sp.className = 'dcf-wbar__sp';
+        const acc = doc.createElement('span');
+        acc.className = 'dcf-wbar__acc';
+        if (info.name) {
+            let pic;
+            if (info.avatar) { pic = doc.createElement('img'); pic.src = info.avatar; pic.alt = ''; }
+            else { pic = doc.createElement('span'); pic.className = 'dcf-wbar__ini'; pic.textContent = info.name.slice(0, 1).toUpperCase(); }
+            acc.append(pic, info.name);
+        }
+        const btns = doc.createElement('span');
+        btns.className = 'dcf-wbar__btns';
+        const btn = (cls, label, html, run) => {
+            const b = doc.createElement('button');
+            b.type = 'button';
+            b.className = 'dcf-wbar__btn' + cls;
+            b.title = label;
+            b.innerHTML = html;
+            b.addEventListener('click', run);
+            btns.appendChild(b);
+            return b;
+        };
+        btn('', 'Minimize', SVG('<path d="M2 7h10"/>'), () => api && api.minimize());
+        const max = btn('', 'Maximize', MAX, () => api && api.maximize());
+        btn(' dcf-wbar__btn--close', 'Close', SVG('<path d="M3 3l8 8M11 3l-8 8"/>'), () => (api ? api.close() : popup.close()));
+        const setMax = (m) => { max.title = m ? 'Restore' : 'Maximize'; max.innerHTML = m ? RESTORE : MAX; };
+        setMax(!!info.maximized);
+        try { api && api.onMaximized(setMax); } catch (e) {}
+        bar.addEventListener('dblclick', (e) => { if (!e.target.closest('.dcf-wbar__btns') && api) api.maximize(); });
+        bar.append(logo, t, sp, acc, btns);
+        doc.body.appendChild(bar);
     }
 
     function setupWindow(el) {

@@ -6,6 +6,18 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
 const host = location.hostname;
+
+// Ausgekoppeltes Fenster (about:blank, von der App-Schicht befüllt): nur die Fensterknöpfe seiner
+// eigenen Leiste (seit 0.7.0 ohne Systemrahmen). Die App-Schicht im Spiel-Tab ruft sie über popup.dcfWin.
+if (location.href === 'about:blank' && /^mlfpop-/.test(window.name)) {
+    contextBridge.exposeInMainWorld('dcfWin', {
+        info: () => ipcRenderer.sendSync('dcf:popwin:info'),
+        minimize: () => ipcRenderer.send('dcf:popwin:min'),
+        maximize: () => ipcRenderer.send('dcf:popwin:max'),
+        close: () => ipcRenderer.send('dcf:popwin:close'),
+        onMaximized: (cb) => { if (typeof cb === 'function') ipcRenderer.on('dcf:popwin:max', (_e, m) => { try { cb(!!m); } catch (err) {} }); },
+    });
+}
 if (host === 'marblecrownfall.com' || host.endsWith('.marblecrownfall.com')) {
     // Kein Zoomen aus Versehen: Touchpad-Pinch und Strg+Mausrad kommen als wheel mit ctrlKey an.
     // Bewusst zoomen geht weiter mit Strg+Plus/Minus/0 (main.js handleKeys).

@@ -8,7 +8,7 @@
 // Tampermonkey vor den Seitenskripten in jedem Frame (preload.js); App-Funktionen im Seitenkontext
 // stehen in app-layer.js.
 
-const { app, BaseWindow, WebContentsView, Tray, Menu, ipcMain, session, shell, nativeImage, screen } = require('electron');
+const { app, BaseWindow, BrowserWindow, WebContentsView, Tray, Menu, ipcMain, session, shell, nativeImage, screen } = require('electron');
 const fs = require('fs');
 const path = require('path');
 const gameSource = require('./game-source.js');
@@ -439,6 +439,19 @@ ipcMain.on('win:maximize', () => { if (!win) return; if (win.isMaximized()) win.
 ipcMain.on('win:close', () => win?.close());
 // ESC-Menü der Spiel-Ebene (seit 0.7.0): was es anbieten kann, Home und Beenden.
 ipcMain.on('dcf:menu:open', (e) => escMenu.show(e.sender));
+// Ausgekoppelte Fenster (rahmenlos, Leiste aus app-layer.js): wem sie gehören und ihre Fensterknöpfe.
+const popOwners = new Map();   // webContents-ID des Popups → Account-Eintrag
+// Krone als data:-URL — das Popup gehört zur Spielseite (https) und darf keine file://-Bilder laden.
+let popIconUrl = '';
+const popIcon = () => popIconUrl || (popIconUrl = nativeImage.createFromPath(ICON).resize({ width: 64, height: 64, quality: 'best' }).toDataURL());
+ipcMain.on('dcf:popwin:info', (e) => {
+    const v = popOwners.get(e.sender.id);
+    const w = BrowserWindow.fromWebContents(e.sender);
+    e.returnValue = { name: v ? (v.guest ? 'Not signed in' : label(v)) : '', avatar: v?.avatar || '', icon: popIcon(), maximized: !!w?.isMaximized() };
+});
+ipcMain.on('dcf:popwin:min', (e) => BrowserWindow.fromWebContents(e.sender)?.minimize());
+ipcMain.on('dcf:popwin:max', (e) => { const w = BrowserWindow.fromWebContents(e.sender); if (!w) return; if (w.isMaximized()) w.unmaximize(); else w.maximize(); });
+ipcMain.on('dcf:popwin:close', (e) => BrowserWindow.fromWebContents(e.sender)?.close());
 ipcMain.on('dcf:notify:test', () => notifier?.test());
 // Willkommen-Schritte: nur ein Tab zeigt sie (der erste, der fragt, behält sie auch nach dem Neuladen).
 let welcomeOwner = null;
@@ -522,8 +535,9 @@ function wireGameContents(wc, v) {
             // Mit Preload wie die Tabs: die Seite im Fenster (Inventar, Achievements …) lädt beim Umzug
             // neu, und ohne Preload kam dort die Spiel-Ebene nicht hinein — neues Inventar und neue
             // Achievements blieben aus (Luce, 09.10.). Das about:blank-Fenster selbst lässt der Preload in Ruhe.
+            // Ohne Systemrahmen wie das Hauptfenster (seit 0.7.0): die Leiste zeichnet die App-Schicht.
             return { action: 'allow', overrideBrowserWindowOptions: {
-                autoHideMenuBar: true, icon: ICON, backgroundColor: '#0b121a',
+                autoHideMenuBar: true, icon: ICON, backgroundColor: '#0b121a', frame: false,
                 webPreferences: webPrefs(v.acc),
             } };
         }
@@ -541,6 +555,12 @@ function wireGameContents(wc, v) {
     wc.on('did-create-window', (child, { frameName }) => {
         wireGameContents(child.webContents, v);
         if (/^mlfpop-/.test(frameName || '')) {
+            popOwners.set(child.webContents.id, v);
+            const id = child.webContents.id;
+            child.once('closed', () => popOwners.delete(id));
+            const sendMax = () => { if (!child.isDestroyed()) child.webContents.send('dcf:popwin:max', child.isMaximized()); };
+            child.on('maximize', sendMax);
+            child.on('unmaximize', sendMax);
             // Fenstertitel = MLF-Titel + Account, damit drei Inventare nicht verwechselt werden.
             child.on('page-title-updated', (e, t) => { e.preventDefault(); child.setTitle(`${t} – ${label(v)}${EDITION ? ` · ${EDITION}` : ''}`); });
             child.webContents.on('before-input-event', (e, input) => {
