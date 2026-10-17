@@ -2,71 +2,85 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src https: data:; style-src 'unsafe-inline'; script-src 'unsafe-inline'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src https: data: file:; style-src 'unsafe-inline'; script-src 'unsafe-inline'">
 <title>Tabs</title>
 <style>
+    /* Account-Rahmen wie Party-Rahmen in einem Rollenspiel (seit 0.7.0, Luces Wahl aus fünf Entwürfen):
+       Porträt mit VIP-Stufe als Level, Name, Tickets, Balken für Daily Quests und „verdient Tickets“. */
     :root {
-        --bg: #14101c;
-        --tab: #221a30;
-        --tab-hover: #2c2240;
-        --tab-active: #3a2a58;
-        --text: #e6def5;
-        --muted: #8f84a6;
-        --accent: #b48ae8;
-        --line: #2e2440;
-        --danger: #e07a7a;
+        --bg1: #1d1431; --bg2: #110c1b; --frame: rgba(10, 8, 18, 0.75); --line: rgba(180, 138, 232, 0.22);
+        --text: #ece4f7; --muted: #a99cc0; --dim: #7d7194; --violet: #b48ae8; --gold: #ffd36e; --green: #7fd99a; --danger: #e07a7a;
     }
     * { box-sizing: border-box; }
     html, body {
-        margin: 0; height: 100%; background: var(--bg); color: var(--text);
-        font: 13px/1 system-ui, sans-serif; user-select: none; overflow: hidden;
+        margin: 0; height: 100%; color: var(--text); font: 13px/1.2 system-ui, sans-serif; user-select: none; overflow: hidden;
+        background: linear-gradient(180deg, var(--bg1), var(--bg2));
     }
-    body { display: flex; align-items: center; gap: 6px; padding: 0 8px; border-bottom: 1px solid var(--line); }
+    body { display: flex; align-items: center; gap: 12px; padding: 0 16px; border-bottom: 1px solid var(--line); }
     button { font: inherit; color: inherit; cursor: pointer; }
-    .tab {
-        position: relative; display: flex; align-items: center; gap: 8px;
-        height: 26px; padding: 0 10px; border: 1px solid transparent; border-radius: 7px;
-        background: var(--tab);
+    .logo { width: 30px; height: 30px; flex: none; margin-right: 4px; }
+    #frames { display: flex; align-items: center; gap: 12px; min-width: 0; flex: 0 1 auto; }
+
+    .uf {
+        position: relative; display: flex; align-items: center; flex: 0 1 auto; width: 250px; min-width: 150px; height: 46px;
+        border-radius: 8px; background: var(--frame); border: 1px solid rgba(255, 255, 255, 0.12); cursor: pointer;
+        transition: border-color 120ms, background 120ms;
     }
-    .tab:hover { background: var(--tab-hover); }
-    .tab.active { background: var(--tab-active); border-color: var(--accent); }
-    .tab.home { gap: 6px; color: #ffd36e; font-weight: 600; }
-    .tab.home svg, .tab.stats svg { width: 15px; height: 15px; }
-    .tab.stats { gap: 6px; color: #b48ae8; font-weight: 600; }
-    .tab .avatar { width: 18px; height: 18px; border-radius: 50%; object-fit: cover; }
-    .tab .dot { width: 7px; height: 7px; border-radius: 50%; background: #6fd18f; }
-    .tab.guest .dot { background: #e0a050; }
-    .tab.loading .dot { background: var(--muted); }
-    .tab.guest .name { color: var(--muted); }
-    .tab .key { color: var(--muted); font-size: 11px; }
-    .tab .x {
-        border: 0; background: none; color: var(--muted); padding: 0 2px; font-size: 13px;
-        visibility: hidden;
-    }
-    .tab:hover .x { visibility: visible; }
-    .tab .x:hover { color: var(--danger); }
-    .tab.confirm { border-color: var(--danger); }
-    .tab.confirm .ask { color: var(--danger); }
-    .tab .yes, .tab .no { border: 0; border-radius: 5px; padding: 3px 8px; background: #3a2030; }
-    .tab .no { background: #2c2240; }
-    .add {
-        width: 26px; height: 26px; border: 1px dashed var(--line); border-radius: 7px; background: none;
-        color: var(--muted); font-size: 16px; line-height: 1;
-    }
-    .add:hover { color: var(--text); border-color: var(--accent); }
-    .hint { margin-left: auto; color: var(--muted); font-size: 11px; white-space: nowrap; }
-    .gear { width: 28px; height: 26px; border: 1px solid var(--line); border-radius: 7px; background: none; color: var(--muted); display: grid; place-items: center; }
-    .gear:hover { color: var(--text); border-color: var(--accent); }
-    .gear svg { width: 16px; height: 16px; }
+    .uf:hover { border-color: rgba(180, 138, 232, 0.55); background: rgba(24, 18, 40, 0.85); }
+    .uf.on { border-color: var(--gold); box-shadow: 0 0 14px rgba(255, 211, 110, 0.25); }
+    .por { position: relative; flex: none; width: 52px; height: 52px; margin: -6px 6px -6px -6px; border-radius: 50%; border: 3px solid #6b5a8a; background: #1a1228; }
+    .uf.on .por { border-color: var(--gold); }
+    .por img, .por .ini { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
+    .por .ini { display: grid; place-items: center; color: var(--violet); font-weight: 800; font-size: 18px; }
+    .lvl { position: absolute; left: 50%; bottom: -7px; transform: translateX(-50%); padding: 0 4px; border-radius: 5px; background: var(--gold); color: #2a1c05; font-size: 9.5px; font-weight: 900; line-height: 13px; }
+    .claim { position: absolute; right: -5px; top: -5px; min-width: 17px; height: 17px; padding: 0 4px; border-radius: 9px; background: var(--gold); color: #2a1c05; font-size: 10.5px; font-weight: 800; display: grid; place-items: center; box-shadow: 0 0 0 2px var(--bg2); }
+    .in { flex: 1; min-width: 0; padding-right: 9px; }
+    .top { display: flex; align-items: baseline; gap: 6px; }
+    .name { flex: 1; min-width: 0; font-size: 12.5px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .uf.on .name { color: #fff; }
+    .tix { flex: none; display: inline-flex; align-items: center; gap: 3px; color: var(--muted); font-size: 10.5px; font-weight: 600; font-variant-numeric: tabular-nums; }
+    .tix svg { width: 11px; height: 11px; color: #e07a9a; }
+    .bar { position: relative; height: 8px; margin-top: 4px; border-radius: 2px; background: rgba(255, 255, 255, 0.08); overflow: hidden; }
+    .bar i { display: block; height: 100%; }
+    .bar.q i { background: linear-gradient(90deg, #7b4fd6, var(--violet)); }
+    .bar.t i { background: linear-gradient(90deg, #2f9e5e, var(--green)); }
+    .bar em { position: absolute; inset: 0; font-style: normal; font-size: 7.5px; line-height: 8px; text-align: center; color: #fff; font-weight: 800; letter-spacing: 0.06em; text-shadow: 0 0 2px rgba(0, 0, 0, 0.8); }
+    .note { margin-top: 3px; color: var(--dim); font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .uf.guest .por { border-color: #4a3f5e; }
+    .uf.loading { opacity: 0.6; }
+    /* Entfernen: × beim Drüberfahren, dann Nachfrage im Rahmen */
+    .x { position: absolute; right: -7px; top: -7px; width: 18px; height: 18px; border-radius: 50%; border: 1px solid var(--line); background: var(--bg2); color: var(--muted); font-size: 12px; line-height: 1; padding: 0; display: none; }
+    .uf:hover .x { display: grid; place-items: center; }
+    .x:hover { color: var(--danger); border-color: var(--danger); }
+    .uf.confirm { border-color: var(--danger); cursor: default; padding: 0 8px; gap: 6px; }
+    .uf.confirm .ask { flex: 1; min-width: 0; color: var(--danger); font-size: 11.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .yes, .no { border: 0; border-radius: 5px; padding: 4px 9px; background: #3a2030; font-size: 11.5px; }
+    .no { background: #2c2240; }
+    /* Viele Accounts: Rahmen werden schmal, nur Porträt und Name */
+    body.many .uf { width: 160px; min-width: 112px; }
+    body.many .bar, body.many .tix { display: none; }
+
+    .add { flex: none; width: 40px; height: 40px; border-radius: 50%; border: 1px dashed rgba(180, 138, 232, 0.4); background: none; color: var(--dim); font-size: 18px; line-height: 1; }
+    .add:hover { color: var(--text); border-color: var(--violet); }
+    .sp { flex: 1; }
+    .ic { flex: none; width: 34px; height: 34px; display: grid; place-items: center; border-radius: 10px; border: 1px solid transparent; background: rgba(255, 255, 255, 0.04); color: var(--violet); }
+    .ic:hover { border-color: var(--line); color: var(--text); }
+    .ic.on { border-color: var(--gold); color: var(--gold); background: rgba(255, 211, 110, 0.08); }
+    .ic.gear { color: var(--muted); }
+    .ic svg { width: 18px; height: 18px; }
 </style>
 </head>
 <body>
-<div id="tabs" style="display:contents"></div>
+<img class="logo" src="assets/icon.png" alt="">
+<div id="frames"></div>
 <button class="add" id="add" title="Add account">+</button>
-<span class="hint">Ctrl+1–9 · Ctrl+Tab · F2 HUD · F5 reload · F11 full screen</span>
-<button class="gear" id="gear" title="Settings (Ctrl+,)" aria-label="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z"/></svg></button>
+<span class="sp"></span>
+<button class="ic" id="home" title="Home: all your accounts at a glance" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V20h14V9.5"/><path d="M10 20v-5h4v5"/></svg></button>
+<button class="ic" id="stats" title="Stats: live numbers of the whole game (MarbleMind)" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V10"/><path d="M10 20V4"/><path d="M16 20v-7"/><path d="M22 20H2"/></svg></button>
+<button class="ic gear" id="gear" title="Settings (Ctrl+,) · F2 HUD · F5 reload · F11 full screen" aria-label="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z"/></svg></button>
 <script>
-    const box = document.getElementById('tabs');
+    const box = document.getElementById('frames');
+    const TICKET = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-2a2 2 0 0 0 0-4Z"/></svg>';
     let confirmAt = -1, last = null;
 
     function el(tag, cls, text) {
@@ -75,60 +89,92 @@
         if (text != null) e.textContent = text;
         return e;
     }
+    const short = (n) => {
+        if (n == null) return '–';
+        for (const [v, s] of [[1e9, 'B'], [1e6, 'M'], [1e3, 'K']]) if (n >= v) return (n / v).toFixed(n >= v * 100 ? 0 : 2).replace(/\.?0+$/, '') + s;
+        return String(n);
+    };
+    function bar(cls, share, label) {
+        const b = el('div', 'bar ' + cls);
+        const i = el('i');
+        i.style.width = Math.round(Math.max(0, Math.min(1, share)) * 100) + '%';
+        b.append(i, el('em', null, label));
+        return b;
+    }
+
+    function frame(t, i, s) {
+        const f = el('div', 'uf' + (i === s.active ? ' on' : '') + (t.guest ? ' guest' : '') + (t.loading ? ' loading' : ''));
+        if (i === confirmAt) {
+            f.classList.add('confirm');
+            const yes = el('button', 'yes', 'Yes'), no = el('button', 'no', 'No');
+            yes.onclick = (e) => { e.stopPropagation(); confirmAt = -1; window.tabs.remove(i); };
+            no.onclick = (e) => { e.stopPropagation(); confirmAt = -1; render(last); };
+            f.append(el('span', 'ask', `Sign out and remove ${t.name}?`), yes, no);
+            return f;
+        }
+        const por = el('div', 'por');
+        const initial = () => el('div', 'ini', (t.name || '?').trim().charAt(0).toUpperCase());
+        if (t.avatar) {
+            const img = el('img');
+            img.src = t.avatar; img.alt = '';
+            img.onerror = () => img.replaceWith(initial());
+            por.append(img);
+        } else por.append(initial());
+        if (t.vip != null) por.append(el('span', 'lvl', String(t.vip)));
+        if (t.claim) por.append(el('span', 'claim', String(t.claim)));
+        f.append(por);
+
+        const inner = el('div', 'in');
+        const top = el('div', 'top');
+        top.append(el('span', 'name', (t.king ? '👑 ' : '') + (t.guest ? `${t.name}` : t.name)));
+        if (!t.guest && t.tickets != null) {
+            const x = el('span', 'tix');
+            x.innerHTML = TICKET;
+            x.prepend(short(t.tickets) + ' ');
+            top.append(x);
+        }
+        inner.append(top);
+        if (t.guest) inner.append(el('div', 'note', t.loading ? 'Loading …' : 'Not signed in – Log in, top right'));
+        else {
+            const qt = t.questsTotal;
+            inner.append(bar('q', qt ? t.questsDone / qt : 0, qt ? `QUESTS ${t.questsDone}/${qt}` : 'QUESTS …'));
+            inner.append(bar('t', t.earning ? 1 : 0, t.earning == null ? '…' : t.earning ? 'EARNING' : 'NOT EARNING'));
+        }
+        f.append(inner);
+
+        const tips = [t.guest ? 'Not signed in' : t.name];
+        if (t.king) tips.push('King right now');
+        if (t.tickets != null) tips.push(`${t.tickets.toLocaleString('en-US')} tickets${t.earning ? ', earning' : ''}`);
+        if (t.vip != null) tips.push(`VIP ${t.vip}`);
+        if (t.claim) tips.push(`${t.claim} to claim`);
+        if (i < 9) tips.push(`Ctrl+${i + 1} · middle click reloads`);
+        f.title = tips.join('\n');
+
+        if (s.tabs.length > 1) {
+            const x = el('button', 'x', '×');
+            x.title = 'Sign out and remove this account';
+            x.onclick = (e) => { e.stopPropagation(); confirmAt = i; render(last); };
+            f.append(x);
+        }
+        f.onclick = () => window.tabs.select(i);
+        f.onauxclick = (e) => { if (e.button === 1) window.tabs.reload(i); };
+        return f;
+    }
 
     function render(s) {
         last = s;
         if (confirmAt >= s.tabs.length) confirmAt = -1;
-        const homeTab = () => {
-            const b = el('div', 'tab home' + (s.active === -1 ? ' active' : ''));
-            b.title = 'All your accounts at a glance';
-            b.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V20h14V9.5"/><path d="M10 20v-5h4v5"/></svg>';
-            b.append(el('span', 'name', 'Home'));
-            b.onclick = () => window.tabs.select(-1);
-            return b;
-        };
-        // Öffentliche MarbleMind-Statistik (Settings › Stats), gleich neben Home.
-        const statsTab = () => {
-            const b = el('div', 'tab stats' + (s.active === -2 ? ' active' : ''));
-            b.title = 'Live numbers of the whole game (MarbleMind)';
-            b.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V10"/><path d="M10 20V4"/><path d="M16 20v-7"/><path d="M22 20H2"/></svg>';
-            b.append(el('span', 'name', 'Stats'));
-            b.onclick = () => window.tabs.select(-2);
-            b.onauxclick = (e) => { if (e.button === 1) window.tabs.reload(-2); };
-            return b;
-        };
-        box.replaceChildren(...(s.home ? [homeTab()] : []), ...(s.stats ? [statsTab()] : []), ...s.tabs.map((t, i) => {
-            const b = el('div', 'tab' + (i === s.active ? ' active' : '') + (t.guest ? ' guest' : '') + (t.loading ? ' loading' : ''));
-            if (i === confirmAt) {
-                b.classList.add('confirm');
-                const yes = el('button', 'yes', 'Yes'), no = el('button', 'no', 'No');
-                yes.onclick = (e) => { e.stopPropagation(); confirmAt = -1; window.tabs.remove(i); };
-                no.onclick = (e) => { e.stopPropagation(); confirmAt = -1; render(last); };
-                b.append(el('span', 'ask', `Sign out and remove ${t.name}?`), yes, no);
-                return b;
-            }
-            b.title = t.guest ? 'Not signed in – use “Log in” at the top right of the game' : (t.loading ? 'Loading …' : 'Signed in');
-            if (t.avatar) {
-                const img = el('img', 'avatar');
-                img.src = t.avatar; img.alt = '';
-                img.onerror = () => img.replaceWith(el('span', 'dot'));
-                b.append(img);
-            } else b.append(el('span', 'dot'));
-            b.append(el('span', 'name', t.guest ? `${t.name} (not signed in)` : t.name));
-            if (i < 9) b.append(el('span', 'key', `Ctrl+${i + 1}`));
-            if (s.tabs.length > 1) {
-                const x = el('button', 'x', '×');
-                x.title = 'Remove account';
-                x.onclick = (e) => { e.stopPropagation(); confirmAt = i; render(last); };
-                b.append(x);
-            }
-            b.onclick = () => window.tabs.select(i);
-            b.onauxclick = (e) => { if (e.button === 1) window.tabs.reload(i); };
-            return b;
-        }));
+        document.body.classList.toggle('many', s.tabs.length > 5);
+        box.replaceChildren(...s.tabs.map((t, i) => frame(t, i, s)));
+        const home = document.getElementById('home'), stats = document.getElementById('stats');
+        home.hidden = !s.home; home.classList.toggle('on', s.active === -1);
+        stats.hidden = !s.stats; stats.classList.toggle('on', s.active === -2);
     }
     document.getElementById('add').onclick = () => window.tabs.add();
     document.getElementById('gear').onclick = () => window.tabs.settings();
+    document.getElementById('home').onclick = () => window.tabs.select(-1);
+    document.getElementById('stats').onclick = () => window.tabs.select(-2);
+    document.getElementById('stats').onauxclick = (e) => { if (e.button === 1) window.tabs.reload(-2); };
     window.tabs.onState(render);
     window.tabs.state().then(render);
 </script>

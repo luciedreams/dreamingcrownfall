@@ -25,9 +25,10 @@ const windowState = require('./window-state.js');
 const startShortcuts = require('./shortcuts.js');
 const createHud = require('./hud.js');
 const createStats = require('./stats.js');
+const startTabStatus = require('./tab-status.js');
 
 const START_URL = 'https://marblecrownfall.com/';
-const TAB_BAR_HEIGHT = 36;
+const TAB_BAR_HEIGHT = 62;   // Account-Rahmen (Unit-Frames) seit 0.7.0, vorher 36 px Tabs
 const ICON = path.join(__dirname, 'assets', 'icon.png');
 const TRAY_ICON = path.join(__dirname, 'assets', 'tray.png');
 
@@ -128,7 +129,7 @@ const HOME = -1;      // active === HOME: der Home-Tab (Übersicht, erst ab zwei
 const STATS = -2;     // active === STATS: die öffentliche MarbleMind-Seite (stats.js, nur mit Schalter)
 // active < 0 = kein Spiel-Tab vorn (Home oder Stats) — wer ein Spiel braucht, nimmt lastGame.
 let lastGame = 0;     // zuletzt gewählter Spiel-Tab (für Discord, Settings aus dem Tray)
-let home = null, hud = null, stats = null;
+let home = null, hud = null, stats = null, tabStatus = null;
 const views = []; // je Account: { acc, view, name, guest, playerId, avatar }
 
 // ---- App-Schicht und MLF an den Preload ------------------------------------------------------
@@ -150,11 +151,16 @@ ipcMain.on('mlf:script', (e) => {
 const label = (v) => v.name || `Account ${views.indexOf(v) + 1}`;
 
 function tabState() {
+    const king = notifier?.kingNow() || null;
     return {
         active,
         home: !!home?.available(),
         stats: !!stats?.enabled(),
-        tabs: views.map((v) => ({ name: label(v), guest: v.guest, avatar: v.avatar || '', loading: v.view.webContents.isLoading() })),
+        tabs: views.map((v) => ({
+            name: label(v), guest: v.guest, avatar: v.avatar || '', loading: v.view.webContents.isLoading(),
+            king: !!(king && v.playerId && v.playerId === king.playerId),
+            ...(tabStatus && !v.guest ? tabStatus.of(v) : {}),
+        })),
     };
 }
 function pushTabs() {
@@ -323,7 +329,7 @@ function addAccount(acc, focus = false) {
     wireGameContents(wc, v);
     wc.on('before-input-event', (e, input) => handleKeys(e, input, wc));
     wc.on('did-start-loading', pushTabs);
-    wc.on('did-stop-loading', () => refreshIdentity(v));
+    wc.on('did-stop-loading', () => { refreshIdentity(v); setTimeout(() => tabStatus?.refresh(), 3000); });
     vitals?.watch(v);
     win.contentView.addChildView(view);
     wc.loadURL(START_URL);
@@ -364,6 +370,7 @@ async function removeAccount(i) {
     views.splice(i, 1);
     notifier?.resetAccount(v);
     home?.forget(v);
+    tabStatus?.forget(v);
     win.contentView.removeChildView(v.view);
     v.view.webContents.close();
     try { await session.fromPartition(v.acc.partition).clearStorageData(); } catch {}
@@ -402,6 +409,9 @@ function createWindow() {
     });
     // Stats ein-/ausgeschaltet: Tab-Leiste nachziehen; wer gerade auf Stats steht, geht zurück ins Spiel.
     appSettings.onChange(() => { if (active === STATS && !stats.enabled()) select(lastGame); else pushTabs(); });
+    tabStatus = startTabStatus({ views, onChange: pushTabs });
+    let shownKing = null;
+    setInterval(() => { const k = notifier?.kingNow()?.playerId || null; if (k !== shownKing) { shownKing = k; pushTabs(); } }, 5000);
     home = createHome({ win, views, label, stats, kingNow: () => notifier?.kingNow() || null, onSelect: (i, tab) => select(i, tab) });
     home.view.webContents.on('before-input-event', (e, input) => handleKeys(e, input, home.view.webContents));
     for (const acc of loadAccounts()) addAccount(acc);
