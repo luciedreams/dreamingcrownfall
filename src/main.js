@@ -30,6 +30,7 @@ const createOverlay = require('./overlay.js');
 const startContextMenu = require('./context-menu.js');
 const createEscMenu = require('./esc-menu.js');
 const tooltip = require('./tooltip.js');
+const createServerWatch = require('./server-watch.js');
 const { pathToFileURL } = require('url');
 
 const START_URL = 'https://marblecrownfall.com/';
@@ -152,6 +153,12 @@ const escMenu = createEscMenu({
     get updater() { return updater; },
 });
 const views = []; // je Account: { acc, view, name, guest, playerId, avatar }
+// Ausgefallene Tabs (v.failed) neu laden, sobald das Spiel wieder antwortet; die Fehlerseite zählt mit.
+const serverWatch = createServerWatch({
+    views,
+    onBack: (down) => { for (const v of down) { v.failed = null; v.view.webContents.reload(); } syncOverlay(); },
+    onTick: () => syncOverlay(),
+});
 
 // ---- App-Schicht und MLF an den Preload ------------------------------------------------------
 
@@ -349,7 +356,7 @@ const APP_ICON_URL = pathToFileURL(ICON).href;
 function syncOverlay(instant = false) {
     if (!overlay || switching) return;
     const v = active >= 0 ? views[active] : null;
-    if (v?.failed) overlay.screen({ kind: 'error', name: label(v), avatar: v.avatar || '', icon: v.avatar ? '' : APP_ICON_URL, code: v.failed.code, desc: v.failed.desc }, instant);
+    if (v?.failed) overlay.screen({ kind: 'error', variant: v.failed.kind || 'unreachable', name: label(v), avatar: v.avatar || '', icon: v.avatar ? '' : APP_ICON_URL, code: v.failed.code, desc: v.failed.desc, ...serverWatch.state() }, instant);
     // Ladebildschirm nur beim ersten Laden und beim Neuladen des Tabs, den man gerade ansieht —
     // nie beim Wechsel auf einen Tab, der im Hintergrund noch lädt.
     else if (v && (priming || (!v.ready && (!v.everReady || v.reloadFront)))) overlay.screen({ kind: 'loading', name: v.name || '', avatar: v.avatar || '', icon: v.avatar ? '' : APP_ICON_URL }, instant);
@@ -377,7 +384,17 @@ function watchReady(v) {
     });
     wc.on('did-fail-load', (_e, code, desc, _url, isMainFrame) => {
         if (!isMainFrame || code === -3) return;   // -3 = abgebrochen (neue Navigation), kein Fehler
-        v.failed = { code, desc };
+        v.failed = { code, desc, kind: serverWatch.kindOfLoadError(code) };
+        serverWatch.kick();
+        if (views[active] === v) syncOverlay();
+    });
+    // Spielserver antwortet mit 5xx (Wartung, Neustart): die Seite „lädt“, zeigt aber nur die Fehlerseite des Servers.
+    wc.on('did-navigate', (_e, url, status, text) => {
+        let host = '';
+        try { host = new URL(url).hostname; } catch {}
+        if (!isGame(host) || !(status >= 500)) return;
+        v.failed = { code: status, desc: text || '', kind: serverWatch.kindOfStatus(status) };
+        serverWatch.kick();
         if (views[active] === v) syncOverlay();
     });
     wc.on('dom-ready', () => {
@@ -389,7 +406,19 @@ function watchReady(v) {
             if (mine !== run || v.failed) return;
             if (ok) await new Promise((r) => setTimeout(r, 700));   // Nachlauf: das Spiel zeichnet fertig
             if (mine !== run || v.failed) return;
-            if (ok || Date.now() - started > 20000) { v.ready = true; v.everReady = true; v.reloadFront = false; if (views[active] === v) syncOverlay(); }
+            const late = !ok && Date.now() - started > 20000;
+            // Nach 20 s nicht bereit: antwortet das Spiel überhaupt? Sonst Wartungs-/Fehlerbildschirm statt halber Seite.
+            if (late && isGame((() => { try { return new URL(wc.getURL()).hostname; } catch { return ''; } })())) {
+                const r = await serverWatch.probe();
+                if (mine !== run || v.failed) return;
+                if (!r.ok) {
+                    v.failed = { code: r.status || null, desc: r.status ? `HTTP ${r.status}` : 'no answer', kind: r.status ? serverWatch.kindOfStatus(r.status) : 'unreachable' };
+                    serverWatch.kick();
+                    if (views[active] === v) syncOverlay();
+                    return;
+                }
+            }
+            if (ok || late) { v.ready = true; v.everReady = true; v.reloadFront = false; if (views[active] === v) syncOverlay(); }
             else setTimeout(poll, 250);
         };
         poll();
@@ -697,7 +726,7 @@ function createWindow() {
     tabBar.webContents.loadFile(path.join(__dirname, 'tabs.html'));
     tabBar.webContents.on('before-input-event', (e, input) => { const wc = activeContents(); if (wc) handleKeys(e, input, wc); });
     win.contentView.addChildView(tabBar);
-    overlay = createOverlay({ win, onRetry: () => { if (active >= 0) views[active]?.view.webContents.reload(); } });
+    overlay = createOverlay({ win, onRetry: () => serverWatch.now() });
 
     stats = createStats({
         win, setting: appSettings.get, onSettingsChange: appSettings.onChange,
