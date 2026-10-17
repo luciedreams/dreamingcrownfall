@@ -1,5 +1,18 @@
     // Newest first. The first entry is what What's new shows after a fresh install.
     const CHANGELOG = [
+        { v: '0.7.0', date: '2026-10-17', items: [
+            'A new design: the board as a game instead of a website. Your tickets, points, gold and diamonds sit in a bar at the top, with buttons for your inventory, profile, achievements, dailies, shop and leaderboards. Every action of the footer is in a hotbar at the bottom, with keys: 1, 5 and 0 bid, U unbids, B opens Autobid, R Rebellion, F attacks (as King: Royal Celebrations), Q W E A S D are the drinks, I P Y J O L open your pages. The chat floats in the corner and fades while it is quiet, lanes and King are one arena, and everything takes the colours of your theme. A short tour shows it the first time; Settings › General › Layout switches back to the classic layout at any time.',
+            'In the new design your pages open as panels at the sides, like the frames in a game: inventory, profile and achievements on the left, shop, dailies and leaderboards on the right. Drag their inner edge to make them wider; the same key or button closes them. In the shop the offers come first, and switching between the shops is instant once each has loaded.',
+            'While you are King the toll field and the Royal Celebrations sit in the hotbar, and the toll goes up to the 20 the game allows (the game\'s own buttons stopped at 17). While "Attack when free" runs, what it is doing (waiting in tile, lava, attacking …) shows at the bottom of the King tile; a click cancels it.',
+            'The app feels like a game client: no window frame — the bar of account frames (portrait, VIP level, tickets, daily quests) is the title bar —, smooth fades between accounts, Home and Stats, a loading screen instead of a half-built page, its own right-click menu, its own tooltips, thin scrollbars in the app\'s colours, no accidental zoom or text selection, and windows that pop out have the app\'s own bar.',
+            'Esc opens a game menu with your pages, Home, Stats, the wiki, HUD, settings, patch notes, the update check and Quit. F1 lists every shortcut.',
+            'The community wiki (marblecrownfall.wikioasis.org) is part of the app: the book button top right, or the game menu.',
+            'Maintenance and lost connections get a screen of their own. The app checks every 10 seconds and brings every tab back by itself as soon as the game answers again.',
+            'Signing in works like a game launcher: a new account shows "Add an account", and Twitch opens in a small window of its own.',
+            'While the app is in front, notifications show as toasts at the top of the game instead of on the desktop; a click goes to that account. The taskbar icon shows how many rewards are waiting to be claimed.',
+            'The app picks up where you left it: the account in front, the HUD and your open windows come back after a restart. Optional soft interface sounds (Settings › General).',
+            'Diamond purchases open Stripe straight in your browser; the tab no longer hangs on its loading screen afterwards.',
+        ] },
         { v: '0.6.1', date: '2026-10-17', items: [
             'The footer with your tickets and bids no longer goes missing on your other accounts\' tabs. Tabs in the background loaded at zero size, the game took them for a phone and hid the footer, and switching over did not bring it back until you reloaded.',
         ] },
