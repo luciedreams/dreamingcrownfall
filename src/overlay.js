@@ -1,6 +1,6 @@
 // Eine Ebene über dem Spiel (seit 0.7.0, damit die App nicht mehr wie ein Browser wirkt):
-//   Überblenden  beim Wechsel zwischen Accounts, Home und Stats — Bild des alten Tabs einfrieren
-//                (capturePage), darunter umschalten, Bild weich ausblenden. Kein harter Schnitt mehr.
+//   Wechsel      zwischen Accounts, Home und Stats: Bild des alten Tabs einfrieren (capturePage), in
+//                einen Schleier abblenden, dahinter umschalten, neue Seite langsam aufblenden.
 //   Laden        solange der Tab vorn noch lädt: Porträt, „Loading <Name> …“ statt leerer Seite.
 //   Fehler       statt Chromiums grauer Fehlerseite: eigene Seite mit „Try again now“.
 // Die Ebene ist ein eigener durchsichtiger View ganz oben; versteckt, solange sie nichts zeigt
@@ -9,7 +9,7 @@
 const path = require('path');
 const { WebContentsView, ipcMain } = require('electron');
 
-const ACK_MS = 300;   // so lange wird höchstens auf die Seite gewartet
+const ACK_MS = 400;   // so lange wird höchstens auf die Seite gewartet (Abblenden dauert ~210 ms)
 
 module.exports = function createOverlay({ win, onRetry }) {
     const view = new WebContentsView({ webPreferences: {
@@ -26,7 +26,7 @@ module.exports = function createOverlay({ win, onRetry }) {
 
     let seq = 0;
     const waiting = new Map();
-    let shown = 'none';   // was die Ebene gerade zeigt: none | cover | loading | error
+    let shown = 'none';   // was die Ebene gerade zeigt: none | cover | veil | loading | error
     let lastKey = '';     // Lade-/Fehlerbild nicht bei jedem Aufruf neu zeichnen
 
     function send(m) {
@@ -62,6 +62,12 @@ module.exports = function createOverlay({ win, onRetry }) {
             lastKey = '';
             await send({ kind: 'cover', img: 'data:image/jpeg;base64,' + img.toJPEG(88).toString('base64') });
             return true;
+        },
+        // Nach cover(): das Bild sinkt in den Schleier; aufgelöst, sobald er deckt (dann umschalten).
+        async dip() {
+            if (shown !== 'cover') return;
+            shown = 'veil';
+            await send({ kind: 'dip' });
         },
         // m: { kind: 'loading' | 'error', name, avatar, icon, code, desc, detail }
         async screen(m, instant = false) {

@@ -10,11 +10,16 @@
     :root { --bg1: #201634; --bg2: #120d1c; --text: #ece4f7; --muted: #a99cc0; --dim: #7d7194; --violet: #b48ae8; --gold: #ffd36e; --red: #ff8a8a; }
     * { box-sizing: border-box; }
     html, body { margin: 0; height: 100%; overflow: hidden; background: transparent; user-select: none; font: 14px/1.4 system-ui, sans-serif; color: var(--text); }
-    .layer { position: fixed; inset: 0; opacity: 0; transition: opacity 220ms ease-out, transform 220ms ease-out; }
+    /* Wechsel = Abblenden und Aufblenden (Luce 17.10.: bloßes Überblenden war „ein harter Cut“):
+       altes Bild sinkt in den Schleier (DIP_MS), dahinter wird umgeschaltet, die neue Seite taucht
+       langsam aus dem Schleier auf (RISE_MS). Kein Zoom. */
+    :root { --dip: 190ms; --rise: 420ms; }
+    .layer { position: fixed; inset: 0; opacity: 0; transition: opacity var(--rise) cubic-bezier(0.33, 0, 0.2, 1); }
     .layer.on { opacity: 1; }
     .layer.instant { transition: none; }
     #shot { background: center / 100% 100% no-repeat; }
-    #shot.leave { opacity: 0; transform: scale(1.015); }
+    #veil { background: radial-gradient(900px 500px at 50% 30%, rgba(139, 92, 246, 0.16), transparent 65%), linear-gradient(180deg, #1c1430, #110c1b); }
+    #veil.dip { transition: opacity var(--dip) cubic-bezier(0.4, 0, 1, 1); }
     #screen {
         display: grid; place-items: center;
         background: radial-gradient(900px 500px at 50% 30%, rgba(139, 92, 246, 0.2), transparent 65%), linear-gradient(180deg, var(--bg1), var(--bg2));
@@ -39,6 +44,7 @@
 <body>
 <div class="layer" id="screen"><div class="card" id="card"></div></div>
 <div class="layer" id="shot"></div>
+<div class="layer" id="veil"></div>
 <script>
     const $ = (id) => document.getElementById(id);
     const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
@@ -68,8 +74,21 @@
         card.replaceChildren(...kids);
     }
 
+    const DIP_MS = 190;
     window.overlay.on(async (m) => {
-        const shot = $('shot'), screen = $('screen');
+        const shot = $('shot'), screen = $('screen'), veil = $('veil');
+        if (m.kind === 'dip') {
+            // Altes Bild sinkt in den Schleier; erst wenn er deckt, schaltet die App dahinter um.
+            veil.className = 'layer dip';
+            await frames(1);
+            veil.classList.add('on');
+            setTimeout(() => {
+                shot.className = 'layer'; shot.style.backgroundImage = '';
+                state = 'veil';
+                window.overlay.ack(m.id);
+            }, DIP_MS + 20);
+            return;
+        }
         if (m.kind === 'cover') {
             // Bild des bisherigen Tabs sofort und deckend — erst danach schaltet die App darunter um.
             shot.className = 'layer instant on';
@@ -84,23 +103,27 @@
             screen.classList.remove('instant');
             if (m.instant) screen.classList.add('instant');
             screen.classList.add('on');
-            if (shot.classList.contains('on')) { shot.className = 'layer on'; await frames(1); shot.classList.add('leave'); }
+            // Aus dem Schleier (oder dem eingefrorenen Bild) in den Lade-/Fehlerbildschirm, gleicher Hintergrund.
+            if (veil.classList.contains('on') || shot.classList.contains('on')) {
+                screen.classList.add('instant', 'on');
+                await frames(1);
+                veil.className = 'layer'; shot.className = 'layer'; shot.style.backgroundImage = '';
+            }
             state = m.kind;
             window.overlay.ack(m.id);
             return;
         }
         if (m.kind === 'reveal') {
             // Alles weich weg; danach meldet die Seite „fertig“, und die App blendet die Ebene aus.
-            shot.classList.remove('instant');
-            if (shot.classList.contains('on')) shot.classList.add('leave');
-            screen.classList.remove('instant', 'on');
+            // Die neue Seite taucht langsam auf: Schleier, Bild und Lade-/Fehlerbildschirm blenden aus.
+            for (const l of [veil, shot, screen]) { l.classList.remove('instant', 'dip'); l.classList.remove('on'); }
             state = 'none';
             window.overlay.ack(m.id);
             setTimeout(() => {
                 if (state !== 'none') return;
-                shot.className = 'layer'; shot.style.backgroundImage = '';
+                shot.style.backgroundImage = '';
                 window.overlay.done();
-            }, 260);
+            }, 460);
         }
     });
 </script>

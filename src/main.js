@@ -195,7 +195,7 @@ function select(i, statsTab) {
         && before && before !== frontOf(i) && overlay.state() === 'none';
     if (!smooth) { show(active, switchTab); return; }
     switching = true;
-    overlay.cover(before.webContents).finally(() => { switching = false; show(active, switchTab); });
+    overlay.cover(before.webContents).then((ok) => ok && overlay.dip()).finally(() => { switching = false; show(active, switchTab); });
 }
 function show(i, statsTab) {
     views.forEach((v, j) => v.view.setVisible(j === i || v.warming));
