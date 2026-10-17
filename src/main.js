@@ -26,6 +26,8 @@ const startShortcuts = require('./shortcuts.js');
 const createHud = require('./hud.js');
 const createStats = require('./stats.js');
 const startTabStatus = require('./tab-status.js');
+const createOverlay = require('./overlay.js');
+const { pathToFileURL } = require('url');
 
 const START_URL = 'https://marblecrownfall.com/';
 const TAB_BAR_HEIGHT = 62;   // Account-Rahmen (Unit-Frames) seit 0.7.0, vorher 36 px Tabs
@@ -129,7 +131,7 @@ const HOME = -1;      // active === HOME: der Home-Tab (Übersicht, erst ab zwei
 const STATS = -2;     // active === STATS: die öffentliche MarbleMind-Seite (stats.js, nur mit Schalter)
 // active < 0 = kein Spiel-Tab vorn (Home oder Stats) — wer ein Spiel braucht, nimmt lastGame.
 let lastGame = 0;     // zuletzt gewählter Spiel-Tab (für Discord, Settings aus dem Tray)
-let home = null, hud = null, stats = null, tabStatus = null;
+let home = null, hud = null, stats = null, tabStatus = null, overlay = null;
 const views = []; // je Account: { acc, view, name, guest, playerId, avatar }
 
 // ---- App-Schicht und MLF an den Preload ------------------------------------------------------
@@ -171,24 +173,86 @@ function pushTabs() {
     home?.push();
 }
 
+const frontOf = (i) => (i === HOME ? home?.view : i === STATS ? stats?.view() : views[i]?.view);
+
 // statsTab: Unterseite der Stats-Seite (aus Home/HUD), sonst bleibt sie, wo sie war.
+// Der Zustand (active, Tab-Leiste) wechselt sofort; das Bild blendet über (overlay.js): erst das alte
+// Bild einfrieren, dann darunter umschalten. Kommt ein weiterer Wechsel, solange das Bild noch
+// geholt wird, schaltet der laufende gleich aufs neueste Ziel.
+let switching = false, switchTab = undefined;
 function select(i, statsTab) {
     if (i === HOME && !home?.available()) i = lastGame;
     if (i === STATS && !stats?.enabled()) i = lastGame;
     if (i >= 0 && !views[i]) i = Math.min(Math.max(0, i), views.length - 1);
     if (i >= 0 && !views[i]) return;
+    const before = frontOf(active);
     active = i;
     if (i >= 0) lastGame = i;
+    pushTabs();
+    switchTab = statsTab;
+    if (switching) return;
+    const smooth = overlay && appSettings.get('ui.transitions') !== false && win.isVisible() && !win.isMinimized()
+        && before && before !== frontOf(i) && overlay.state() === 'none';
+    if (!smooth) { show(active, switchTab); return; }
+    switching = true;
+    overlay.cover(before.webContents).finally(() => { switching = false; show(active, switchTab); });
+}
+function show(i, statsTab) {
     views.forEach((v, j) => v.view.setVisible(j === i || v.warming));
     home?.setVisible(i === HOME);
     if (i === STATS) stats.show(statsTab); else stats?.view()?.setVisible(false);
     const front = i === HOME ? home.view : i === STATS ? stats.view() : views[i].view;
     if (i === STATS) front.setVisible(true);
     // Der gewählte Tab nach oben: Tabs, die noch anlaufen (warmUp), liegen sichtbar darunter.
+    // Die Überblend-Ebene bleibt darüber.
     win.contentView.addChildView(front);
+    if (overlay && overlay.state() !== 'none') win.contentView.addChildView(overlay.view);
     layout();
     front.webContents.focus();
-    pushTabs();
+    syncOverlay();
+}
+
+// Was die Ebene über dem Spiel für den Tab vorn zeigen soll: Fehlerseite, Ladebildschirm oder nichts.
+const APP_ICON_URL = pathToFileURL(ICON).href;
+function syncOverlay(instant = false) {
+    if (!overlay || switching) return;
+    const v = active >= 0 ? views[active] : null;
+    if (v?.failed) overlay.screen({ kind: 'error', name: label(v), avatar: v.avatar || '', icon: v.avatar ? '' : APP_ICON_URL, code: v.failed.code, desc: v.failed.desc }, instant);
+    else if (v && !v.ready) overlay.screen({ kind: 'loading', name: v.name || '', avatar: v.avatar || '', icon: v.avatar ? '' : APP_ICON_URL }, instant);
+    else overlay.reveal();
+}
+
+// Ist die Seite im Tab so weit, dass man sie zeigen kann? Spielseite: sobald das Spiel sein Layout
+// gewählt hat; Login (Twitch) und andere Seiten: sobald das Dokument steht. Höchstens 15 s.
+// Eine fehlgeschlagene Ladung (did-fail-load) bleibt auf der Fehlerseite, bis ein neuer Versuch startet.
+const READY_JS = `(() => { if (document.readyState === 'loading') return false;
+    if (!/(^|\.)marblecrownfall\.com$/.test(location.hostname) || location.pathname !== '/') return true;
+    return !!document.querySelector('[data-role=shell]')?.dataset.layoutMode; })()`;
+function watchReady(v) {
+    const wc = v.view.webContents;
+    let run = 0;
+    wc.on('did-start-navigation', (d) => {
+        if (!d.isMainFrame || d.isSameDocument) return;
+        v.ready = false; v.failed = null; run++;
+        if (views[active] === v) syncOverlay();
+    });
+    wc.on('did-fail-load', (_e, code, desc, _url, isMainFrame) => {
+        if (!isMainFrame || code === -3) return;   // -3 = abgebrochen (neue Navigation), kein Fehler
+        v.failed = { code, desc };
+        if (views[active] === v) syncOverlay();
+    });
+    wc.on('dom-ready', () => {
+        const mine = run, started = Date.now();
+        const poll = async () => {
+            if (mine !== run || wc.isDestroyed() || v.failed) return;
+            let ok = false;
+            try { ok = await wc.executeJavaScript(READY_JS); } catch {}
+            if (mine !== run || v.failed) return;
+            if (ok || Date.now() - started > 15000) { v.ready = true; if (views[active] === v) syncOverlay(); }
+            else setTimeout(poll, 250);
+        };
+        poll();
+    });
 }
 const activeContents = () => (active === HOME ? home?.view.webContents : active === STATS ? stats?.view()?.webContents : views[active]?.view.webContents);
 
@@ -200,6 +264,7 @@ function layout() {
     tabBar.setVisible(!full);
     tabBar.setBounds({ x: 0, y: 0, width, height: TAB_BAR_HEIGHT });
     for (const v of views) v.view.setBounds({ x: 0, y: top, width, height: height - top });
+    overlay?.view.setBounds({ x: 0, y: top, width, height: height - top });
     home?.view.setBounds({ x: 0, y: top, width, height: height - top });
     stats?.view()?.setBounds({ x: 0, y: top, width, height: height - top });
 }
@@ -328,12 +393,13 @@ function addAccount(acc, focus = false) {
     setupSession(acc);
     const view = new WebContentsView({ webPreferences: webPrefs(acc) });
     view.setBackgroundColor('#14101c');
-    const v = { acc, view, name: null, guest: true, playerId: null, avatar: '' };
+    const v = { acc, view, name: null, guest: true, playerId: null, avatar: '', ready: false, failed: null };
     views.push(v);
     const wc = view.webContents;
     wireGameContents(wc, v);
     wc.on('before-input-event', (e, input) => handleKeys(e, input, wc));
     wc.on('did-start-loading', pushTabs);
+    watchReady(v);
     wc.on('did-stop-loading', () => { refreshIdentity(v); setTimeout(() => tabStatus?.refresh(), 3000); });
     vitals?.watch(v);
     win.contentView.addChildView(view);
@@ -410,6 +476,7 @@ function createWindow() {
     tabBar.webContents.loadFile(path.join(__dirname, 'tabs.html'));
     tabBar.webContents.on('before-input-event', (e, input) => { const wc = activeContents(); if (wc) handleKeys(e, input, wc); });
     win.contentView.addChildView(tabBar);
+    overlay = createOverlay({ win, onRetry: () => { if (active >= 0) views[active]?.view.webContents.reload(); } });
 
     stats = createStats({
         win, setting: appSettings.get, onSettingsChange: appSettings.onChange,

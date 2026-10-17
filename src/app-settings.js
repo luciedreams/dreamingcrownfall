@@ -13,6 +13,7 @@ const SCHEMA = {
     'app.onboarded': false,   // Willkommen-Schritte erledigt (bestehende Installationen: main.js setzt es)
     'game.plain': false,      // Spiel-Ebene startet wie die Website (neue Installationen ab 0.3.0)
     'windows.popOut': true,
+    'ui.transitions': true,   // Überblenden beim Wechsel zwischen Accounts, Home und Stats (overlay.js)
     'stability.recover': true,
     'shortcuts.global': false,
     'autostart.hidden': true,   // Autostart im Tray (sonst mit sichtbarem Fenster)
