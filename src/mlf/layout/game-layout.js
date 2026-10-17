@@ -586,7 +586,11 @@
         if (!api || document.hidden || !glOn) return;
         let s;
         try { s = api.settings(); } catch (e) { return; }
-        if (s['app.layoutIntro'] === true || !api.introClaim || !api.introClaim()) return;
+        if (s['app.layoutIntro'] === true) return;
+        // After an update the patch notes come up first (What's new); the welcome waits until they are
+        // closed — on top of them, its tour had nothing to point at (Luce, 17.10. after 0.7.0).
+        if (glQ('.dcf-pn, .dcf-set, .dcf-tour, dcf-esc-menu')) { clearTimeout(glMaybeIntro.t); glMaybeIntro.t = setTimeout(glMaybeIntro, 1000); return; }
+        if (!api.introClaim || !api.introClaim()) return;
         api.set('app.layoutIntro', true);
         glIntroCard();
     }
@@ -621,6 +625,8 @@
     }
 
     function glTour() {
+        // Nothing may cover the board while the tour points at it.
+        try { closePatchNotes(); closeAppSettings(); closeMenus(); } catch (e) {}
         const part = 'New design';
         startTour('', { steps: [
             { part, place: 'below', title: 'Your resources', text: 'Tickets, points, gold and diamonds in one bar. The green dot means you are earning tickets. Click a value for its shop, history or loadouts, the tileset for the next 12 hours — and the buttons on the right open your inventory, profile, achievements, dailies, shop and leaderboards.',
