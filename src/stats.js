@@ -39,7 +39,7 @@ module.exports = function createStats({ win, setting, onSettingsChange, onChange
     function ensureView() {
         if (view) return view;
         view = new WebContentsView({ webPreferences: { partition: 'marblemind-public', contextIsolation: true, sandbox: true } });
-        view.setBackgroundColor('#160f24');   // = Schleierfarbe der Übergänge (main.js VEIL_BG)
+        view.setBackgroundColor('#00000000');   // durchsichtig: ohne Bild scheint der Fenstergrund (Schleierfarbe) durch
         const wc = view.webContents;
         // Alles außerhalb der öffentlichen Seite (Twitch-Profile, Spiel, Discord) im System-Browser.
         wc.setWindowOpenHandler(({ url }) => { if (/^https?:/.test(url)) shell.openExternal(url); return { action: 'deny' }; });
@@ -123,5 +123,20 @@ module.exports = function createStats({ win, setting, onSettingsChange, onChange
         onChange();
     });
 
-    return { enabled, show, view: () => view, want, data, refresh: () => poll(true) };
+    // Beim Start im Hintergrund laden (main.js primeTabs), damit der erste Wechsel nicht die halb
+    // geladene Seite zeigt. Aufgelöst, sobald sie geladen ist (höchstens 10 s).
+    function preload() {
+        if (!enabled()) return Promise.resolve(null);
+        const v = ensureView();
+        if (loaded) return Promise.resolve(v);
+        loaded = true;
+        const wc = v.webContents;
+        return new Promise((r) => {
+            const t = setTimeout(() => r(v), 10000);
+            wc.once('did-finish-load', () => { clearTimeout(t); r(v); });
+            wc.loadURL(tabUrl());
+        });
+    }
+
+    return { enabled, show, preload, view: () => view, want, data, refresh: () => poll(true) };
 };

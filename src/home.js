@@ -62,7 +62,7 @@ module.exports = function createHome({ win, views, label, stats, kingNow, onSele
     const view = new WebContentsView({ webPreferences: {
         preload: path.join(__dirname, 'home-preload.js'), contextIsolation: true, sandbox: true,
     } });
-    view.setBackgroundColor('#160f24');   // = Schleierfarbe der Übergänge (main.js VEIL_BG)
+    view.setBackgroundColor('#00000000');   // durchsichtig: ohne Bild scheint der Fenstergrund (Schleierfarbe) durch
     view.webContents.loadFile(path.join(__dirname, 'home.html'));
     view.setVisible(false);
     win.contentView.addChildView(view);

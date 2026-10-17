@@ -225,6 +225,14 @@ const veilJs = (opacity, ms, wait = true) => `(() => {
     v.style.transition = ${ms} ? 'opacity ${ms}ms cubic-bezier(.4,0,.2,1)' : 'none';
     void v.offsetWidth;
     v.style.opacity = '${opacity}';
+    // Verschleiert: auch der Seitenhintergrund in Schleierfarbe. Wirft Chromium das aufgehobene Bild
+    // eines versteckten Tabs weg, füllt es beim Wiederanzeigen kurz mit der Hintergrundfarbe der
+    // Seite — beim Spiel dunkelblau (Luce 17.10.: „manchmal flackert ein blauer Hintergrund“).
+    for (const el of [document.documentElement, document.body]) {
+        if (!el) continue;
+        if (${opacity}) el.style.setProperty('background-color', '${VEIL_BG}', 'important');
+        else el.style.removeProperty('background-color');
+    }
     // Fertig = Übergang vorbei UND zwei Bilder gezeichnet (das verschleierte Bild ist dann das, was
     // Chromium für den versteckten Tab aufhebt und beim nächsten Zeigen sofort wieder zeigt).
     // Versteckte Tabs zeichnen nicht (kein requestAnimationFrame) — dort nicht warten.
@@ -257,20 +265,27 @@ async function transition(before) {
 // verschleiert zeichnen lassen. Ein nie gezeigter Tab hat kein aufgehobenes Bild — sein erster
 // Wechsel blitzte sonst ~0,3 s grau/blau (Aufnahme 17.10.). Der Ladebildschirm wartet darauf (max. 15 s).
 let priming = true;
+async function primeView(view, wc) {
+    if (!view || !wc || wc.isDestroyed() || frontOf(active) === view) return;
+    view.setVisible(true);
+    win.contentView.addChildView(view);
+    if (overlay) win.contentView.addChildView(overlay.view);
+    layout();
+    const ok = await Promise.race([wc.executeJavaScript(veilJs(1, 0, true)).then(() => true, () => false), new Promise((r) => setTimeout(() => r(false), 1500))]);
+    if (ok) veiled.add(wc);
+    if (frontOf(active) !== view) view.setVisible(false);
+}
 async function primeTabs() {
     const until = Date.now() + 15000;
     for (const v of views.slice()) {
-        if (views[active] === v || v.guest === undefined) continue;
+        if (views[active] === v) continue;
         while (!v.ready && !v.failed && Date.now() < until) await new Promise((r) => setTimeout(r, 150));
-        const wc = v.view.webContents;
-        if (!v.ready || wc.isDestroyed() || views[active] === v) continue;
-        v.view.setVisible(true);
-        win.contentView.addChildView(v.view);
-        if (overlay) win.contentView.addChildView(overlay.view);
-        const ok = await Promise.race([wc.executeJavaScript(veilJs(1, 0, true)).then(() => true, () => false), new Promise((r) => setTimeout(() => r(false), 1500))]);
-        if (ok) veiled.add(wc);
-        if (views[active] !== v) v.view.setVisible(false);
+        if (v.ready) await primeView(v.view, v.view.webContents);
     }
+    // Home und Stats ebenso (Stats wird dafür im Hintergrund vorgeladen).
+    if (home?.available()) await primeView(home.view, home.view.webContents);
+    const sv = await stats?.preload();
+    if (sv) { await new Promise((r) => setTimeout(r, 400)); await primeView(sv, sv.webContents); }
     const front = frontOf(active);
     if (front) win.contentView.addChildView(front);
     if (overlay) win.contentView.addChildView(overlay.view);
@@ -496,7 +511,9 @@ function setupSession(acc) {
 function addAccount(acc, focus = false) {
     setupSession(acc);
     const view = new WebContentsView({ webPreferences: webPrefs(acc) });
-    view.setBackgroundColor(VEIL_BG);
+    // Durchsichtig: solange ein frisch gezeigter Tab noch kein Bild hat, scheint der Fenstergrund
+    // (Schleierfarbe) durch — mit eigener Farbe zeigte Electron dort Grau (Aufnahme 17.10.).
+    view.setBackgroundColor('#00000000');
     const v = { acc, view, name: null, guest: true, playerId: null, avatar: '', ready: false, failed: null };
     views.push(v);
     const wc = view.webContents;
@@ -570,6 +587,10 @@ function createWindow() {
         frame: false,
         minWidth: 900, minHeight: 600,
     });
+    // Grund des Fensters in Schleierfarbe: hat ein frisch gezeigter Tab noch gar nichts gezeichnet (z. B.
+    // nach Neuladen im Hintergrund), sah man sonst ~0,15 s Grau (#171717, Aufnahme 17.10.).
+    win.setBackgroundColor(VEIL_BG);
+    win.contentView.setBackgroundColor(VEIL_BG);
     if (ws.maximized) win.maximize();
     windowState.track(win);
     win.setMenu(null);
