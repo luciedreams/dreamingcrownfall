@@ -327,6 +327,23 @@
 
     // --- Inside the shop page (a window's frame, or the page itself) ---
     const SHOP_CSS = `
+        /* DreamingCrownfall 0.7.0: in a narrow window (side panel) the offers come first, under the
+           freeze slots, and the big preview below them — opening the shop shows what is on sale. */
+        @media (max-width: 1000px) {
+            .shopGridLayout { display: flex !important; flex-direction: column !important; }
+            .shopGridLayout > .shopOfferGrid { order: -1; }
+        }
+        /* As a side panel of the game layout (html[data-dcf-gl-panel], set by layout/game-layout.js) the
+           head of the page shrinks to one line: shops as a row of tabs, no wallet (the resource bar
+           shows it), a small title — so the offers are in view as soon as the shop opens (Luce, 17.10.). */
+        html[data-dcf-gl-panel] .shopTopline { padding-top: 0 !important; padding-bottom: 0 !important; min-height: 0 !important; }
+        html[data-dcf-gl-panel] .shopTopline h1 { font-size: 20px !important; margin: 0 !important; }
+        html[data-dcf-gl-panel] .shopTopline p, html[data-dcf-gl-panel] .shopWallet { display: none !important; }
+        html[data-dcf-gl-panel] .shopTypes { display: grid !important; grid-template-columns: repeat(4, minmax(0, 1fr)) !important; gap: 6px !important; }
+        html[data-dcf-gl-panel] .shopTypeButton { min-height: 0 !important; padding: 7px 10px !important; display: flex !important; align-items: center !important; justify-content: space-between !important; gap: 6px !important; }
+        html[data-dcf-gl-panel] .shopTypeButton em { display: none !important; }
+        html[data-dcf-gl-panel] .shopTypeButton strong { font-size: 13px !important; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        html[data-dcf-gl-panel] .shopTypeButton mark { font-size: 11px !important; padding: 1px 6px !important; }
         .mcfo-eur { display: block; margin-top: 2px; font-size: 0.86em; opacity: 0.72; font-style: normal; }
         .shopBuyButton .mcfo-eur { margin-top: 3px; }
         .mcfo-questtag { position: absolute; left: 8px; top: 8px; z-index: 3; pointer-events: none;

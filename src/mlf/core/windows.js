@@ -411,24 +411,86 @@
 
         const frame = document.createElement('iframe');
         frame.src = path;
-        // The page stays invisible until it wears the theme (6.6): shown at once, it came up in the
-        // game's own colours and changed a moment later — a flash on every window that opened.
-        frame.addEventListener('load', () => {
-            try {
-                framePanelMode(frame); armStripeHandoff(frame); applyGlassToFrames(); laedt.remove();
-                themeFrame(frame);      // the page inside takes the theme as well (section 3b)
-                try { shopDocAssist(frame.contentDocument); } catch (e) {}   // quest tags, euros (12d)
-                try { invDocAssist(frame.contentDocument); } catch (e) {}    // loadout bar (12e)
-            } finally {
-                frame.setAttribute('data-mcfo-ready', '1');
-            }
-            frameFreshCheck(w);   // an old copy from the browser cache? (6.41)
-        });
+        wireFrame(w, frame, laedt);
         w.body.appendChild(frame);
         w.frame = frame;
         framePanelMode(frame);
         drawTaskbar();
         return w;
+    }
+
+    // Everything a window's page gets once it has loaded. Shared by the shop's further frames.
+    function wireFrame(w, frame, laedt) {
+        // The page stays invisible until it wears the theme (6.6): shown at once, it came up in the
+        // game's own colours and changed a moment later — a flash on every window that opened.
+        frame.addEventListener('load', () => {
+            // DreamingCrownfall: the first page a fresh iframe loads sometimes runs without the
+            // game layer (Electron starts no preload there) — the new inventory then shows as the
+            // game's own. Seen 17.10.: a reload of that frame always has it. So: once per frame.
+            try {
+                const fw = frame.contentWindow;
+                if (fw && !fw.__dcfGameLayer && !frame.dataset.layerRetry && /^https?:/.test(fw.location.href)) {
+                    frame.dataset.layerRetry = '1';
+                    fw.location.reload();
+                    return;
+                }
+            } catch (e) {}
+            try {
+                framePanelMode(frame); armStripeHandoff(frame); applyGlassToFrames(); laedt.remove();
+                themeFrame(frame);      // the page inside takes the theme as well (section 3b)
+                try { shopDocAssist(frame.contentDocument); } catch (e) {}   // quest tags, euros (12d)
+                try { shopSwitchAssist(w, frame); } catch (e) {}              // shops kept loaded (DCF)
+                try { invDocAssist(frame.contentDocument); } catch (e) {}    // loadout bar (12e)
+            } finally {
+                frame.setAttribute('data-mcfo-ready', '1');
+            }
+            if (frame === w.frame) frameFreshCheck(w);   // an old copy from the browser cache? (6.41)
+        });
+    }
+
+    // ---- SHOPS KEPT LOADED (DreamingCrownfall 0.7.0) ----
+    // The game's shop buttons load the whole page anew (/shop?shop=…): more than a second in which
+    // the old shop stays up without a sign, so you click again (Luce, 17.10.). In a window every
+    // shop gets a frame of its own instead; switching shows it, the first time with the loading
+    // line, after that at once. Misc and anything else still go the game's way.
+    const SHOP_KEYS = [['King Shop', 'crowns'], ['Marble Shop', 'marbles'], ['Chat Shop', 'chat']];
+    const shopKeyOf = frame => { try { return new URLSearchParams(frame.contentWindow.location.search).get('shop') || 'crowns'; } catch (e) { return ''; } };
+    function shopSwitchAssist(w, frame) {
+        const doc = frame.contentDocument;
+        if (!doc || !doc.getElementById('shop-root')) return;
+        frame.dataset.shop = shopKeyOf(frame);
+        if (doc.__dcfShopSwitch) return;
+        doc.__dcfShopSwitch = true;
+        doc.addEventListener('click', e => {
+            const b = e.target.closest && e.target.closest('.shopTypeButton');
+            if (!b) return;
+            const hit = SHOP_KEYS.find(([name]) => (b.textContent || '').includes(name));
+            if (!hit || hit[1] === frame.dataset.shop) return;
+            e.preventDefault();
+            e.stopPropagation();
+            showShopFrame(w, hit[1]);
+        }, true);
+    }
+    function showShopFrame(w, key) {
+        const frames = [...w.body.querySelectorAll(':scope > iframe')];
+        let next = frames.find(f => f.dataset.shop === key);
+        let laedt = null;
+        if (!next) {
+            laedt = document.createElement('div');
+            laedt.className = 'mcfo-loading';
+            laedt.textContent = 'Loading …';
+            w.body.appendChild(laedt);
+            next = document.createElement('iframe');
+            next.dataset.shop = key;
+            next.src = '/shop?shop=' + key;
+            wireFrame(w, next, laedt);
+            w.body.appendChild(next);
+            framePanelMode(next);
+        }
+        for (const f of frames) if (f !== next) f.style.display = 'none';
+        next.style.display = '';
+        w.frame = next;
+        if (next.hasAttribute('data-mcfo-ready')) { try { themeFrame(next); applyGlassToFrames(); } catch (e) {} }
     }
 
     // Caught in the capture phase, before the game sees the click, so its own navigation stays

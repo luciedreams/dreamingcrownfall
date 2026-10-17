@@ -6,7 +6,8 @@
     //   1. a resource bar at the top instead of the header cards (click a value: as before)
     //   2. a hotbar at the bottom instead of the footer and the tray under the King
     //   3. keys for it: 1 / 5 / 0 bid, U unbid, B autobid, R rebellion, F attack, Q W E A S D drinks,
-    //      I inventory, P profile
+    //      I inventory, P profile, Y achievements, J dailies, O shop, L leaderboards (also as buttons
+    //      in the resource bar)
     //   4. the chat floats in the bottom-left corner and fades while nothing happens
     //   5. lanes and King as one arena without the website's boxes
     // Nothing of the game is moved in the DOM: its parts are hidden by a stylesheet and ours
@@ -82,6 +83,13 @@
             .dcf-gl-res__sep { width: 1px; height: 20px; background: rgba(var(--gl-line), .3); }
             .dcf-gl-res__ev { font-weight: 600; font-size: 12px; opacity: .8; }
             .dcf-gl-res__ev b { color: rgb(var(--gl-accent)); opacity: 1; }
+            .dcf-gl-res__nav { display: flex; gap: 2px; }
+            .dcf-gl-res__nav button { width: 32px; height: 30px; display: grid; place-items: center; padding: 0; border: 1px solid transparent; border-radius: 9px;
+                background: none; color: rgba(var(--gl-text), .8); cursor: pointer; }
+            .dcf-gl-res__nav button:hover { background: rgba(var(--gl-line), .16); color: rgb(var(--gl-text)); }
+            .dcf-gl-res__nav button[data-on] { color: rgb(var(--gl-accent)); border-color: rgba(var(--gl-accent), .5); background: rgba(var(--gl-accent), .1); }
+            .dcf-gl-res__nav button:focus:not(:focus-visible) { outline: none; }
+            .dcf-gl-res__nav svg { width: 18px; height: 18px; }
             .dcf-gl-res__fps { font-weight: 600; font-size: 11.5px; opacity: .65; padding: 0 8px 0 4px; white-space: nowrap; font-variant-numeric: tabular-nums; }
             ${GL_ON} .mcfo-fps { display: none !important; }
 
@@ -135,10 +143,16 @@
 
             /* side panels instead of free windows (inline position and size from dragging are overruled) */
             ${GL_ON} .mcfo-win[data-dcf-side] { position: fixed !important; top: 56px !important; bottom: 104px !important; height: auto !important;
-                width: min(760px, 40vw) !important; min-width: 0 !important; max-width: none !important; transform: none !important;
+                min-width: 0 !important; max-width: none !important; transform: none !important; z-index: 45 !important;
                 border-radius: 14px !important; box-shadow: 0 18px 50px rgba(0, 0, 0, .55), 0 0 0 1px rgba(var(--gl-line), .35) !important; }
-            ${GL_ON} .mcfo-win[data-dcf-side="left"] { left: 14px !important; right: auto !important; bottom: 386px !important; }
-            ${GL_ON} .mcfo-win[data-dcf-side="right"] { right: 14px !important; left: auto !important; }
+            ${GL_ON} .mcfo-win[data-dcf-side="left"] { left: 14px !important; right: auto !important; width: var(--gl-w-left, min(760px, 40vw)) !important; }
+            ${GL_ON} .mcfo-win[data-dcf-side="right"] { right: 14px !important; left: auto !important; width: var(--gl-w-right, min(760px, 40vw)) !important; }
+            /* the inner edge of a panel: drag to make it wider or narrower (kept per side) */
+            .dcf-gl-grip { display: none; }
+            ${GL_ON} .mcfo-win[data-dcf-side] > .dcf-gl-grip { display: block; position: absolute; top: 0; bottom: 0; width: 10px; z-index: 5; cursor: ew-resize; }
+            ${GL_ON} .mcfo-win[data-dcf-side="left"] > .dcf-gl-grip { right: 0; }
+            ${GL_ON} .mcfo-win[data-dcf-side="right"] > .dcf-gl-grip { left: 0; }
+            ${GL_ON} .mcfo-win[data-dcf-side] > .dcf-gl-grip:hover, ${GL_ON} .mcfo-win[data-dcf-side] > .dcf-gl-grip[data-drag] { background: linear-gradient(90deg, transparent 3px, rgba(var(--gl-accent), .6) 3px 7px, transparent 7px); }
             ${GL_ON} .mcfo-win[data-dcf-side] > :is(.mcfo-win__grip, .mcfo-win__edge) { display: none !important; }
             ${GL_ON} .mcfo-win[data-dcf-side] > .mcfo-win__head { cursor: default !important; }
             ${GL_ON} .mcfo-win[data-dcf-side] [data-mcfo-win="min"] { display: none !important; }
@@ -198,7 +212,22 @@
         ...GL_DRINKS.map((n, i) => ({ grp: 'king', id: 'drink-' + n, key: 'QWEASD'[i], name: n, drink: n, target: () => glDrink(n),
           open: b => { const bev = BEVERAGES.find(x => x.label === n); if (bev) showBeveragePanel(bev, b); } })),
     ];
-    const GL_PAGE_KEYS = { I: 'inventory-nav', P: 'profile-nav' };
+    // Pages: buttons in the resource bar and keys (I and P asked for by Luce, the rest alike).
+    const GL_PAGES = [
+        { key: 'I', page: 'inventory-nav', name: 'Inventory', icon: '<path d="M21 8l-9-5-9 5 9 5 9-5Z"/><path d="M3 8v8l9 5 9-5V8"/><path d="M12 13v8"/>' },
+        { key: 'P', page: 'profile-nav', name: 'Profile', icon: '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>' },
+        { key: 'Y', page: 'achievements', name: 'Achievements', icon: '<circle cx="12" cy="15" r="5"/><path d="M8.5 11.5 6 3h4l2 5 2-5h4l-2.5 8.5"/>' },
+        { key: 'J', page: 'dailies-nav', name: 'Dailies', icon: '<path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>' },
+        { key: 'O', page: 'shop-nav', name: 'Shop', icon: '<path d="M6 7h12l1 14H5L6 7Z"/><path d="M9 7a3 3 0 0 1 6 0"/>' },
+        { key: 'L', page: 'leaderboards-nav', name: 'Leaderboards', icon: '<path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0Z"/><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/>' },
+    ];
+    // The same key or button closes the page again, like a bag in a game.
+    function glTogglePage(pageKey) {
+        const p = PAGES[pageKey];
+        if (!p) return;
+        const w = windows.get(p.path);
+        if (w && !w.min && !w.lazy) closeWindow(p.path); else openPage(p.path, p.title);
+    }
 
     function glBuild() {
         if (glBuilt) return glBuilt;
@@ -230,7 +259,21 @@
         ev.addEventListener('click', e => { e.stopPropagation(); showEvents(ev); });
         const fps = document.createElement('span');
         fps.className = 'dcf-gl-res__fps';
-        res.append(sep, ev, fps);
+        const sep2 = document.createElement('i');
+        sep2.className = 'dcf-gl-res__sep';
+        const pages = new Map();
+        const nav = document.createElement('div');
+        nav.className = 'dcf-gl-res__nav';
+        for (const pg of GL_PAGES) {
+            const b = document.createElement('button');
+            b.type = 'button';
+            b.title = `${pg.name} (${pg.key})`;
+            b.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${pg.icon}</svg>`;
+            b.addEventListener('click', e => { e.stopPropagation(); glTogglePage(pg.page); });
+            nav.append(b);
+            pages.set(pg.page, b);
+        }
+        res.append(sep, ev, fps, sep2, nav);
 
         // 2 hotbar
         const bar = document.createElement('div');
@@ -260,7 +303,7 @@
             g.append(gl, row);
             bar.append(g);
         }
-        glBuilt = { res, chips, ev, fps, bar, buttons };
+        glBuilt = { res, chips, ev, fps, bar, buttons, pages };
         return glBuilt;
     }
 
@@ -316,6 +359,17 @@
                 if (b.dataset.pic !== want) { b.dataset.pic = want; b.firstElementChild.innerHTML = want; }
             }
         }
+        for (const [pageKey, b] of glBuilt.pages) {
+            const w = PAGES[pageKey] && windows.get(PAGES[pageKey].path);
+            b.toggleAttribute('data-on', !!(w && w.el && !w.min && w.el.isConnected));
+        }
+        for (const el of document.querySelectorAll('.mcfo-win[data-dcf-side]')) {
+            if (!el.querySelector(':scope > .dcf-gl-grip')) glGrip(el);
+            // The pages inside know they are a side panel (compact shop head, shop-dailies.js).
+            for (const f of el.querySelectorAll('iframe')) {
+                try { const r = f.contentDocument && f.contentDocument.documentElement; if (r && !r.hasAttribute('data-dcf-gl-panel')) r.setAttribute('data-dcf-gl-panel', ''); } catch (e) {}
+            }
+        }
         const toll = !!glQ('[data-role="bid-area"][data-king-toll-mode="true"]');
         document.documentElement.toggleAttribute('data-dcf-gl-toll', toll);
         // The hotbar sits in the middle, unless the chat in the corner reaches into it.
@@ -324,6 +378,43 @@
         const w = bar.offsetWidth, room = cr && cr.width ? cr.right + 14 : 0;
         const left = !toll && room > innerWidth / 2 - w / 2 ? Math.min(room + w / 2, innerWidth - w / 2 - 8) + 'px' : '';
         if (bar.style.left !== left) bar.style.left = left;
+    }
+
+    // Panel width: dragged at the inner edge, kept per side (localStorage of this tab's account).
+    const glWidthKey = side => 'dcf_gl_w_' + side;
+    function glWidths() {
+        for (const side of ['left', 'right']) {
+            let v = 0;
+            try { v = Number(localStorage.getItem(glWidthKey(side))) || 0; } catch (e) {}
+            if (v) document.documentElement.style.setProperty('--gl-w-' + side, Math.min(v, Math.round(innerWidth * 0.8)) + 'px');
+        }
+    }
+    function glGrip(el) {
+        const g = document.createElement('div');
+        g.className = 'dcf-gl-grip';
+        g.title = 'Drag to resize';
+        g.addEventListener('pointerdown', e => {
+            if (e.button !== 0) return;
+            e.preventDefault(); e.stopPropagation();
+            g.setPointerCapture(e.pointerId);
+            g.setAttribute('data-drag', '');
+            const side = el.dataset.dcfSide;
+            const move = ev => {
+                const r = el.getBoundingClientRect();
+                const w = Math.round(Math.max(380, Math.min(innerWidth * 0.8, side === 'left' ? ev.clientX - r.left : r.right - ev.clientX)));
+                document.documentElement.style.setProperty('--gl-w-' + side, w + 'px');
+            };
+            const up = () => {
+                g.removeEventListener('pointermove', move);
+                g.removeAttribute('data-drag');
+                const w = parseInt(document.documentElement.style.getPropertyValue('--gl-w-' + side), 10);
+                try { if (w) localStorage.setItem(glWidthKey(side), String(w)); } catch (e) {}
+            };
+            g.addEventListener('pointermove', move);
+            g.addEventListener('pointerup', up, { once: true });
+            g.addEventListener('pointercancel', up, { once: true });
+        });
+        el.append(g);
     }
 
     // 4 chat: quiet after 8 s without a new line.
@@ -348,16 +439,8 @@
         // An open hotbar menu does not block: the same key closes it again (showPanel toggles per anchor).
         if (glQ('dcf-esc-menu, .dcf-pn, .dcf-set, .dcf-tour')) return;
         const k = e.key.length === 1 ? e.key.toUpperCase() : e.key;
-        const page = GL_PAGE_KEYS[k];
-        // The same key closes the page again, like a bag in a game.
-        if (page) {
-            e.preventDefault();
-            const p = PAGES[page];
-            if (!p) return;
-            const w = windows.get(p.path);
-            if (w && !w.min && !w.lazy) closeWindow(p.path); else openPage(p.path, p.title);
-            return;
-        }
+        const pg = GL_PAGES.find(x => x.key === k);
+        if (pg) { e.preventDefault(); glTogglePage(pg.page); return; }
         const s = GL_SLOTS.find(x => x.key === k);
         if (s) { e.preventDefault(); glFire(s); }
     }
@@ -372,6 +455,7 @@
             const b = glBuild();
             document.body.append(b.res, b.bar);
             root.setAttribute('data-dcf-gl', '');
+            glWidths();
             glColours();
             glTick();
             glChatWatch();
@@ -382,6 +466,7 @@
             root.removeAttribute('data-dcf-gl');
             root.removeAttribute('data-dcf-gl-toll');
             glQ('[data-role="desktop-chat-pane"]')?.removeAttribute('data-dcf-gl-idle');
+            for (const f of document.querySelectorAll('.mcfo-win iframe')) { try { f.contentDocument.documentElement.removeAttribute('data-dcf-gl-panel'); } catch (e) {} }
             if (glBuilt) { glBuilt.res.remove(); glBuilt.bar.remove(); }
         }
         // The game lays out its board from the room it has: let it measure again.
@@ -442,7 +527,7 @@
     function glTour() {
         const part = 'New design';
         startTour('', { steps: [
-            { part, place: 'below', title: 'Your resources', text: 'Tickets, points, gold and diamonds in one bar. The green dot means you are earning tickets. Click a value for its shop, history or loadouts, and the tileset for the next 12 hours.',
+            { part, place: 'below', title: 'Your resources', text: 'Tickets, points, gold and diamonds in one bar. The green dot means you are earning tickets. Click a value for its shop, history or loadouts, the tileset for the next 12 hours — and the buttons on the right open your inventory, profile, achievements, dailies, shop and leaderboards.',
               at: [{ find: () => glBuilt && glBuilt.res }] },
             { part, place: 'above', title: 'The hotbar', text: 'Every action of the footer, now with keys: 1, 5 and 0 bid, U takes your bids back, R starts a Rebellion. While you are King the toll field comes back here and the hotbar moves aside.',
               at: [{ find: () => glQ('.dcf-gl-bar__grp[data-grp="bids"]') }, { find: () => glBuilt && glBuilt.bar }] },
@@ -450,7 +535,7 @@
               at: [{ find: () => glQ('.dcf-gl-bar__grp[data-grp="king"]') }] },
             { part, place: 'right', title: 'The chat', text: 'Floats in the corner and fades while it is quiet. A new line, the mouse or a click brings it back.',
               at: [{ find: () => glQ('[data-role="desktop-chat-pane"]') }] },
-            { part, title: 'Menus and keys', text: 'I opens your inventory, P your profile. Esc brings up the game menu with everything else, F1 lists every shortcut.' },
+            { part, title: 'Menus and keys', text: 'Pages open as panels at the sides — drag their inner edge to make them wider. Keys: I inventory, P profile, Y achievements, J dailies, O shop, L leaderboards; the same key closes them. Esc brings up the game menu, F1 lists every shortcut.' },
             { part, title: 'Keep the new design?', text: 'You can switch any time in Settings › General › Layout.' },
         ], finish: [
             { label: 'Back to classic', run: () => { const a = glApi(); if (a) a.set('ui.gameLayout', false); } },

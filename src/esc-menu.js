@@ -347,7 +347,8 @@ module.exports = function createEscMenu(ctx) {
                 ['Attack when free', ['F']],
                 ['Water · Lava · Bomb', ['Q', 'W', 'E']],
                 ['Milk · Acid · Mystery', ['A', 'S', 'D']],
-                ['Inventory · Profile', ['I', 'P']],
+                ['Inventory · Profile · Achievements', ['I', 'P', 'Y']],
+                ['Dailies · Shop · Leaderboards', ['J', 'O', 'L']],
             ] }] : []),
             { title: 'Mouse', rows: [
                 ['Menu for names, links and the page', ['Right click']],

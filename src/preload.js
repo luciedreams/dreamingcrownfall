@@ -22,6 +22,17 @@ if (host === 'marblecrownfall.com' || host.endsWith('.marblecrownfall.com')) {
     // Kein Zoomen aus Versehen: Touchpad-Pinch und Strg+Mausrad kommen als wheel mit ctrlKey an.
     // Bewusst zoomen geht weiter mit Strg+Plus/Minus/0 (main.js handleKeys).
     window.addEventListener('wheel', (e) => { if (e.ctrlKey) e.preventDefault(); }, { passive: false, capture: true });
+    // Seiten in Fenstern und Panels (iframes): Scrollbalken in App-Farben statt Chromium-Grau. Den
+    // obersten Frame bedient main.js (insertCSS, APP_FEEL_CSS) — insertCSS erreicht keine iframes.
+    if (window.top !== window.self) {
+        const addBars = () => {
+            const st = document.createElement('style');
+            st.textContent = 'html { scrollbar-color: rgba(180, 138, 232, 0.45) transparent; scrollbar-width: thin; }';
+            (document.head || document.documentElement).appendChild(st);
+        };
+        if (document.documentElement) addBars();
+        else new MutationObserver((_, o) => { if (document.documentElement) { o.disconnect(); addBars(); } }).observe(document, { childList: true });
+    }
     installContextMenu(ipcRenderer);
     // Brücke zu den App-Einstellungen (Benachrichtigungen, Discord, Autostart) — nur im obersten Frame,
     // und die App nimmt nur die Schalter an, die sie kennt (app-settings.js).
@@ -75,6 +86,8 @@ if (host === 'marblecrownfall.com' || host.endsWith('.marblecrownfall.com')) {
                         return s;
                     };
                     const GM_info = { script: { name: 'DreamingCrownfall', version }, scriptHandler: 'dreamingcrownfall' };
+                    // Merker für windows.js: in diesem Dokument lief die Spiel-Ebene (siehe dort, Frame-Neuladen).
+                    try { window.__dcfGameLayer = true; } catch (e) {}
                     try {
                         new Function('GM_addStyle', 'unsafeWindow', 'GM_info', code)(GM_addStyle, window, GM_info);
                     } catch (e) {
