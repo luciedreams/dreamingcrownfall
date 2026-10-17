@@ -156,6 +156,7 @@ function tabState() {
         active,
         home: !!home?.available(),
         stats: !!stats?.enabled(),
+        maximized: !!win?.isMaximized(),
         tabs: views.map((v) => ({
             name: label(v), guest: v.guest, avatar: v.avatar || '', loading: v.view.webContents.isLoading(),
             king: !!(king && v.playerId && v.playerId === king.playerId),
@@ -212,6 +213,10 @@ ipcMain.on('tabs:settings', () => showSettingsPage(''));
 // Settings › Stats › „Open the Stats tab“ (Spiel-Ebene).
 ipcMain.on('dcf:stats:open', (_e, tab) => select(STATS, tab || undefined));
 ipcMain.handle('tabs:state', () => tabState());
+// Fensterknöpfe der eigenen Leiste (kein Systemrahmen).
+ipcMain.on('win:minimize', () => win?.minimize());
+ipcMain.on('win:maximize', () => { if (!win) return; if (win.isMaximized()) win.unmaximize(); else win.maximize(); });
+ipcMain.on('win:close', () => win?.close());
 ipcMain.on('dcf:notify:test', () => notifier?.test());
 // Willkommen-Schritte: nur ein Tab zeigt sie (der erste, der fragt, behält sie auch nach dem Neuladen).
 let welcomeOwner = null;
@@ -389,6 +394,10 @@ function createWindow() {
         icon: ICON,
         backgroundColor: '#14101c',
         show: !autostart.startHidden, // Autostart: erst im Tray, Fenster über „Show“
+        // Ohne Systemrahmen (seit 0.7.0): die Account-Leiste ist die Fensterleiste — ziehen zum
+        // Verschieben, eigene Knöpfe für Minimieren/Maximieren/Schließen (tabs.html).
+        frame: false,
+        minWidth: 900, minHeight: 600,
     });
     if (ws.maximized) win.maximize();
     windowState.track(win);
@@ -423,6 +432,8 @@ function createWindow() {
     let settle = 0;
     const relayout = () => { layout(); clearTimeout(settle); settle = setTimeout(layout, 150); };
     for (const ev of ['resize', 'maximize', 'unmaximize', 'restore', 'enter-full-screen', 'leave-full-screen']) win.on(ev, relayout);
+    // Maximieren-Knopf der Leiste zeigt den Zustand (□ bzw. ❐).
+    for (const ev of ['maximize', 'unmaximize']) win.on(ev, pushTabs);
     // Hauptfenster zu = App beenden. 'window-all-closed' allein reicht nicht: das HUD und
     // ausgekoppelte Fenster sind auch Fenster und hielten die App sonst am Leben.
     win.on('closed', () => app.quit());

@@ -9,4 +9,7 @@ contextBridge.exposeInMainWorld('tabs', {
     add: () => ipcRenderer.send('tabs:add'),
     remove: (i) => ipcRenderer.send('tabs:remove', i),
     settings: () => ipcRenderer.send('tabs:settings'),
+    minimize: () => ipcRenderer.send('win:minimize'),
+    maximize: () => ipcRenderer.send('win:maximize'),
+    close: () => ipcRenderer.send('win:close'),
 });

@@ -16,7 +16,9 @@
         margin: 0; height: 100%; color: var(--text); font: 13px/1.2 system-ui, sans-serif; user-select: none; overflow: hidden;
         background: linear-gradient(180deg, var(--bg1), var(--bg2));
     }
-    body { display: flex; align-items: center; gap: 12px; padding: 0 16px; border-bottom: 1px solid var(--line); }
+    /* Die Leiste ist die Fensterleiste: überall ziehen = Fenster verschieben, außer auf Bedienelementen. */
+    body { display: flex; align-items: center; gap: 12px; padding: 0 0 0 16px; border-bottom: 1px solid var(--line); -webkit-app-region: drag; }
+    .uf, .add, .ic, .x, .yes, .no, .wb { -webkit-app-region: no-drag; }
     button { font: inherit; color: inherit; cursor: pointer; }
     .logo { width: 30px; height: 30px; flex: none; margin-right: 4px; }
     #frames { display: flex; align-items: center; gap: 12px; min-width: 0; flex: 0 1 auto; }
@@ -70,6 +72,12 @@
     .ic.on { border-color: var(--gold); color: var(--gold); background: rgba(255, 211, 110, 0.08); }
     .ic.gear { color: var(--muted); }
     .ic svg { width: 18px; height: 18px; }
+    /* Fensterknöpfe: volle Leistenhöhe, wie in Spiel-Clients; Schließen wird rot */
+    .wbs { display: flex; align-self: stretch; margin-left: 6px; }
+    .wb { width: 46px; border: 0; background: none; color: var(--muted); display: grid; place-items: center; }
+    .wb svg { width: 14px; height: 14px; }
+    .wb:hover { background: rgba(255, 255, 255, 0.07); color: var(--text); }
+    .wb.close:hover { background: #c4314b; color: #fff; }
 </style>
 </head>
 <body>
@@ -80,6 +88,11 @@
 <button class="ic" id="home" title="Home: all your accounts at a glance" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V20h14V9.5"/><path d="M10 20v-5h4v5"/></svg></button>
 <button class="ic" id="stats" title="Stats: live numbers of the whole game (MarbleMind)" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V10"/><path d="M10 20V4"/><path d="M16 20v-7"/><path d="M22 20H2"/></svg></button>
 <button class="ic gear" id="gear" title="Settings (Ctrl+,) · F2 HUD · F5 reload · F11 full screen" aria-label="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z"/></svg></button>
+<div class="wbs">
+    <button class="wb" id="wmin" title="Minimize"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2 7h10"/></svg></button>
+    <button class="wb" id="wmax" title="Maximize"></button>
+    <button class="wb close" id="wclose" title="Close"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M3 3l8 8M11 3l-8 8"/></svg></button>
+</div>
 <script>
     const box = document.getElementById('frames');
     const TICKET = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-2a2 2 0 0 0 0-4Z"/></svg>';
@@ -171,8 +184,16 @@
         const home = document.getElementById('home'), stats = document.getElementById('stats');
         home.hidden = !s.home; home.classList.toggle('on', s.active === -1);
         stats.hidden = !s.stats; stats.classList.toggle('on', s.active === -2);
+        const max = document.getElementById('wmax');
+        max.title = s.maximized ? 'Restore' : 'Maximize';
+        max.innerHTML = s.maximized
+            ? '<svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="2" y="4.5" width="7.5" height="7.5"/><path d="M4.5 4.5V2h7.5v7.5H9.5"/></svg>'
+            : '<svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="2.5" y="2.5" width="9" height="9"/></svg>';
     }
     document.getElementById('add').onclick = () => window.tabs.add();
+    document.getElementById('wmin').onclick = () => window.tabs.minimize();
+    document.getElementById('wmax').onclick = () => window.tabs.maximize();
+    document.getElementById('wclose').onclick = () => window.tabs.close();
     document.getElementById('gear').onclick = () => window.tabs.settings();
     document.getElementById('home').onclick = () => window.tabs.select(-1);
     document.getElementById('stats').onclick = () => window.tabs.select(-2);
