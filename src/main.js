@@ -32,6 +32,7 @@ const createEscMenu = require('./esc-menu.js');
 const tooltip = require('./tooltip.js');
 const createServerWatch = require('./server-watch.js');
 const openLogin = require('./login.js');
+const createBadge = require('./badge.js');
 const { pathToFileURL } = require('url');
 
 const START_URL = 'https://marblecrownfall.com/';
@@ -104,6 +105,7 @@ let quitReady = false, quitPrep = null;
 function prepareQuit() {
     if (!quitPrep) {
         saveSession();
+        badge.set(0);
         const tell = Promise.all(views.map((v) => v.view.webContents.executeJavaScript('window.__dcfQuitting = true').catch(() => {})));
         quitPrep = Promise.race([tell, new Promise((r) => setTimeout(r, 600))]).then(() => { quitReady = true; });
     }
@@ -220,7 +222,9 @@ function tabState() {
 function pushTabs() {
     // Beim Beenden kommen noch Ereignisse der Tabs an, wenn das Fenster schon weg ist (17.10.: Fehlerdialog).
     if (!win || win.isDestroyed()) return;
-    if (tabBar && !tabBar.webContents.isDestroyed()) tabBar.webContents.send('tabs:state', tabState());
+    const state = tabState();
+    if (tabBar && !tabBar.webContents.isDestroyed()) tabBar.webContents.send('tabs:state', state);
+    badge.set(state.tabs.reduce((sum, t) => sum + (t.guest ? 0 : Number(t.claim) || 0), 0));
     const cur = views[active];
     if (win) win.setTitle(active === HOME ? `${APP_TITLE} – Home` : active === STATS ? `${APP_TITLE} – Stats` : cur ? `${APP_TITLE} – ${label(cur)}` : APP_TITLE);
     home?.push();
@@ -512,6 +516,16 @@ ipcMain.on('win:maximize', () => { if (!win) return; if (win.isMaximized()) win.
 ipcMain.on('win:close', () => win?.close());
 // ESC-Menü der Spiel-Ebene (seit 0.7.0): was es anbieten kann, Home und Beenden.
 ipcMain.on('dcf:menu:open', (e) => escMenu.show(e.sender));
+// Zahl am Taskleisten-Symbol: alles Abholbare über alle Accounts (badge.js). Windows-Symbol zeichnet die Leiste.
+const BADGE_JS = (text) => `(() => { const c = document.createElement('canvas'); c.width = c.height = 32; const g = c.getContext('2d');
+    g.fillStyle = '#ffd36e'; g.beginPath(); g.arc(16, 16, 15, 0, Math.PI * 2); g.fill();
+    g.fillStyle = '#2a1c05'; g.font = 'bold ${text.length > 2 ? 14 : 19}px system-ui, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.fillText(${JSON.stringify(text)}, 16, 17); return c.toDataURL(); })()`;
+const badge = createBadge({
+    getWin: () => win,
+    render: (text) => (tabBar && !tabBar.webContents.isDestroyed() ? tabBar.webContents.executeJavaScript(BADGE_JS(text)) : Promise.resolve(null)),
+});
+
 // Interface sounds: spielt die Leiste (tabs.html), Schalter und Lautstärke aus den App-Einstellungen.
 function uiSound(kind) {
     if (appSettings.get('ui.sounds') === false || !tabBar || tabBar.webContents.isDestroyed()) return;
