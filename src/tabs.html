@@ -74,6 +74,7 @@
     .ic.on { border-color: var(--gold); color: var(--gold); background: rgba(255, 211, 110, 0.08); }
     .ic.gear { color: var(--muted); }
     .ic svg { width: 18px; height: 18px; }
+
     /* Fensterknöpfe: volle Leistenhöhe, wie in Spiel-Clients; Schließen wird rot */
     .wbs { display: flex; align-self: stretch; margin-left: 6px; }
     .wb { width: 46px; border: 0; background: none; color: var(--muted); display: grid; place-items: center; }
@@ -175,6 +176,9 @@
         }
         f.onclick = () => window.tabs.select(i);
         f.onauxclick = (e) => { if (e.button === 1) window.tabs.reload(i); };
+        // Rechtsklick: Menü zeichnet der sichtbare Spiel-Tab direkt unter dem Rahmen (main.js tabs:ctx) —
+        // die Leiste selbst kann nicht über das Spiel hinaus wachsen (durchsichtig geht hier nicht).
+        f.oncontextmenu = (e) => { e.preventDefault(); window.tabs.contextMenu(i, Math.round(f.getBoundingClientRect().left + 20)); };
         return f;
     }
 
@@ -200,6 +204,7 @@
     document.getElementById('home').onclick = () => window.tabs.select(-1);
     document.getElementById('stats').onclick = () => window.tabs.select(-2);
     document.getElementById('stats').onauxclick = (e) => { if (e.button === 1) window.tabs.reload(-2); };
+    window.tabs.onConfirmRemove((i) => { confirmAt = i; render(last); });
     window.tabs.onState(render);
     window.tabs.state().then(render);
 </script>

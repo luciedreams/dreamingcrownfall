@@ -27,6 +27,7 @@ const createHud = require('./hud.js');
 const createStats = require('./stats.js');
 const startTabStatus = require('./tab-status.js');
 const createOverlay = require('./overlay.js');
+const startContextMenu = require('./context-menu.js');
 const { pathToFileURL } = require('url');
 
 const START_URL = 'https://marblecrownfall.com/';
@@ -132,6 +133,9 @@ const STATS = -2;     // active === STATS: die öffentliche MarbleMind-Seite (st
 // active < 0 = kein Spiel-Tab vorn (Home oder Stats) — wer ein Spiel braucht, nimmt lastGame.
 let lastGame = 0;     // zuletzt gewählter Spiel-Tab (für Discord, Settings aus dem Tray)
 let home = null, hud = null, stats = null, tabStatus = null, overlay = null;
+const contextMenu = startContextMenu({
+    toggleHud: () => hud?.toggle(), hudOpen: () => !!hud?.isOpen(), openSettings: () => showSettingsPage(''),
+});
 const views = []; // je Account: { acc, view, name, guest, playerId, avatar }
 
 // ---- App-Schicht und MLF an den Preload ------------------------------------------------------
@@ -400,6 +404,21 @@ ipcMain.on('tabs:settings', () => showSettingsPage(''));
 // Settings › Stats › „Open the Stats tab“ (Spiel-Ebene).
 ipcMain.on('dcf:stats:open', (_e, tab) => select(STATS, tab || undefined));
 ipcMain.handle('tabs:state', () => tabState());
+// Rechtsklick auf einen Account-Rahmen: Menü im sichtbaren Spiel-Tab direkt unter dem Rahmen.
+ipcMain.on('tabs:ctx', (_e, i, x) => {
+    const v = views[i];
+    if (!v) return;
+    contextMenu.showFrameMenu({
+        target: active >= 0 ? views[active].view.webContents : null,
+        x: Number(x) || 0,
+        title: v.guest ? 'Not signed in' : label(v),
+        items: [
+            ...(i !== active ? [{ label: 'Switch to this account', hint: i < 9 ? `Ctrl+${i + 1}` : '', run: () => select(i) }] : []),
+            { label: 'Reload', hint: 'middle click', run: () => v.view.webContents.reload() },
+            ...(views.length > 1 ? [{ type: 'sep' }, { label: 'Sign out and remove …', run: () => tabBar.webContents.send('tabs:confirm-remove', i) }] : []),
+        ],
+    });
+});
 // Fensterknöpfe der eigenen Leiste (kein Systemrahmen).
 ipcMain.on('win:minimize', () => win?.minimize());
 ipcMain.on('win:maximize', () => { if (!win) return; if (win.isMaximized()) win.unmaximize(); else win.maximize(); });
@@ -471,6 +490,7 @@ input, textarea, select, [contenteditable]:not([contenteditable="false"]), .mcf-
 img, a, svg, video { -webkit-user-drag: none; }
 :focus:not(:focus-visible) { outline: none; }`;
 function wireGameContents(wc, v) {
+    contextMenu.attach(wc);
     wc.on('dom-ready', () => {
         let host = '';
         try { host = new URL(wc.getURL()).hostname; } catch {}
