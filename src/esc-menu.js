@@ -341,6 +341,14 @@ module.exports = function createEscMenu(ctx) {
                 ['Zoom in / out', ['Ctrl+Plus', 'Ctrl+Minus']],
                 ['Reset zoom', ['Ctrl+0']],
             ] },
+            ...(ctx.gameLayout() ? [{ title: 'Game layout', rows: [
+                ['Bid 1 / 5 / 10', ['1', '5', '0']],
+                ['Unbid · Rebellion', ['U', 'R']],
+                ['Attack when free', ['F']],
+                ['Water · Lava · Bomb', ['Q', 'W', 'E']],
+                ['Milk · Acid · Mystery', ['A', 'S', 'D']],
+                ['Inventory · Profile', ['I', 'P']],
+            ] }] : []),
             { title: 'Mouse', rows: [
                 ['Menu for names, links and the page', ['Right click']],
                 ['Reload an account', ['Middle click on its frame']],

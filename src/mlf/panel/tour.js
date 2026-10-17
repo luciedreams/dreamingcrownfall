@@ -259,6 +259,19 @@
         const next = tourEl('button', 'dcf-tour__btn dcf-tour__btn--main', i === steps.length - 1 ? 'Let’s play' : 'Next');
         next.type = 'button';
         next.addEventListener('click', () => tourGo(1));
+        if (tourState.finish && i === steps.length - 1) {
+            const choices = tourState.finish.map(f => {
+                const b = tourEl('button', 'dcf-tour__btn' + (f.main ? ' dcf-tour__btn--main' : ''), f.label);
+                b.type = 'button';
+                b.addEventListener('click', () => { tourEnd(); f.run(); });
+                return b;
+            });
+            foot.append(back, tourEl('span', 'grow'), ...choices);
+            card.replaceChildren(kicker, tourEl('div', 'dcf-tour__title', at.title), tourEl('p', 'dcf-tour__text', at.text), dots, foot);
+            tourPlace();
+            choices[choices.length - 1].focus({ preventScroll: true });
+            return;
+        }
         foot.append(skip, tourEl('span', 'grow'), back, next);
         card.replaceChildren(kicker, tourEl('div', 'dcf-tour__title', at.title), tourEl('p', 'dcf-tour__text', at.text), dots, foot);
         tourPlace();
@@ -283,7 +296,9 @@
     }
 
     // part: 'app' starts at the app's steps.
-    function startTour(part) {
+    // opts.steps: another tour on the same engine (layout/game-layout.js: the new design);
+    // opts.finish: buttons for the last step instead of "Let's play", each { label, main?, run }.
+    function startTour(part, opts = {}) {
         tourEnd();
         tourStyles();
         try { closeAppSettings(); } catch (e) {}
@@ -298,7 +313,7 @@
         const shades = [0, 1, 2, 3].map(() => tourEl('div', 'dcf-tour__shade'));
         root.append(block, ...shades, spot, arrow, card);
         document.body.appendChild(root);
-        const steps = TOUR_STEPS;
+        const steps = opts.steps || TOUR_STEPS;
         const keyHandler = e => {
             if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); tourEnd(); }
             else if (e.key === 'ArrowRight' || e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); tourGo(1); }
@@ -306,7 +321,7 @@
         };
         document.addEventListener('keydown', keyHandler, true);
         addEventListener('resize', tourPlace);
-        tourState = { root, spot, card, arrow, shades, steps, i: part === 'app' ? Math.max(0, steps.findIndex(s => s.part === 'The app')) : 0, raf: 0, keyHandler };
+        tourState = { root, spot, card, arrow, shades, steps, finish: opts.finish || null, i: part === 'app' ? Math.max(0, steps.findIndex(s => s.part === 'The app')) : 0, raf: 0, keyHandler };
         tourDraw();
         // The game moves under the spotlight (lanes, windows); follow it a few times a second.
         let last = 0;

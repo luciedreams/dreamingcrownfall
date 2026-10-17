@@ -64,6 +64,7 @@
     // Settings that belong to the app (window.dcfApp), with what the search finds them by.
     const DCF_APP_ITEMS = [
         { page: 'general', part: 'windows', key: 'windows.popOut', label: 'Every window on its own', hint: 'Inventory, leaderboards, shop and the other windows open as windows of their own, to move anywhere, also onto another screen. Off: they open inside the game as before, and ⧉ in a window\'s title bar takes that one out. The chat always opens inside the game.' },
+        { page: 'general', part: 'layout', key: 'ui.gameLayout', label: 'Game layout', hint: 'The board as a game: a resource bar at the top, a hotbar with keys at the bottom (1 / 5 / 0 bid, U unbid, R rebellion, F attack, Q W E A S D drinks, I inventory, P profile), the chat floating in the corner, lanes and King as one arena. Off: the classic layout of the website.' },
         { page: 'general', part: 'windows', key: 'ui.transitions', label: 'Smooth transitions', hint: 'Switching between accounts, Home, Stats and the wiki fades over instead of cutting hard. Windows inside the game open and close softly and fly into the taskbar when you minimise them.' },
         { page: 'general', part: 'windows', key: 'ui.sounds', label: 'Interface sounds', hint: 'Soft sounds when the game menu, the shortcuts card or the right-click menu open and close, when you pick an entry and when you switch accounts. Nothing plays on mouse-over.' },
         { page: 'general', part: 'stability', key: 'stability.recover', label: 'Recover on its own', hint: 'A tab that hangs for 30 seconds or crashes reloads itself; a page that does not load tries again. After sleep or a lost internet connection every tab reloads once, so chat and tickets do not sit on a dead connection.' },
@@ -295,7 +296,7 @@
         const state = api.settings();
         const items = DCF_APP_ITEMS.filter(i => i.page === page.id);
         if (page.id === 'general') {
-            for (const [title, group] of [['Start', undefined], ['Windows', 'windows'], ['Shortcuts', 'shortcuts'], ['Stability', 'stability']]) {
+            for (const [title, group] of [['Start', undefined], ['Layout', 'layout'], ['Windows', 'windows'], ['Shortcuts', 'shortcuts'], ['Stability', 'stability']]) {
                 const part = dcfPart(title);
                 const card = dcfEl('div', 'mcfo-set__card');
                 for (const i of items.filter(x => x.part === group)) card.appendChild(dcfAppSwitch(i, state));

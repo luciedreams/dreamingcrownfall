@@ -184,6 +184,7 @@ const escMenu = createEscMenu({
     home: () => select(HOME), stats: () => select(STATS), wiki: () => select(WIKI), hud: () => hud?.toggle(),
     settings: () => showSettingsPage(''), quit: () => win?.close(),
     globalShortcuts: () => appSettings.get('shortcuts.global') === true,
+    gameLayout: () => appSettings.get('ui.gameLayout') !== false,
     sound: (kind) => uiSound(kind),
     get updater() { return updater; },
 });
@@ -532,6 +533,8 @@ ipcMain.on('win:maximize', () => { if (!win) return; if (win.isMaximized()) win.
 ipcMain.on('win:close', () => win?.close());
 // ESC-Menü der Spiel-Ebene (seit 0.7.0): was es anbieten kann, Home und Beenden.
 ipcMain.on('dcf:menu:open', (e) => escMenu.show(e.sender));
+// „Welcome to the new design“: nur der Spiel-Tab, der gerade vorn ist, begrüßt (game-layout.js).
+ipcMain.on('dcf:intro:claim', (e) => { e.returnValue = active >= 0 && e.sender === views[active]?.view.webContents && !!win?.isVisible(); });
 // Zahl am Taskleisten-Symbol: alles Abholbare über alle Accounts (badge.js). Windows-Symbol zeichnet die Leiste.
 const BADGE_JS = (text) => `(() => { const c = document.createElement('canvas'); c.width = c.height = 32; const g = c.getContext('2d');
     g.fillStyle = '#ffd36e'; g.beginPath(); g.arc(16, 16, 15, 0, Math.PI * 2); g.fill();
@@ -925,7 +928,8 @@ if (!app.requestSingleInstanceLock()) {
         const fresh = !fs.existsSync(ACCOUNTS_FILE());
         appSettings.init();
         try { autostart.refresh(appSettings.get('autostart.hidden') !== false); } catch (e) { console.error(`[dcf] Autostart: ${e.message}`); }
-        if (fresh) appSettings.set('game.plain', true);
+        // Neue Installation: eigene Willkommen-Schritte statt „Welcome to the new design“.
+        if (fresh) { appSettings.set('game.plain', true); appSettings.set('app.layoutIntro', true); }
         else if (!appSettings.get('app.onboarded')) appSettings.set('app.onboarded', true);
         initPerfReport();
         vitals = startVitals({ views, setting: appSettings.get, label });

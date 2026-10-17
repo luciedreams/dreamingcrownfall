@@ -88,6 +88,7 @@
     step('first pass', apply);
     step('parked windows', restoreParked);
     step('open windows', restoreOpen);
+    step('game layout', startGameLayout);
     step('king', () => { pollKing(); setInterval(pollKing, KING_POLL_MS); });
     // Read-only and cheap; also picks up a fresh set of rights after a throne change.
     step('beverages', () => { pollBeverages(); setInterval(pollBeverages, 20000); });

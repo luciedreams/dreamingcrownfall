@@ -14,6 +14,8 @@ const SCHEMA = {
     'game.plain': false,      // Spiel-Ebene startet wie die Website (neue Installationen ab 0.3.0)
     'windows.popOut': true,
     'ui.transitions': true,   // Überblenden beim Wechsel zwischen Accounts, Home und Stats (overlay.js)
+    'ui.gameLayout': true,    // Spiel-Layout statt Website-Layout (mlf/layout/game-layout.js, seit 0.7.0)
+    'app.layoutIntro': false, // „Welcome to the new design“ schon gezeigt
     'ui.sounds': true,        // leise Klänge der App-Menüs und beim Account-Wechsel (tabs.html, seit 0.7.0)
     'ui.soundVolume': 40,
     'stability.recover': true,

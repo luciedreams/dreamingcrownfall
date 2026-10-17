@@ -40,6 +40,7 @@ if (host === 'marblecrownfall.com' || host.endsWith('.marblecrownfall.com')) {
             displayHz: () => ipcRenderer.sendSync('dcf:display:hz'),
             openStats: (tab) => ipcRenderer.send('dcf:stats:open', typeof tab === 'string' ? tab : ''),
             menu: { open: () => ipcRenderer.send('dcf:menu:open') },
+            introClaim: () => ipcRenderer.sendSync('dcf:intro:claim'),
             sound: (kind) => ipcRenderer.send('dcf:sound', String(kind || '')),
             hud: {
                 get: () => ipcRenderer.sendSync('dcf:hud:get'),
