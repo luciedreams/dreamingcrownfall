@@ -34,6 +34,7 @@ const tooltip = require('./tooltip.js');
 const createServerWatch = require('./server-watch.js');
 const openLogin = require('./login.js');
 const createBadge = require('./badge.js');
+const createToasts = require('./toast.js');
 const { pathToFileURL } = require('url');
 
 const START_URL = 'https://marblecrownfall.com/';
@@ -548,6 +549,8 @@ const BADGE_JS = (text) => `(() => { const c = document.createElement('canvas');
     g.fillStyle = '#ffd36e'; g.beginPath(); g.arc(16, 16, 15, 0, Math.PI * 2); g.fill();
     g.fillStyle = '#2a1c05'; g.font = 'bold ${text.length > 2 ? 14 : 19}px system-ui, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
     g.fillText(${JSON.stringify(text)}, 16, 17); return c.toDataURL(); })()`;
+// Toasts im Spiel, solange die App vorn ist (notify.js entscheidet, toast.js zeichnet).
+const toasts = createToasts({ front: () => activeContents() });
 const badge = createBadge({
     getWin: () => win,
     render: (text) => (tabBar && !tabBar.webContents.isDestroyed() ? tabBar.webContents.executeJavaScript(BADGE_JS(text)) : Promise.resolve(null)),
@@ -959,6 +962,7 @@ if (!app.requestSingleInstanceLock()) {
             isFocused: watching,
             isWatching: (i) => watching() && active === i,
             focusTab: (i) => { win.show(); win.focus(); if (i != null && i >= 0) select(i); },
+            toast: (t, onClick) => toasts.show(t, onClick),
         });
         startDiscord({
             setting: appSettings.get,

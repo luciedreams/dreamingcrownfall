@@ -22,7 +22,7 @@ const SHOP_KIND = { crown_shop: 'crowns', chat_shop: 'chat', marble_shop: 'marbl
 const RARITY = { common: 1, uncommon: 2, rare: 3, epic: 4, legendary: 5, mythic: 6, ethereal: 7, cosmic: 8 };
 const ACH_MARK = ',"families":';
 
-module.exports = function startNotifier({ views, icon, isWatching, isFocused, focusTab, setting = () => true }) {
+module.exports = function startNotifier({ views, icon, isWatching, isFocused, focusTab, setting = () => true, toast = null }) {
     const st = {
         king: undefined,       // playerId des Kings beim letzten Snapshot
         kingName: '',
@@ -39,12 +39,17 @@ module.exports = function startNotifier({ views, icon, isWatching, isFocused, fo
     const ownIndexById = (pid) => views.findIndex((v) => v.playerId && v.playerId === pid);
 
     // kind = Schalter in den App-Einstellungen (notify.<kind>); onlyWhenAway = die Hinschau-Regel.
+    // App vorn (seit 0.7.0): statt der System-Benachrichtigung ein Toast im Spiel (toast.js).
     function notify({ kind, title, body, tab = null, global = false }) {
         if (!setting('notify.enabled') || (kind && setting(`notify.${kind}`) === false)) return;
         if (setting('notify.onlyWhenAway') !== false && (global ? isFocused() : (tab != null && isWatching(tab)))) return;
+        const v = tab != null ? views[tab] : null; // Klick später: Tab per Eintrag finden, Index kann sich verschieben
+        if (toast && isFocused() && toast({ kind, title, body }, () => focusTab(v ? views.indexOf(v) : null))) {
+            console.log(`[dcf] 🍞 ${title} — ${body}`);
+            return;
+        }
         if (!Notification.isSupported()) return;
         const n = new Notification({ title, body, icon, silent: false });
-        const v = tab != null ? views[tab] : null; // Klick später: Tab per Eintrag finden, Index kann sich verschieben
         n.on('click', () => focusTab(v ? views.indexOf(v) : null));
         n.show();
         console.log(`[dcf] 🔔 ${title} — ${body}`);
