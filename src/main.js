@@ -613,6 +613,16 @@ async function removeAccount(i) {
 
 // ---- Fenster ----------------------------------------------------------------------------------
 
+// Nach einer Größenänderung des Fensters setzt Chromium die SVG-Texte der King-Wall (Werte je Block)
+// nicht neu: sie stehen weiter an der alten Stelle — klein hinter den Blöcken (keine Werte), groß als
+// Reihe unter der Wall, obwohl das DOM stimmt (Luce 17.10.; die installierte App, immer maximiert, sah es
+// nie). Ein Wechsel der Unterschneidung zwingt das Neusetzen — in allen Account-Tabs, auch versteckten.
+const KING_TEXT_JS = `(() => { const st = document.querySelector('[data-role="king-shared-renderer-stage"]');
+    if (st) st.style.fontKerning = st.style.fontKerning === 'none' ? 'auto' : 'none'; })()`;
+function resetKingText() {
+    for (const v of views) if (!v.view.webContents.isDestroyed()) v.view.webContents.executeJavaScript(KING_TEXT_JS).catch(() => {});
+}
+
 function createWindow() {
     const ws = windowState.load({ width: 1600, height: 1000 + TAB_BAR_HEIGHT });
     win = new BaseWindow({
@@ -662,7 +672,7 @@ function createWindow() {
     // Unter X11 (Mint/.deb) kommt Maximieren ohne 'resize' oder mit alten Maßen an → die Views
     // blieben alt groß, unten abgeschnitten. Deshalb alle Fenster-Ereignisse plus ein Nachlauf.
     let settle = 0;
-    const relayout = () => { layout(); clearTimeout(settle); settle = setTimeout(layout, 150); };
+    const relayout = () => { layout(); clearTimeout(settle); settle = setTimeout(() => { layout(); resetKingText(); }, 150); };
     for (const ev of ['resize', 'maximize', 'unmaximize', 'restore', 'enter-full-screen', 'leave-full-screen']) win.on(ev, relayout);
     // Maximieren-Knopf der Leiste zeigt den Zustand (□ bzw. ❐).
     for (const ev of ['maximize', 'unmaximize']) win.on(ev, pushTabs);
