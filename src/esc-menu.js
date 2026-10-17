@@ -9,7 +9,7 @@
 // offene Menüs, Spiel-Popups, nie aus Eingabefeldern) und ruft dcfApp.menu.open(); auf Home und
 // Stats main.js/handleKeys.
 
-const { app, nativeImage } = require('electron');
+const { app, nativeImage, shell } = require('electron');
 const path = require('path');
 
 const WORLD = 1717;   // eigene isolierte Welt, getrennt von der des Preloads
@@ -32,6 +32,7 @@ function PAGE() {
         scroll: '<path d="M8 3h11v15a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3v-2h11v2a3 3 0 0 0 3 3"/><path d="M8 3a3 3 0 0 0-3 3v10M11 8h5M11 12h5"/>',
         refresh: '<path d="M21 12a9 9 0 1 1-2.6-6.4L21 8"/><path d="M21 3v5h-5"/>',
         power: '<path d="M12 3v9"/><path d="M6.3 6.3a8 8 0 1 0 11.4 0"/>',
+        book: '<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5Z"/><path d="M4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5"/><path d="M9 7h7M9 11h5"/>',
         keyboard: '<rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10"/>',
     };
     const CSS = `
@@ -259,6 +260,9 @@ const GAME_PAGES = [
     ['trophy', 'Leaderboards', 'leaderboards-nav'], ['medal', 'Achievements', 'achievements'], ['user', 'Profile', 'profile-nav'],
 ];
 
+// Das Wiki der Community (CookingSum), im System-Browser wie alle fremden Seiten.
+const WIKI_URL = 'https://marblecrownfall.wikioasis.org';
+
 // Anzeige des Update-Eintrags je Zustand des Updaters (updater.js).
 function updateLook(s) {
     const st = s?.status || '';
@@ -288,6 +292,7 @@ module.exports = function createEscMenu(ctx) {
         const where = ctx.where(wc);
         const list = [{ id: 'resume', icon: 'play', label: 'Resume', cls: 'main' }];
         for (const [icon, label, key] of GAME_PAGES) list.push({ id: 'page:' + key, icon, label });
+        list.push({ id: 'wiki', icon: 'book', label: 'Wiki', hint: 'in your browser' });
         list.push({ sep: true });
         if (where !== 'home' && ctx.homeOk()) list.push({ id: 'home', icon: 'home', label: 'Home' });
         if (where !== 'stats' && ctx.statsOk()) list.push({ id: 'stats', icon: 'chart', label: 'Stats' });
@@ -310,6 +315,7 @@ module.exports = function createEscMenu(ctx) {
         if (id === 'settings') return ctx.settings();
         if (id === 'quit') return ctx.quit();
         if (id === 'keys') return keys(wc);
+        if (id === 'wiki') return shell.openExternal(WIKI_URL);
         if (id === 'update') {
             const now = updateLook(ctx.updater?.state());
             if (now.act) { ctx.updater.install(); return; }
