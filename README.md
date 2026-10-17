@@ -7,10 +7,11 @@
 - **A game, not a website.** The board as a game client: a resource bar at the top with your pages, a hotbar with keys at the bottom (bid, unbid, Autobid, Rebellion, attack, drinks; as King the toll field and Royal Celebrations), the chat floating in the corner, lanes and King as one arena, pages as side panels — all in the colours of your theme. Settings › General › Layout switches back to the classic layout.
 - **Feels like a game client.** No window frame (the account frames are the title bar), smooth fades, loading and maintenance screens that bring tabs back on their own, a game menu on **Esc**, every shortcut on **F1**, its own right-click menu and tooltips, optional interface sounds, and it picks up where you left it.
 - **The community wiki inside the app** — the book button top right.
+- **Planned Rebellions.** Pick a coming tileset and a tier (Rebellion › *Schedule*, or *⚔ Plan* in the list of upcoming tilesets); when that tileset starts, the app presses the game's own Start for you and checks with the game that the Rebellion runs. Planned ones show on the account frame and the Rebellion button and can be cancelled until then. The app has to be running at that time.
 - **Several accounts in tabs.** Every tab is its own login. Press **+** to add one, **×** to sign it out and remove it. All tabs keep running; the hidden ones just stop drawing.
 - **Desktop notifications** for every account, only when you are not looking at that tab:
   someone mentions you in chat · one of your accounts takes or loses the throne · a Royal Celebration starts ·
-  a Rebellion starts · an achievement unlocks · a gift arrives · the shop has an item for one of your open shop quests.
+  a Rebellion starts · one of your planned Rebellions starts, fails or is missed · an achievement unlocks · a gift arrives · the shop has an item for one of your open shop quests.
   Clicking a notification brings up the right tab. While the app is in front they show as toasts in the game instead. The taskbar icon shows how many rewards are waiting.
 - **Starts like the website.** A new installation shows the game exactly as marblecrownfall.com does; a few welcome steps (sign in, more accounts, how to start) let you keep it plain or switch everything on, and Settings — the gear top right in the tab bar, or Ctrl+, — has every switch to build it your way.
 - **A guided tour**: how the game works (bidding, the run, Points, the King, Gold, Diamonds, Rebellions) and what the app adds, step by step with a spotlight on the game. Settings › About › *Take the tour*.

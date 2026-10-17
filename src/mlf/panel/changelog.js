@@ -1,5 +1,12 @@
     // Newest first. The first entry is what What's new shows after a fresh install.
     const CHANGELOG = [
+        { v: '0.8.0', date: '2026-10-17', items: [
+            'Planned Rebellions. The Rebellion window has two views now: Now, as before, and Schedule — pick one of the coming tilesets, then a tier (two clicks, like buying). When that tileset starts, the app presses the game\'s own Start for you and asks the game whether the Rebellion really runs; nothing is spent before. One plan per tileset slot, another tier replaces it.',
+            'You can also plan from the list of upcoming tilesets (\u2694 Plan on every coming slot), and the tileset in the top bar shows the next plan (\u2694x25 00:00) — a click opens it.',
+            'Planned Rebellions show on the account frame at the top (\u2694 x25 \u00b7 00:00) and as a small clock on the Rebellion button. Cancel them any time before they start: Cancel plan in Schedule, or Cancel in the list of plans, which you now see in both views.',
+            'A notification tells you when a planned Rebellion started, failed (with the game\'s reason) or was missed because the app was not running. It can be switched off in Settings \u203a Notifications \u203a Planned Rebellion.',
+            'The app has to be running when the tileset starts. A plan for an account whose tab is in the background may start up to about a minute late.',
+        ] },
         { v: '0.7.1', date: '2026-10-17', items: [
             'Welcome to the new design now waits until you have closed the patch notes. Right after the update it came up on top of them, and its tour could not show anything while they were still open.',
         ] },
