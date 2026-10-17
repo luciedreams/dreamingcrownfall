@@ -197,7 +197,7 @@
         windows.delete(path);
         // Up to 3.7 the parked flag outlived the window. Harmless then, because nothing read it
         // back; now it would bring a closed window back into the taskbar on the next load.
-        saveWinState(path, { min: false });
+        saveWinState(path, { min: false, open: false });
         drawTaskbar();
     }
 
@@ -216,6 +216,20 @@
         if (!any) return;
         buildDesk();
         drawTaskbar();
+    }
+
+    // Windows that were open when the app was quit (or the page reloaded) open again — in the
+    // game or as windows of their own, whichever the app is set to. Closing one yourself clears
+    // the mark; quitting does not (the app sets window.__dcfQuitting first, see src/main.js).
+    function restoreOpen() {
+        setTimeout(() => {
+            const all = loadWinState();
+            for (const [path, st] of Object.entries(all)) {
+                if (!st || st.open !== true || st.min === true || !st.title || windows.has(path)) continue;
+                if (path === CHAT_WIN || !PAGE_BY_PATH.has(path.replace(/\/+$/, ''))) continue;
+                try { openPage(path, String(st.title)); } catch (e) { console.warn('[DreamingCrownfall] reopen window:', e.message); }
+            }
+        }, 1500);
     }
 
     // ---- BUYING DIAMONDS FROM A WINDOW: STRIPE IN ITS OWN BROWSER WINDOW ----
@@ -303,6 +317,8 @@
         if (vorhanden) { restoreWindow(path); return vorhanden; }
 
         const w = makeWindow(path, title);
+        // Open across a restart of the app (DreamingCrownfall 0.7.0, restoreOpen below).
+        saveWinState(path, { open: true, title: String(title) });
         // Dailies (6.35): the page reads its quests once, when it loads. A refresh button in the
         // title bar loads just that page again, so progress shows without closing the window.
         if (path === '/dailies') {

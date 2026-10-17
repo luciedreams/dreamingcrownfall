@@ -35,14 +35,16 @@
         const own = doc.createElement('style');
         own.textContent = `
             html, body { margin: 0; height: 100%; overflow: hidden; background: #0b121a; }
-            body > .mcfo-win.dcf-popped {
-                position: fixed !important; inset: 32px 0 0 0 !important;
+            /* :not(#dcf-x) hebt die Regel über die Themes (Lego färbt den Fensterrand rot, Luce 17.10.):
+               im eigenen Fenster gibt es keinen Rand, keinen Schatten, keine runden Ecken. */
+            html:not(#dcf-x) body > .mcfo-win.dcf-popped {
+                position: fixed !important; inset: 32px 0 0 0 !important; outline: 0 !important;
                 width: auto !important; height: auto !important; min-width: 0 !important; min-height: 0 !important;
                 transform: none !important; border: 0 !important; border-radius: 0 !important; box-shadow: none !important;
             }
-            body > .mcfo-win.dcf-popped > .mcfo-win__head,
-            body > .mcfo-win.dcf-popped > .mcfo-win__grip,
-            body > .mcfo-win.dcf-popped > .mcfo-win__edge { display: none !important; }
+            html:not(#dcf-x) body > .mcfo-win.dcf-popped > .mcfo-win__head,
+            html:not(#dcf-x) body > .mcfo-win.dcf-popped > .mcfo-win__grip,
+            html:not(#dcf-x) body > .mcfo-win.dcf-popped > .mcfo-win__edge { display: none !important; }
             /* Eigene Fensterleiste (seit 0.7.0, kein Systemrahmen): wie die Account-Leiste des Hauptfensters. */
             .dcf-wbar {
                 position: fixed; left: 0; right: 0; top: 0; height: 32px; z-index: 2147483000; box-sizing: border-box;
@@ -122,7 +124,7 @@
             popped.delete(el);
             if (!popup.closed) try { popup.close(); } catch (e) {}
             // Beim Neuladen der Seite nichts schließen — sonst merkt sich MLF das als „zu“.
-            if (putBack && closeOnExit && !leaving && !stay) el.querySelector('[data-mcfo-win="close"]')?.click();
+            if (putBack && closeOnExit && !leaving && !window.__dcfQuitting && !stay) el.querySelector('[data-mcfo-win="close"]')?.click();
             if (stay) addButton(el);
         }
         popup.addEventListener('pagehide', () => finish(true));

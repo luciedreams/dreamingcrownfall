@@ -88,6 +88,27 @@ const staysInApp = (url) => {
 // Ein Account ist nur eine Partition; Name und Bild kommen live vom Login (/api/auth/me).
 
 const ACCOUNTS_FILE = () => path.join(app.getPath('userData'), 'accounts.json');
+// Sitzung (seit 0.7.0): was beim Beenden vorn war und ob das HUD offen war — kommt beim Start wieder.
+const SESSION_FILE = () => path.join(app.getPath('userData'), 'session.json');
+function loadSession() {
+    try { const j = JSON.parse(fs.readFileSync(SESSION_FILE(), 'utf8')); return j && typeof j === 'object' ? j : {}; } catch { return {}; }
+}
+function saveSession() {
+    try { fs.writeFileSync(SESSION_FILE(), JSON.stringify({ front: active, lastGame, hud: !!hud?.isOpen() })); } catch (e) { console.error(`[dcf] session.json nicht schreibbar: ${e.message}`); }
+}
+
+// Beenden mit Abschied: erst den Tabs Bescheid geben (window.__dcfQuitting), dann schließen. So
+// halten Spiel-Ebene und App-Schicht die Fenster, die beim Beenden zugehen, nicht für „vom Nutzer
+// geschlossen“ — sie gehen beim nächsten Start wieder auf. Höchstens 0,6 s.
+let quitReady = false, quitPrep = null;
+function prepareQuit() {
+    if (!quitPrep) {
+        saveSession();
+        const tell = Promise.all(views.map((v) => v.view.webContents.executeJavaScript('window.__dcfQuitting = true').catch(() => {})));
+        quitPrep = Promise.race([tell, new Promise((r) => setTimeout(r, 600))]).then(() => { quitReady = true; });
+    }
+    return quitPrep;
+}
 const newPartition = () => `persist:acc-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
 
 function loadAccounts() {
@@ -186,15 +207,17 @@ function tabState() {
         active,
         home: !!home?.available(),
         stats: !!stats?.enabled(),
-        maximized: !!win?.isMaximized(),
+        maximized: !!(win && !win.isDestroyed() && win.isMaximized()),
         tabs: views.map((v) => ({
-            name: label(v), guest: v.guest, avatar: v.avatar || '', loading: v.view.webContents.isLoading(),
+            name: label(v), guest: v.guest, avatar: v.avatar || '', loading: !v.view.webContents.isDestroyed() && v.view.webContents.isLoading(),
             king: !!(king && v.playerId && v.playerId === king.playerId),
             ...(tabStatus && !v.guest ? tabStatus.of(v) : {}),
         })),
     };
 }
 function pushTabs() {
+    // Beim Beenden kommen noch Ereignisse der Tabs an, wenn das Fenster schon weg ist (17.10.: Fehlerdialog).
+    if (!win || win.isDestroyed()) return;
     if (tabBar && !tabBar.webContents.isDestroyed()) tabBar.webContents.send('tabs:state', tabState());
     const cur = views[active];
     if (win) win.setTitle(active === HOME ? `${APP_TITLE} – Home` : active === STATS ? `${APP_TITLE} – Stats` : cur ? `${APP_TITLE} – ${label(cur)}` : APP_TITLE);
@@ -781,9 +804,15 @@ function createWindow() {
     for (const ev of ['maximize', 'unmaximize']) win.on(ev, pushTabs);
     // Hauptfenster zu = App beenden. 'window-all-closed' allein reicht nicht: das HUD und
     // ausgekoppelte Fenster sind auch Fenster und hielten die App sonst am Leben.
+    win.on('close', (e) => { if (quitReady) return; e.preventDefault(); prepareQuit().then(() => win?.close()); });
     win.on('closed', () => app.quit());
-    select(0);
-    primeTabs().catch((e) => { priming = false; console.error(`[dcf] Tabs vorbereiten: ${e.message}`); syncOverlay(); });
+    // Wieder vorn, was beim Beenden vorn war. Home/Stats erst nach dem Vorbereiten der Tabs
+    // (primeTabs verschleiert alles außer dem vorderen Spiel-Tab).
+    const ses = loadSession();
+    const game = Number.isInteger(ses.lastGame) && views[ses.lastGame] ? ses.lastGame : 0;
+    select(Number.isInteger(ses.front) && views[ses.front] ? ses.front : game);
+    primeTabs().catch((e) => { priming = false; console.error(`[dcf] Tabs vorbereiten: ${e.message}`); syncOverlay(); })
+        .then(() => { if (ses.front === HOME || ses.front === STATS) select(ses.front); });
 }
 
 // Settings im aktiven Tab öffnen, auf einer bestimmten Seite (Tray › Check for updates).
@@ -852,6 +881,7 @@ if (!app.requestSingleInstanceLock()) {
         hud = createHud({ views, stats, icon: ICON, kingNow: () => notifier?.kingNow() || null, onToggle: () => buildTrayMenu(),
             openStats: (tab) => { win.show(); win.focus(); select(STATS, tab); },
             refocus: () => { win.focus(); activeContents()?.focus(); } });
+        if (loadSession().hud === true && !autostart.startHidden) hud.open();
         createTray();
         startShortcuts({ setting: appSettings.get, onSettingsChange: appSettings.onChange, actions: shortcutActions });
         updater = startUpdater({ icon: ICON });
@@ -873,4 +903,6 @@ if (!app.requestSingleInstanceLock()) {
     });
 
     app.on('window-all-closed', () => app.quit());
+    // Tray › Quit, Update-Neustart: auch dann erst Abschied (prepareQuit), dann wirklich beenden.
+    app.on('before-quit', (e) => { if (quitReady) return; e.preventDefault(); prepareQuit().then(() => app.quit()); });
 }
