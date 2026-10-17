@@ -45,6 +45,9 @@ module.exports = function createStats({ win, setting, onSettingsChange, onChange
         wc.setWindowOpenHandler(({ url }) => { if (/^https?:/.test(url)) shell.openExternal(url); return { action: 'deny' }; });
         wc.on('will-navigate', (e, url) => { if (!isPublicPage(url)) { e.preventDefault(); if (/^https?:/.test(url)) shell.openExternal(url); } });
         wire(wc);
+        wc.on('dom-ready', () => wc.insertCSS(`html { scrollbar-color: rgba(180, 138, 232, 0.45) transparent; scrollbar-width: thin; }
+            img, a { -webkit-user-drag: none; } :focus:not(:focus-visible) { outline: none; }`).catch(() => {}));
+        wc.on('did-finish-load', () => wc.setVisualZoomLevelLimits(1, 1).catch(() => {}));
         view.setVisible(false);
         win.contentView.addChildView(view);
         return view;

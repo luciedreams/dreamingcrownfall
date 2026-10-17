@@ -20,6 +20,8 @@
     body { display: flex; align-items: center; gap: 12px; padding: 0 0 0 16px; border-bottom: 1px solid var(--line); -webkit-app-region: drag; }
     .uf, .add, .ic, .x, .yes, .no, .wb { -webkit-app-region: no-drag; }
     button { font: inherit; color: inherit; cursor: pointer; }
+    img { -webkit-user-drag: none; }
+    :focus:not(:focus-visible) { outline: none; }
     .logo { width: 30px; height: 30px; flex: none; margin-right: 4px; }
     #frames { display: flex; align-items: center; gap: 12px; min-width: 0; flex: 0 1 auto; }
 

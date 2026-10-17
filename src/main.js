@@ -249,10 +249,13 @@ function veil(wc, opacity, ms, wait = true) {
 async function transition(before) {
     const target = active;
     const next = frontOf(target)?.webContents;
+    // Home: Werte holen, solange der Schleier deckt (sonst blendeten leere Karten auf).
+    const homeData = target === HOME ? home.ensure() : null;
     // Hat der neue Tab noch kein verschleiertes Bild (seit dem Start nie vorn, neu geladen): Schleier
     // vorher setzen — es gibt kein aufgehobenes Bild, das dabei verloren ginge.
     await Promise.all([veil(before.webContents, 1, VEIL_IN_MS), next && !veiled.has(next) ? veil(next, 1, 0, false) : null]);
     veiled.add(before.webContents);
+    if (homeData) await homeData;
     if (active !== target) return;
     show(target, switchTab);
     if (!next || next.isDestroyed()) return;
@@ -457,7 +460,23 @@ function handleKeys(e, input, wc) {
 
 // ---- Spiel-Inhalte ----------------------------------------------------------------------------
 
+// Was eine Website verrät, abgestellt (seit 0.7.0): kein Markieren außer in Eingabefeldern und
+// Chat-Nachrichten, Bilder/Links nicht ziehbar (kein Geisterbild am Zeiger), schmale Scrollbalken in
+// App-Farben (Themes mit eigenen behalten ihre), kein Fokusrahmen nach Mausklick (Tastatur: weiter da —
+// das Spiel nutzt selbst :focus-visible).
+const APP_FEEL_CSS = `
+html { scrollbar-color: rgba(180, 138, 232, 0.45) transparent; scrollbar-width: thin; }
+body { user-select: none; }
+input, textarea, select, [contenteditable]:not([contenteditable="false"]), .mcf-chat__messages, .mcf-chat__messages * { user-select: text; }
+img, a, svg, video { -webkit-user-drag: none; }
+:focus:not(:focus-visible) { outline: none; }`;
 function wireGameContents(wc, v) {
+    wc.on('dom-ready', () => {
+        let host = '';
+        try { host = new URL(wc.getURL()).hostname; } catch {}
+        if (isGame(host)) wc.insertCSS(APP_FEEL_CSS).catch(() => {});
+        wc.setVisualZoomLevelLimits(1, 1).catch(() => {});
+    });
     wc.setWindowOpenHandler(({ url, frameName }) => {
         // MLF-Fenster als Systemfenster: leeres Fenster derselben Seite, das die App-Schicht befüllt.
         if (url === 'about:blank' && /^mlfpop-/.test(frameName)) {

@@ -1,7 +1,8 @@
 // Home: Übersicht aller Accounts in einem eigenen Tab, links in der Tab-Leiste. Gibt es nur ab
 // zwei Accounts — mit einem bliebe die Übersicht eine Kopie der Kopfzeile des Spiels.
-// Daten holt jeder Spiel-Tab selbst (Seitenkontext = Cookie seiner Partition), und nur solange
-// Home zu sehen ist: beim Öffnen sofort, dann alle 30 s. Wer Home nicht ansieht, zahlt nichts.
+// Daten holt jeder Spiel-Tab selbst (Seitenkontext = Cookie seiner Partition): solange Home zu sehen
+// ist alle 30 s, sonst alle 60 s im Hintergrund — damit Home beim Wechsel sofort mit Zahlen dasteht
+// (sonst blendeten leere Karten auf und „Today“ schob die Quest-Tabelle nach, Aufnahme 17.10.).
 //   Kopfzeile des Spiels  → Tickets und ihr Status („Earning …“ / „Inactive …“), live vom Socket
 //   /api/stats/me         → Punkte, Gold, VIP, Thron-Werte der Episode
 //   /api/king/beverages/me → Diamanten (balances.diamonds)
@@ -14,6 +15,7 @@ const path = require('path');
 const { WebContentsView, ipcMain } = require('electron');
 
 const EVERY_MS = 30 * 1000;
+const BACKGROUND_MS = 60 * 1000;
 
 const COLLECT_JS = `(async () => {
     const cell = (r) => document.querySelector('[data-role="metric-cell"][data-metric-role="' + r + '"]');
@@ -71,6 +73,12 @@ module.exports = function createHome({ win, views, label, stats, kingNow, onSele
     let timer = null, shown = false;
 
     const available = () => views.length >= 2;
+    // Im Hintergrund: Werte und MarbleMind-„Today“ warm halten (nur wenn es Home überhaupt gibt).
+    setInterval(() => { if (!shown && available()) collect(); }, BACKGROUND_MS);
+    setTimeout(() => { if (available()) collect(); }, 20000);
+    const warmStats = () => stats?.want('home-bg', available());
+    setInterval(warmStats, BACKGROUND_MS);
+    setTimeout(warmStats, 20000);
 
     function snapshot() {
         const k = kingNow();
@@ -114,11 +122,19 @@ module.exports = function createHome({ win, views, label, stats, kingNow, onSele
         }
     }
 
+    // Für den Wechsel zu Home (main.js transition): Werte holen, solange der Schleier noch deckt, damit
+    // die Karten nicht leer aufblenden. Nur wenn nichts da oder älter als 30 s; höchstens maxMs.
+    function ensure(maxMs = 1200) {
+        const newest = Math.max(0, ...[...data.values()].map((d) => d.at || 0));
+        if (Date.now() - newest < EVERY_MS) return Promise.resolve();
+        return Promise.race([collect(), new Promise((r) => setTimeout(r, maxMs))]);
+    }
+
     ipcMain.handle('home:state', () => snapshot());
     ipcMain.on('home:select', (_e, i) => onSelect(Number(i)));
     ipcMain.on('home:refresh', () => { if (shown) { collect(); stats?.refresh(); } });
     // Klick auf „Today“/Droughts: Stats-Tab, passende Unterseite der öffentlichen Seite.
     ipcMain.on('home:stats', (_e, tab) => onSelect(-2, typeof tab === 'string' ? tab : undefined));
 
-    return { view, available, setVisible, push, forget: (v) => data.delete(v) };
+    return { view, available, setVisible, push, ensure, forget: (v) => data.delete(v) };
 };

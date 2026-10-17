@@ -13,6 +13,9 @@
     }
     * { box-sizing: border-box; }
     html, body { margin: 0; min-height: 100%; }
+    html { scrollbar-color: rgba(180, 138, 232, 0.45) transparent; scrollbar-width: thin; }
+    img { -webkit-user-drag: none; }
+    :focus:not(:focus-visible) { outline: none; }
     body {
         background: radial-gradient(1200px 600px at 20% -10%, rgba(139, 92, 246, 0.16), transparent 60%), linear-gradient(180deg, var(--bg1), var(--bg2));
         background-attachment: fixed; color: var(--text); font: 14px/1.4 system-ui, sans-serif; user-select: none;

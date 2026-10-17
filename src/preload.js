@@ -7,6 +7,9 @@ const { contextBridge, ipcRenderer } = require('electron');
 
 const host = location.hostname;
 if (host === 'marblecrownfall.com' || host.endsWith('.marblecrownfall.com')) {
+    // Kein Zoomen aus Versehen: Touchpad-Pinch und Strg+Mausrad kommen als wheel mit ctrlKey an.
+    // Bewusst zoomen geht weiter mit Strg+Plus/Minus/0 (main.js handleKeys).
+    window.addEventListener('wheel', (e) => { if (e.ctrlKey) e.preventDefault(); }, { passive: false, capture: true });
     // Brücke zu den App-Einstellungen (Benachrichtigungen, Discord, Autostart) — nur im obersten Frame,
     // und die App nimmt nur die Schalter an, die sie kennt (app-settings.js).
     if (window.top === window.self) {
