@@ -51,6 +51,7 @@
         buildAttackAssist();
         syncDrinkHeight();
         throneTick();
+        rebPlanTick();
         placeKingTray();
         watchTrayHeight();
         alignPanes();

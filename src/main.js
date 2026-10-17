@@ -586,6 +586,8 @@ function raisePopup(v, title) {
 ipcMain.on('dcf:popwin:max', (e) => { const w = BrowserWindow.fromWebContents(e.sender); if (!w) return; if (w.isMaximized()) w.unmaximize(); else w.maximize(); });
 ipcMain.on('dcf:popwin:close', (e) => BrowserWindow.fromWebContents(e.sender)?.close());
 ipcMain.on('dcf:notify:test', () => notifier?.test());
+// Geplante Rebellion (mlf/king/rebellion-plan.js): Ergebnis aus dem Tab des Accounts.
+ipcMain.on('dcf:notify:page', (e, title, body) => notifier?.page(views.findIndex((v) => v.view?.webContents === e.sender), title, body));
 // Willkommen-Schritte: nur ein Tab zeigt sie (der erste, der fragt, behält sie auch nach dem Neuladen).
 let welcomeOwner = null;
 ipcMain.on('dcf:welcome:claim', (e) => {

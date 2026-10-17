@@ -342,6 +342,53 @@
            The game's panel stays in the page and does the buying; while ours is open it is only
            made invisible, never removed — its buttons are what ours press. */
         html[data-mcfo-rebpop="1"] [data-role="rebellion-panel"] { visibility: hidden !important; pointer-events: none !important; }
+        html[data-mcfo-rebplan="1"] [data-role="rebellion-panel"] { visibility: hidden !important; pointer-events: none !important; }
+        /* Planned Rebellions (9a2): Now | Schedule, the slots, the list, the marks. */
+        .mcfo-reb__modes { display: flex; gap: 4px; margin-bottom: 10px; }
+        .mcfo-menu--reb .mcfo-reb__mode { flex: 1; padding: 5px 8px; border: 1px solid #4a3434; border-radius: 6px; background: #1d1416; color: #c9a3a3;
+            font: inherit; font-size: 12px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; cursor: pointer; }
+        .mcfo-menu--reb .mcfo-reb__mode[aria-pressed="true"] { border-color: #ff6b5a; background: #3a1a1a; color: #ffe1dc; }
+        .mcfo-menu--reb[data-mcfo-mode="plan"] .mcfo-reb__active,
+        .mcfo-menu--reb[data-mcfo-mode="plan"] .mcfo-reb__msg { display: none; }
+        .mcfo-menu--reb:not([data-mcfo-mode="plan"]) .mcfo-reb__plan { display: none; }
+        .mcfo-reb__plan { display: grid; gap: 6px; margin-bottom: 10px; }
+        .mcfo-reb__slots { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+        .mcfo-menu--reb .mcfo-reb__slot { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 8px; align-items: baseline; padding: 5px 9px;
+            border: 1px solid #2c3a47; border-radius: 6px; background: #121a22; color: #d8e8f6; font: inherit; font-size: 12px; text-align: left; cursor: pointer; }
+        .mcfo-menu--reb .mcfo-reb__slot:hover { border-color: #5a7186; }
+        .mcfo-menu--reb .mcfo-reb__slot[aria-pressed="true"] { border-color: #ff6b5a; background: #2a1517; }
+        .mcfo-reb__slotname { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .mcfo-reb__slottime { color: #9fb2c2; }
+        .mcfo-reb__slotplan { color: #ff8a7a; font-weight: 800; text-align: right; }
+        .mcfo-reb__slotplan:empty { display: none; }
+        .mcfo-reb__slots > .mcfo-reb__planmsg { grid-column: 1 / -1; }
+        .mcfo-reb__planmsg { font-size: 12px; line-height: 1.35; color: #a9bac8; }
+        .mcfo-reb__planline { display: flex; align-items: center; gap: 10px; }
+        .mcfo-reb__planline > .mcfo-reb__planmsg { flex: 1; }
+        .mcfo-menu--reb .mcfo-reb__plancancel { flex: none; width: auto; padding: 4px 10px; border: 1px solid #ff6b5a; border-radius: 6px; background: #3a1a1a;
+            color: #ffe1dc; font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }
+        .mcfo-menu--reb .mcfo-reb__plancancel[hidden] { display: none; }
+        .mcfo-menu--reb .mcfo-reb__plancancel:hover { background: #5a2020; }
+        .mcfo-menu--reb .mcfo-reb__tier[data-mcfo-planned] { border-color: #ff6b5a; box-shadow: inset 0 0 0 1px #ff6b5a; }
+        .mcfo-reb__plans { display: grid; gap: 3px; margin-top: 10px; padding-top: 8px; border-top: 1px solid #2c2226; font-size: 12px; }
+        .mcfo-reb__plans[hidden] { display: none; }
+        .mcfo-reb__planrow { display: grid; grid-template-columns: 1.2em auto 1fr auto; gap: 8px; align-items: baseline; }
+        .mcfo-reb__planwhat { font-weight: 700; color: #ffd6d6; white-space: nowrap; }
+        .mcfo-reb__planstate { color: #9fb3c2; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .mcfo-reb__planrow[data-state="done"] .mcfo-reb__planicon { color: #9fd8b6; }
+        .mcfo-reb__planrow[data-state="failed"] .mcfo-reb__planicon,
+        .mcfo-reb__planrow[data-state="missed"] .mcfo-reb__planicon { color: #f3a4a4; }
+        .mcfo-menu--reb .mcfo-reb__planx { padding: 1px 7px; border: 1px solid #3a4652; border-radius: 5px; background: transparent; color: #a9bac8; font: inherit; font-size: 11px; cursor: pointer; }
+        .mcfo-menu--reb .mcfo-reb__planx:hover { border-color: #ff6b5a; color: #ffe1dc; }
+        .mcfo-rebellion[data-mcfo-plan], .dcf-gl-bar button[data-mcfo-plan] { position: relative; }
+        .mcfo-rebellion[data-mcfo-plan]::after, .dcf-gl-bar button[data-mcfo-plan]::after {
+            content: '\\23F0 ' attr(data-mcfo-plan); position: absolute; top: -7px; right: -7px; padding: 0 4px; border-radius: 8px;
+            background: #3a1a1a; border: 1px solid #ff6b5a; color: #ffe1dc; font-size: 10px; font-weight: 800; line-height: 14px; pointer-events: none; }
+        .mcfo-rebellion[data-mcfo-plan="!"]::after, .dcf-gl-bar button[data-mcfo-plan="!"]::after { content: '!'; background: #6a1a1a; }
+        .mcfo-nextev__plan { flex: none; margin-left: 2px; color: #ff8a7a; font-weight: 800; cursor: pointer; }
+        .mcfo-menu--events .mcfo-events__plan { flex: none; align-self: center; width: auto; min-width: 0; height: auto; white-space: nowrap; margin-left: auto; padding: 1px 8px; border: 1px solid #4a3434; border-radius: 5px; background: #1d1416;
+            color: #c9a3a3; font: inherit; font-size: 11px; font-weight: 700; cursor: pointer; }
+        .mcfo-menu--events .mcfo-events__plan:hover, .mcfo-menu--events .mcfo-events__plan[data-mcfo-planned] { border-color: #ff6b5a; color: #ffe1dc; }
         .mcfo-menu--reb { width: 470px; max-width: calc(100vw - 16px); padding: 12px 14px 14px; }
         .mcfo-reb__head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
                           padding-bottom: 8px; border-bottom: 1px solid #243443; margin-bottom: 9px; }

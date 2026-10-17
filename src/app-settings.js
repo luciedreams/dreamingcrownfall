@@ -27,6 +27,7 @@ const SCHEMA = {
     'notify.king': true,
     'notify.celebration': true,
     'notify.rebellion': true,
+    'notify.rebellionPlan': true,
     'notify.achievement': true,
     'notify.gift': true,
     'notify.shopQuest': true,

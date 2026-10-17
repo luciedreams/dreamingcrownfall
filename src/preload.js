@@ -46,6 +46,7 @@ if (host === 'marblecrownfall.com' || host.endsWith('.marblecrownfall.com')) {
             set: (key, value) => ipcRenderer.send('dcf:settings:set', String(key), typeof value === 'number' ? value : value === true),
             onChange: (cb) => { if (typeof cb === 'function') changeHandlers.push(cb); },
             testNotification: () => ipcRenderer.send('dcf:notify:test'),
+            notify: (title, body) => ipcRenderer.send('dcf:notify:page', String(title || ''), String(body || '')),
             perfReport: () => ipcRenderer.invoke('dcf:perf:report'),
             openLogs: () => ipcRenderer.send('dcf:logs:open'),
             addAccount: () => ipcRenderer.send('dcf:account:add'),

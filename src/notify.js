@@ -40,9 +40,10 @@ module.exports = function startNotifier({ views, icon, isWatching, isFocused, fo
 
     // kind = Schalter in den App-Einstellungen (notify.<kind>); onlyWhenAway = die Hinschau-Regel.
     // App vorn (seit 0.7.0): statt der System-Benachrichtigung ein Toast im Spiel (toast.js).
-    function notify({ kind, title, body, tab = null, global = false }) {
+    // always: auch beim Hinschauen (dann als Toast) — für eigene Käufe, die von selbst passieren.
+    function notify({ kind, title, body, tab = null, global = false, always = false }) {
         if (!setting('notify.enabled') || (kind && setting(`notify.${kind}`) === false)) return;
-        if (setting('notify.onlyWhenAway') !== false && (global ? isFocused() : (tab != null && isWatching(tab)))) return;
+        if (!always && setting('notify.onlyWhenAway') !== false && (global ? isFocused() : (tab != null && isWatching(tab)))) return;
         const v = tab != null ? views[tab] : null; // Klick später: Tab per Eintrag finden, Index kann sich verschieben
         if (toast && isFocused() && toast({ kind, title, body }, () => focusTab(v ? views.indexOf(v) : null))) {
             console.log(`[dcf] 🍞 ${title} — ${body}`);
@@ -298,5 +299,10 @@ module.exports = function startNotifier({ views, icon, isWatching, isFocused, fo
         return st.king ? { playerId: st.king, name: st.kingName, since: st.kingSince || Date.now(), rc: st.rc || null } : null;
     }
 
-    return { resetAccount, test, kingOfMine, kingNow };
+    // Aus dem Spielcode eines Tabs: geplante Rebellion gestartet / fehlgeschlagen / verpasst.
+    function page(i, title, body) {
+        notify({ kind: 'rebellionPlan', title: String(title).slice(0, 120), body: `${i >= 0 ? label(i) + ': ' : ''}${String(body).slice(0, 300)}`, tab: i >= 0 ? i : null, always: true });
+    }
+
+    return { resetAccount, test, kingOfMine, kingNow, page };
 };

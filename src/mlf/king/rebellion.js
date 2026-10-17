@@ -83,10 +83,13 @@
         if (panel && panel.hidden !== true) panel.querySelector('[data-role="rebellion-panel-close"]')?.click();
     }
 
-    function showRebellionPopup(anchor) {
+    // opts.mode 'plan' opens on Schedule, opts.slot picks a slot there (9a2).
+    function showRebellionPopup(anchor, opts = {}) {
         const menu = showPanel(anchor, 'mcfo-menu--reb', m => {
             m.innerHTML = '<div class="mcfo-reb__head"><span class="mcfo-reb__title">Start a Rebellion</span>'
                         + '<span class="mcfo-reb__note">Rebellion bids can\u2019t be cancelled.</span></div>'
+                        + '<div class="mcfo-reb__modes"><button type="button" class="mcfo-reb__mode" data-mode="now">Now</button>'
+                        +   '<button type="button" class="mcfo-reb__mode" data-mode="plan">Schedule</button></div>'
                         + '<div class="mcfo-reb__info">'
                         +   '<div class="mcfo-reb__active" hidden></div>'
                         +   '<div class="mcfo-reb__wallet"></div>'
@@ -104,13 +107,17 @@
                 b.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); rebellionTierClicked(tier, b, m); });
                 grid.appendChild(b);
             }
+            buildPlanView(m);
+            for (const b of m.querySelectorAll('.mcfo-reb__mode'))
+                b.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); setPopupMode(m, b.dataset.mode); });
         }, { centre: true });
         if (!menu) return;   // second click on the button: showPanel closed it (and us with it)
         // Only now: showPanel closes any open menu first, and that would take the attribute
         // straight off again. Set in the same task as the game's panel opens, so it never paints.
         document.documentElement.setAttribute('data-mcfo-rebpop', '1');
         wakeNativeRebellion();
-        syncRebellionPopup(menu);
+        menu._mcfoSlot = Number(opts.slot) || 0;
+        setPopupMode(menu, opts.mode === 'plan' ? 'plan' : 'now');
         placePanel(anchor, menu);
         rebTimer = setInterval(() => {
             if (!menu.isConnected) { stopRebellionPopup(); return; }
@@ -123,7 +130,8 @@
     function syncRebellionPopup(menu) {
         const panel = nativeRebellionPanel();
         mirrorRebellionInfo(menu, panel, 'Rebellion panel not found.');
-        syncRebellionTiers(menu);
+        if (menu._mcfoMode === 'plan') syncPlanView(menu);
+        else { syncRebellionTiers(menu); drawPlanList(menu, planLoad()); }   // the plans, with Cancel, in both views
     }
     // Status box, balance and message — the game writes them into the same three fields in both
     // modes (Rebellion and Royal Celebration), so both popups share this.
@@ -179,6 +187,7 @@
     }
 
     function rebellionTierClicked(tier, b, menu) {
+        if (menu._mcfoMode === 'plan') { planTierClicked(tier, b, menu); return; }
         if (b.disabled) return;
         // First click: arm this tier, disarm any other.
         if (b.getAttribute('data-mcfo-armed') !== '1') {

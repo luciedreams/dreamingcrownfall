@@ -395,7 +395,7 @@
         const t = (glQ('[data-role="session-cell"]')?.textContent || '').replace(/\s+/g, ' ');
         const set = (glQ('[data-role="current-tileset-name"]')?.textContent || '').trim() || (/Current:\s*(.+?)\s+Season/.exec(t) || [])[1] || '';
         const next = (/Next:\s*(.+?\))/.exec(t) || [])[1] || '';
-        const evHtml = set ? `<b>${set.replace(/</g, '&lt;')}</b>${next ? ' · Next ' + next.replace(/</g, '&lt;').replace('(', ' (') : ''}` : '';
+        const evHtml = set ? `<b>${set.replace(/</g, '&lt;')}</b>${next ? ' · Next ' + next.replace(/</g, '&lt;').replace('(', ' (') + planNextMarkHtml() : ''}` : '';
         if (glBuilt.ev.innerHTML !== evHtml) glBuilt.ev.innerHTML = evHtml;
         const badge = glQ('.mcfo-fps');
         glBuilt.fps.textContent = badge && !badge.hidden ? badge.textContent.trim() : '';

@@ -15,7 +15,7 @@
     // The game's session line is hidden, not moved: it keeps writing into it (syncStatus in
     // app.js, text and title), and a watcher copies both over at once.
     const NEXT_EVERY_MS = 10 * 60 * 1000;
-    const nextEv = { rows: [], at: 0, busy: false, fail: 0 };
+    const nextEv = { rows: [], at: 0, busy: false, fail: 0, skew: 0 };
     let tstatusWatch = null;
 
     async function loadNextEvents() {
@@ -27,7 +27,11 @@
             if (!d || !d.window || !Array.isArray(d.window.rows)) throw new Error('HTTP ' + r.status);
             // The server's clock against ours, so "has begun" means the same on both sides.
             const skew = Number(d.window.nowUtcMs) ? Number(d.window.nowUtcMs) - Date.now() : 0;
-            nextEv.rows = d.window.rows.map(x => ({ id: x.tilesetId, start: Number(x.startsAtUtcMs) - skew }))
+            // raw/end in the server's clock for the planned Rebellions (9a2); a slot without a
+            // length gets half an hour.
+            nextEv.skew = skew;
+            nextEv.rows = d.window.rows.map(x => ({ id: x.tilesetId, start: Number(x.startsAtUtcMs) - skew, raw: Number(x.startsAtUtcMs),
+                                                     end: Number(x.startsAtUtcMs) + (Number(x.durationMs) > 0 ? Number(x.durationMs) : 30 * 60 * 1000) }))
                 .filter(x => x.id && Number.isFinite(x.start)).sort((a, b) => a.start - b.start);
             nextEv.fail = 0;
         } catch (e) {

@@ -77,6 +77,7 @@
         { page: 'notifications', key: 'notify.king', label: 'Throne won or lost', hint: 'One of your accounts becomes King, or loses the crown.', needs: 'notify.enabled', event: true },
         { page: 'notifications', key: 'notify.celebration', label: 'Royal Celebration', hint: 'A Royal Celebration starts.', needs: 'notify.enabled', event: true },
         { page: 'notifications', key: 'notify.rebellion', label: 'Rebellion', hint: 'Somebody starts a Rebellion.', needs: 'notify.enabled', event: true },
+        { page: 'notifications', key: 'notify.rebellionPlan', label: 'Planned Rebellion', hint: 'One of your planned Rebellions started, failed or was missed — also while you are watching.', needs: 'notify.enabled', event: true },
         { page: 'notifications', key: 'notify.achievement', label: 'Achievements', hint: 'One of your accounts unlocks an achievement.', needs: 'notify.enabled', event: true },
         { page: 'notifications', key: 'notify.gift', label: 'Gifts', hint: 'Another player sends one of your accounts gold or diamonds.', needs: 'notify.enabled', event: true },
         { page: 'notifications', key: 'notify.shopQuest', label: 'Shop items for your quests', hint: 'The shop has an item that completes one of today\'s open shop quests, and the account does not own it yet.', needs: 'notify.enabled', event: true },

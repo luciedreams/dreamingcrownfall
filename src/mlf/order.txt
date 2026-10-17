@@ -32,6 +32,7 @@ header/ticket-history.js
 rail/ticket-rail.js
 rail/autobid.js
 king/rebellion.js
+king/rebellion-plan.js
 king/celebration.js
 king/toll-field.js
 chat/rail.js

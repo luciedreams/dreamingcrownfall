@@ -2,6 +2,7 @@
 // gerade verdient werden, Daily Quests (erledigt/gesamt), VIP-Stufe und Abholbares. Läuft immer,
 // solange die App offen ist — die Leiste ist immer zu sehen:
 //   Kopfzeile des Spiels (Tickets + Status)     alle 10 s — kein Netzwerkabruf
+//   geplante Rebellion (localStorage mcfo_reb_plans, mlf/king/rebellion-plan.js) im selben Abruf
 //   /api/stats/me (VIP), /api/dailies (Quests)  alle 60 s
 // Regeln für „abholbar“ wie in Home und HUD.
 
@@ -12,7 +13,14 @@ const HEADER_JS = `(() => { const c = document.querySelector('[data-role="metric
     if (!c) return null;
     const n = Number(String(c.querySelector('[data-role="tickets"]')?.textContent || '').replace(/[^0-9]/g, ''));
     const status = c.innerText.split('\\n').map((s) => s.trim()).filter(Boolean).slice(2).join(' ');
-    return { tickets: Number.isFinite(n) && n > 0 ? n : null, earning: /earning/i.test(status) && !/not earning/i.test(status) }; })()`;
+    let plan = null;
+    try {
+        const l = JSON.parse(localStorage.getItem('mcfo_reb_plans') || '[]');
+        const p = l.filter((x) => x.state === 'planned').sort((a, b) => a.start - b.start)[0];
+        const warn = l.some((x) => !x.seen && (x.state === 'failed' || x.state === 'missed'));
+        if (p || warn) plan = { cost: p ? p.cost : null, start: p ? p.start : null, tileset: p ? p.tilesetId : null, warn };
+    } catch (e) {}
+    return { tickets: Number.isFinite(n) && n > 0 ? n : null, earning: /earning/i.test(status) && !/not earning/i.test(status), plan }; })()`;
 
 const API_JS = `(async () => {
     const j = (p) => fetch(p, { credentials: 'same-origin' }).then((r) => (r.ok ? r.json() : null)).catch(() => null);
@@ -52,7 +60,7 @@ module.exports = function startTabStatus({ views, onChange }) {
         of(v) {
             const h = header.get(v) || {}, a = api.get(v) || {};
             return {
-                tickets: h.tickets ?? null, earning: h.earning ?? null,
+                tickets: h.tickets ?? null, earning: h.earning ?? null, plan: h.plan ?? null,
                 vip: a.vip ?? null, questsDone: a.questsDone ?? null, questsTotal: a.questsTotal ?? null, claim: a.claim ?? null,
             };
         },

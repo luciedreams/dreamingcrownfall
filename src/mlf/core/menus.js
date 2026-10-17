@@ -199,6 +199,22 @@
                         time.textContent = row.activeNow ? when : `${when}, lasts ${durationText(row.durationMs)}`;
                         if (until > 0) time.title = `starts in ${durationText(until)}`;
                         li.append(name, time);
+                        // A Rebellion for this slot (9a2): opens the popup on Schedule.
+                        if (!row.activeNow && until > 0) {
+                            const p = planPending(planLoad(), row.startsAtUtcMs, row.tilesetId);
+                            const pb = document.createElement('button');
+                            pb.type = 'button';
+                            pb.className = 'mcfo-events__plan';
+                            pb.textContent = p ? `\u2694 x${(planTier(p.cost) || {}).mult}` : '\u2694 Plan';
+                            if (p) pb.setAttribute('data-mcfo-planned', '1');
+                            pb.title = p ? 'Planned Rebellion — click to change' : 'Plan a Rebellion for this tileset';
+                            pb.addEventListener('click', e => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                showRebellionPopup(anchor, { mode: 'plan', slot: row.startsAtUtcMs });
+                            });
+                            li.appendChild(pb);
+                        }
                         ul.appendChild(li);
                     }
                     menu.appendChild(ul);
