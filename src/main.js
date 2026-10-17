@@ -166,8 +166,10 @@ function select(i) {
     if (i !== HOME && !views[i]) return;
     active = i;
     if (i !== HOME) lastGame = i;
-    views.forEach((v, j) => v.view.setVisible(j === i));
+    views.forEach((v, j) => v.view.setVisible(j === i || v.warming));
     home?.setVisible(i === HOME);
+    // Der gewählte Tab nach oben: Tabs, die noch anlaufen (warmUp), liegen sichtbar darunter.
+    win.contentView.addChildView(i === HOME ? home.view : views[i].view);
     layout();
     (i === HOME ? home.view : views[i].view).webContents.focus();
     pushTabs();
@@ -312,11 +314,35 @@ function addAccount(acc, focus = false) {
     wc.on('did-stop-loading', () => refreshIdentity(v));
     vitals?.watch(v);
     win.contentView.addChildView(view);
-    view.setVisible(false);
     wc.loadURL(START_URL);
+    warmUp(v);
     layout();
     if (focus) select(views.length - 1); else pushTabs();
     return v;
+}
+
+// Ein Tab, der nie sichtbar war, hat im Renderer 0×0 Pixel. Das Spiel wählt dann beim Laden das
+// Layout „mobile-landscape“ und blendet die ganze Fußleiste (Tickets, Gebote) aus; der Weg zurück
+// nach „desktop“ beim ersten Zeigen stellt sie nicht wieder her — die Alt-Tabs standen ohne Footer
+// da, bis man neu lud (Luce, 17.10.). Deshalb läuft jeder neue Tab sichtbar UNTER dem aktiven an,
+// bis die Spielseite ihr Layout gewählt hat; danach behält er seine Größe auch versteckt.
+function warmUp(v) {
+    v.warming = true;
+    const wc = v.view.webContents;
+    const started = Date.now();
+    const done = () => {
+        if (!v.warming) return;
+        v.warming = false;
+        if (views[active] !== v && !wc.isDestroyed()) v.view.setVisible(false);
+    };
+    const poll = async () => {
+        if (!v.warming || wc.isDestroyed()) return;
+        let mode = null;
+        try { mode = await wc.executeJavaScript("document.querySelector('[data-role=shell]')?.dataset.layoutMode || null"); } catch {}
+        if (mode || Date.now() - started > 20000) done();
+        else setTimeout(poll, 500);
+    };
+    wc.once('dom-ready', poll);
 }
 
 // Tab entfernen = Account abmelden und seine Sitzung löschen (Cookies, Speicher). Der letzte Tab bleibt.
