@@ -19,7 +19,10 @@
     const titleOf = (el) => el.querySelector('.mcfo-win__title')?.textContent.trim() || '';
     // Der Chat ist das Fenster, in das die Spiel-Ebene die Chat-Spalte des Spiels hängt (9e CHAT POP-OUT).
     const isChat = (el) => !!el.querySelector('[data-role="desktop-chat-pane"]') || /^chat$/i.test(titleOf(el));
-    const popOutAll = () => { try { return window.dcfApp?.settings()['windows.popOut'] !== false; } catch (e) { return true; } };
+    // Im Spiel-Layout (seit 0.7.0) sind Fenster Seitenpanels im Spiel (game-layout.js) — „Every window on
+    // its own“ gilt nur fürs klassische Layout, und ⧉ gibt es dort nicht.
+    const popOutAll = () => { try { const s = window.dcfApp?.settings() || {}; return s['windows.popOut'] !== false && s['ui.gameLayout'] === false; } catch (e) { return true; } };
+    const gameLayout = () => { try { return window.dcfApp?.settings()['ui.gameLayout'] !== false; } catch (e) { return false; } };
     let separate = popOutAll();
 
     // Alles, was das Aussehen bestimmt, ins Popup spiegeln: Stylesheets (Spiel + MLF) und die
@@ -188,6 +191,7 @@
         // Einen Takt warten: MLF hängt den Inhalt (beim Chat die Spalte) gleich nach dem Anlegen ein.
         setTimeout(() => {
             if (!el.isConnected || popped.has(el)) return;
+            if (gameLayout()) return;   // Seitenpanel im Spiel, ohne ⧉
             if (isChat(el) || !separate) addButton(el);
             else popOut(el, { closeOnExit: true });
         }, 0);

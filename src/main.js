@@ -174,7 +174,8 @@ const escMenu = createEscMenu({
     // der Wechsel holte das Hauptfenster über das gerade geöffnete Fenster (Luce, 17.10.); stattdessen das
     // Fenster ausdrücklich nach vorn holen. Patch notes und Fenster im Spiel brauchen den Spiel-Tab vorn.
     gameAct: (id, title) => {
-        const own = id.startsWith('page:') && appSettings.get('windows.popOut') !== false;
+        // Im Spiel-Layout sind Spielseiten Seitenpanels im Spiel-Tab — dorthin also wechseln.
+        const own = id.startsWith('page:') && appSettings.get('windows.popOut') !== false && appSettings.get('ui.gameLayout') === false;
         if (active < 0 && !own) select(lastGame);
         const v = views[active >= 0 ? active : lastGame];
         if (!v) return;

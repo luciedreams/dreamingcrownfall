@@ -5,7 +5,7 @@
     // untouched. On:
     //   1. a resource bar at the top instead of the header cards (click a value: as before)
     //   2. a hotbar at the bottom instead of the footer and the tray under the King
-    //   3. keys for it: 1 / 5 / 0 bid, U unbid, R rebellion, F attack, Q W E A S D drinks,
+    //   3. keys for it: 1 / 5 / 0 bid, U unbid, B autobid, R rebellion, F attack, Q W E A S D drinks,
     //      I inventory, P profile
     //   4. the chat floats in the bottom-left corner and fades while nothing happens
     //   5. lanes and King as one arena without the website's boxes
@@ -115,6 +115,9 @@
             .dcf-gl-bar__k { position: absolute; left: 5px; top: 4px; font: 800 10px/1 system-ui, sans-serif; color: rgb(var(--gl-accent)); text-shadow: 0 1px 2px rgba(0, 0, 0, .9); }
             .dcf-gl-bar__n { position: absolute; bottom: 4px; left: 0; right: 0; font: 700 8.5px/1 system-ui, sans-serif; letter-spacing: .05em; text-transform: uppercase; color: rgba(var(--gl-text), .85); text-shadow: 0 1px 2px rgba(0, 0, 0, .9); }
             .dcf-gl-bar button.bid .dcf-gl-bar__k { color: rgb(var(--gl-bidText)); text-shadow: none; }
+            .dcf-gl-bar button[data-tone]:not([data-tone="off"]) { border-color: #7fd99a; box-shadow: inset 0 0 0 2px rgba(0, 0, 0, .4), 0 0 12px rgba(127, 217, 154, .35); }
+            .dcf-gl-bar button[data-tone="alert"] { border-color: #e07a7a; box-shadow: inset 0 0 0 2px rgba(0, 0, 0, .4), 0 0 12px rgba(224, 122, 122, .45); }
+            .dcf-gl-bar button[hidden] { display: none; }
             .dcf-gl-bar button.has-n > span:first-child { margin-top: -10px; }
 
             /* 4 chat: floating in the bottom-left corner, see-through, fades while quiet */
@@ -130,6 +133,18 @@
             ${GL_ON} [data-role="chat-messages"] { background: transparent !important; }
             ${GL_ON} [data-role="lane-play-region"] { grid-template-columns: minmax(0, 1fr) !important; }
 
+            /* side panels instead of free windows (inline position and size from dragging are overruled) */
+            ${GL_ON} .mcfo-win[data-dcf-side] { position: fixed !important; top: 56px !important; bottom: 104px !important; height: auto !important;
+                width: min(760px, 40vw) !important; min-width: 0 !important; max-width: none !important; transform: none !important;
+                border-radius: 14px !important; box-shadow: 0 18px 50px rgba(0, 0, 0, .55), 0 0 0 1px rgba(var(--gl-line), .35) !important; }
+            ${GL_ON} .mcfo-win[data-dcf-side="left"] { left: 14px !important; right: auto !important; bottom: 386px !important; }
+            ${GL_ON} .mcfo-win[data-dcf-side="right"] { right: 14px !important; left: auto !important; }
+            ${GL_ON} .mcfo-win[data-dcf-side] > :is(.mcfo-win__grip, .mcfo-win__edge) { display: none !important; }
+            ${GL_ON} .mcfo-win[data-dcf-side] > .mcfo-win__head { cursor: default !important; }
+            ${GL_ON} .mcfo-win[data-dcf-side] [data-mcfo-win="min"] { display: none !important; }
+            ${GL_ON} .mcfo-taskbar { display: none !important; }
+            ${GL_ON} .mcfo-win [data-dcf="pop"] { display: none !important; }
+
             /* 5 arena: one board, no website boxes */
             ${GL_ON} [data-role="main-region"] { gap: 0 !important; border-radius: 14px; outline: 1px solid rgba(var(--gl-line), .38);
                 box-shadow: 0 0 0 1px rgba(0, 0, 0, .4), 0 0 40px rgba(var(--gl-line), .16); overflow: hidden; }
@@ -137,6 +152,22 @@
             ${GL_ON} [data-role="king-pane"] { border-left: 1px solid rgba(var(--gl-accent), .25) !important; border-right: 1px solid rgba(var(--gl-accent), .25) !important; }
             @media (prefers-reduced-motion: reduce) { ${GL_ON} [data-role="desktop-chat-pane"] { transition: none; } }`;
         (document.head || document.documentElement).appendChild(s);
+    }
+
+    // ---- side panels ------------------------------------------------------------------------------
+    // Windows of the game's pages are side panels here, one per side, like the frames in an MMO:
+    // what you are (inventory, profile, achievements) on the left above the chat, what the game
+    // offers (shop, dailies, leaderboards, the rest) on the right. No moving, no minimising, no
+    // taskbar; the same key, Esc or ✕ closes. Classic layout: free windows as before.
+    const GL_LEFT = ['/inventory', '/profile', '/achievements'];
+    function glSideOf(path) { return GL_LEFT.includes(String(path).replace(/\/+$/, '')) ? 'left' : 'right'; }
+    // A panel opened (or brought back): the other one on that side gives way.
+    function glSideOpened(path) {
+        try { if (!glOn) return; } catch (e) { return; }
+        const side = glSideOf(path);
+        for (const [p, w] of [...windows.entries()]) {
+            if (p !== path && w.el && !w.min && w.el.dataset.dcfSide === side && p !== CHAT_WIN) closeWindow(p);
+        }
     }
 
     // ---- pieces -----------------------------------------------------------------------------------
@@ -156,6 +187,8 @@
         { grp: 'bids', id: 'b5', key: '5', text: '×5', name: 'Bid 5', cls: 'bid', target: () => glQ('[data-role="bid-5"]') },
         { grp: 'bids', id: 'b10', key: '0', text: '×10', name: 'Bid 10', cls: 'bid', target: () => glQ('[data-role="bid-10"]') },
         { grp: 'bids', id: 'unbid', key: 'U', name: 'Unbid', icon: 'unbid', target: () => glQ('.mcfo-unbid') },
+        // Autobid opens its menu right at the hotbar; the button shows whether it runs and how much.
+        { grp: 'bids', id: 'auto', key: 'B', name: 'Autobid', icon: 'auto', auto: true, target: () => glQ('.mcfo-autobid') },
         { grp: 'king', id: 'attack', key: 'F', name: 'Attack', cls: 'warn', icon: 'attack', target: () => glQ('[data-role="king-action-tray"] .mcf-king-attack-placeholder:not([hidden])') },
         ...GL_DRINKS.map((n, i) => ({ grp: 'king', id: 'drink-' + n, key: 'QWEASD'[i], name: n, drink: n, target: () => glDrink(n) })),
     ];
@@ -228,6 +261,7 @@
         const t = s.target();
         const b = glBuilt && glBuilt.buttons.get(s.id);
         if (b) { b.setAttribute('data-hit', ''); setTimeout(() => b.removeAttribute('data-hit'), 120); }
+        if (s.auto) { if (t && b) showAutobidMenu(b); return; }
         if (t && !t.disabled) t.click();
     }
 
@@ -258,6 +292,17 @@
             const b = glBuilt.buttons.get(s.id), tgt = s.target();
             const off = !tgt || tgt.disabled || tgt.getAttribute('aria-disabled') === 'true' || (tgt.style && Number(tgt.style.opacity) < 0.6 && tgt.style.opacity !== '');
             b.toggleAttribute('data-off', off);
+            if (s.auto) {
+                // Hidden when the autobid button is switched off in the settings; otherwise its tone and amount.
+                b.hidden = !tgt;
+                const tone = tgt ? tgt.getAttribute('data-mcfo-tone') || 'off' : 'off';
+                if (b.dataset.tone !== tone) b.dataset.tone = tone;
+                const n = b.querySelector('.dcf-gl-bar__n'), label = tgt && tone !== 'off' ? (tgt.textContent.match(/×\s*\d+/) || ['On'])[0] : 'Autobid';
+                if (n && n.textContent !== label) n.textContent = label;
+                if (tgt && b.title !== tgt.title + ' (B)') b.title = tgt.title + ' (B)';
+                b.removeAttribute('data-off');
+                continue;
+            }
             if (s.drink) {
                 const svg = tgt && glQ('svg', tgt);
                 const want = svg ? svg.outerHTML : s.name[0];

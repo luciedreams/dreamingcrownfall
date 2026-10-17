@@ -85,7 +85,7 @@
         if (matchMedia('(prefers-reduced-motion: reduce)').matches) return false;
         return appSetting('ui.transitions') !== false;
     }
-    const inGameWindows = () => appSetting('windows.popOut') === false;
+    const inGameWindows = () => appSetting('windows.popOut') === false || appSetting('ui.gameLayout') !== false;
     const taskbarButton = path => taskbar && [...taskbar.children].find(b => b.dataset.path === path);
     // Between the window's own place and r (a taskbar button): toButton shrinks it in, else out of it.
     function flyWindow(w, r, toButton) {
@@ -130,10 +130,15 @@
             + ['n', 's', 'e', 'w', 'ne', 'nw', 'sw'].map(e => `<div class="mcfo-win__edge" data-edge="${e}"></div>`).join('');
         el.querySelector('.mcfo-win__title').textContent = title;
         desk.appendChild(el);
+        // Game layout: which side panel it becomes (layout/game-layout.js).
+        el.dataset.dcfSide = glSideOf(path);
         // Opening (DreamingCrownfall 0.7.0): grows in softly — only where it stays in the game.
+        // As a side panel of the game layout it slides in from its edge instead.
         if (inGameWindows() && winMotion()) {
-            el.animate([{ opacity: 0, transform: 'scale(.96)' }, { opacity: 1, transform: 'none' }],
-                { duration: 170, easing: 'cubic-bezier(.2, .8, .2, 1)' });
+            const side = appSetting('ui.gameLayout') !== false ? el.dataset.dcfSide : '';
+            const from = side ? `translateX(${side === 'left' ? -40 : 40}px)` : 'scale(.96)';
+            el.animate([{ opacity: 0, transform: from }, { opacity: 1, transform: 'none' }],
+                { duration: side ? 220 : 170, easing: 'cubic-bezier(.2, .8, .2, 1)' });
         }
 
         // Where it opens: the last known place, otherwise cascaded so a second window does not
@@ -196,6 +201,7 @@
         w.min = false;
         w.el.hidden = false;
         w.el.style.pointerEvents = '';
+        glSideOpened(path);
         raise(w);
         saveWinState(path, { min: false });
         drawTaskbar();
@@ -247,7 +253,8 @@
             if (!w.min && !el.hidden && el.ownerDocument === document && inGameWindows() && winMotion()) {
                 if (w.anim) w.anim.cancel();
                 el.style.pointerEvents = 'none';
-                el.animate([{ opacity: 1, transform: 'none' }, { opacity: 0, transform: 'scale(.96)' }],
+                const side = appSetting('ui.gameLayout') !== false ? el.dataset.dcfSide : '';
+                el.animate([{ opacity: 1, transform: 'none' }, { opacity: 0, transform: side ? `translateX(${side === 'left' ? -40 : 40}px)` : 'scale(.96)' }],
                     { duration: 150, easing: 'cubic-bezier(.4, 0, 1, 1)' }).finished.then(() => el.remove(), () => el.remove());
             } else el.remove();
         }
@@ -374,6 +381,7 @@
         if (vorhanden) { restoreWindow(path); return vorhanden; }
 
         const w = makeWindow(path, title);
+        glSideOpened(path);
         // Open across a restart of the app (DreamingCrownfall 0.7.0, restoreOpen below).
         saveWinState(path, { open: true, title: String(title) });
         // Dailies (6.35): the page reads its quests once, when it loads. A refresh button in the
@@ -493,6 +501,8 @@
         let zieht = false, dx = 0, dy = 0;
         head.addEventListener('pointerdown', e => {
             if (e.button !== 0 || e.target.closest('.mcfo-win__btn')) return;
+            // Side panels of the game layout stay where they are (and keep the free position for classic).
+            if (document.documentElement.hasAttribute('data-dcf-gl') && w.el.dataset.dcfSide) return;
             const r = w.el.getBoundingClientRect();
             dx = e.clientX - r.left; dy = e.clientY - r.top;
             zieht = true; head.setPointerCapture(e.pointerId); e.preventDefault();
