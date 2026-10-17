@@ -392,12 +392,14 @@
     }
 
     // Esc closes the topmost open window — the one you were last in. With nothing left to close
-    // it opens the game menu (panel/esc-menu.js); its own Esc closes it again.
+    // it opens the app's game menu (src/esc-menu.js, drawn by the app); its own Esc closes it again.
     document.addEventListener('keydown', e => {
         if (e.key !== 'Escape') return;
         // Not while typing: Esc in the chat field would otherwise dock the popped-out chat.
         if (e.target && e.target.closest && e.target.closest('input, textarea, select, [contenteditable="true"]')) return;
-        const offen = [...windows.entries()].filter(([, w]) => !w.min);
+        // Only windows on this page: the app moves them out into windows of their own, and those
+        // stay open (Luce, 17.10.) — Esc then goes on to the game menu.
+        const offen = [...windows.entries()].filter(([, w]) => !w.min && w.el && document.contains(w.el));
         if (offen.length) {
             offen.sort((x, y) => Number(y[1].el.style.zIndex || 0) - Number(x[1].el.style.zIndex || 0));
             closeWindow(offen[0][0]);
@@ -407,7 +409,7 @@
         // The game's own Esc: its sound panel (handled before us, marks the event) and the help
         // bubbles over the board (handled after us — still open at this point).
         if (e.defaultPrevented || e.repeat || document.querySelector('.arenaHelpTooltip:not([hidden])')) return;
-        showEscMenu();
+        if (window.dcfApp && window.dcfApp.menu) window.dcfApp.menu.open();
     });
 
     // Pointer events rather than mouse events: they cover touch and pen, and setPointerCapture

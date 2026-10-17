@@ -28,6 +28,7 @@ const createStats = require('./stats.js');
 const startTabStatus = require('./tab-status.js');
 const createOverlay = require('./overlay.js');
 const startContextMenu = require('./context-menu.js');
+const createEscMenu = require('./esc-menu.js');
 const { pathToFileURL } = require('url');
 
 const START_URL = 'https://marblecrownfall.com/';
@@ -135,6 +136,19 @@ let lastGame = 0;     // zuletzt gewählter Spiel-Tab (für Discord, Settings au
 let home = null, hud = null, stats = null, tabStatus = null, overlay = null;
 const contextMenu = startContextMenu({
     toggleHud: () => hud?.toggle(), hudOpen: () => !!hud?.isOpen(), openSettings: () => showSettingsPage(''),
+});
+const escMenu = createEscMenu({
+    where: (wc) => (wc === home?.view.webContents ? 'home' : wc === stats?.view()?.webContents ? 'stats' : 'game'),
+    homeOk: () => !!home?.available(), statsOk: () => !!stats?.enabled(), hudOpen: () => !!hud?.isOpen(),
+    // Spielseiten und Patch notes zeichnet die Spiel-Ebene (src/mlf/panel/esc-menu.js) — von Home/Stats aus
+    // erst zurück in den zuletzt gewählten Spiel-Tab.
+    gameAct: (id) => {
+        if (active < 0) select(lastGame);
+        views[active]?.view.webContents.executeJavaScript(`window.dcfEscAct && window.dcfEscAct(${JSON.stringify(id)})`).catch(() => {});
+    },
+    home: () => select(HOME), stats: () => select(STATS), hud: () => hud?.toggle(),
+    settings: () => showSettingsPage(''), quit: () => win?.close(),
+    get updater() { return updater; },
 });
 const views = []; // je Account: { acc, view, name, guest, playerId, avatar }
 
@@ -424,9 +438,7 @@ ipcMain.on('win:minimize', () => win?.minimize());
 ipcMain.on('win:maximize', () => { if (!win) return; if (win.isMaximized()) win.unmaximize(); else win.maximize(); });
 ipcMain.on('win:close', () => win?.close());
 // ESC-Menü der Spiel-Ebene (seit 0.7.0): was es anbieten kann, Home und Beenden.
-ipcMain.on('dcf:menu:state', (e) => { e.returnValue = { home: !!home?.available(), stats: !!stats?.enabled(), hud: !!hud?.isOpen() }; });
-ipcMain.on('dcf:home:open', () => select(HOME));
-ipcMain.on('dcf:quit', () => win?.close());
+ipcMain.on('dcf:menu:open', (e) => escMenu.show(e.sender));
 ipcMain.on('dcf:notify:test', () => notifier?.test());
 // Willkommen-Schritte: nur ein Tab zeigt sie (der erste, der fragt, behält sie auch nach dem Neuladen).
 let welcomeOwner = null;
@@ -473,6 +485,8 @@ function handleKeys(e, input, wc) {
     else if (k === 'F12' || (ctrl && input.shift && k.toLowerCase() === 'i')) wc.toggleDevTools();
     else if (k === 'F11') { win.setFullScreen(!win.isFullScreen()); }
     else if (k === 'F2' && !ctrl && !input.alt) hud?.toggle();
+    // ESC-Menü auf Home und Stats (im Spiel entscheidet die Spiel-Ebene, core/windows.js).
+    else if (k === 'Escape' && active < 0 && !ctrl && !input.alt && !input.shift) { if (!input.isAutoRepeat) escMenu.toggle(activeContents()); }
     else if (ctrl && k === ',') showSettingsPage('');
     else if (ctrl && (k === '+' || k === '=')) wc.setZoomLevel(wc.getZoomLevel() + 0.5);
     else if (ctrl && k === '-') wc.setZoomLevel(wc.getZoomLevel() - 0.5);
@@ -495,6 +509,7 @@ img, a, svg, video { -webkit-user-drag: none; }
 :focus:not(:focus-visible) { outline: none; }`;
 function wireGameContents(wc, v) {
     contextMenu.attach(wc);
+    escMenu.attach(wc);
     wc.on('dom-ready', () => {
         let host = '';
         try { host = new URL(wc.getURL()).hostname; } catch {}
@@ -660,7 +675,7 @@ function createWindow() {
     stats = createStats({
         win, setting: appSettings.get, onSettingsChange: appSettings.onChange,
         onChange: () => { home?.push(); hud?.update(); },
-        wire: (wc) => wc.on('before-input-event', (e, input) => handleKeys(e, input, wc)),
+        wire: (wc) => { escMenu.attach(wc); wc.on('before-input-event', (e, input) => handleKeys(e, input, wc)); },
     });
     // Stats ein-/ausgeschaltet: Tab-Leiste nachziehen; wer gerade auf Stats steht, geht zurück ins Spiel.
     appSettings.onChange(() => { if (active === STATS && !stats.enabled()) select(lastGame); else pushTabs(); });
@@ -669,6 +684,7 @@ function createWindow() {
     setInterval(() => { const k = notifier?.kingNow()?.playerId || null; if (k !== shownKing) { shownKing = k; pushTabs(); } }, 5000);
     home = createHome({ win, views, label, stats, kingNow: () => notifier?.kingNow() || null, onSelect: (i, tab) => select(i, tab) });
     home.view.webContents.on('before-input-event', (e, input) => handleKeys(e, input, home.view.webContents));
+    escMenu.attach(home.view.webContents);
     for (const acc of loadAccounts()) addAccount(acc);
     saveAccounts();
     removeOrphanSessions();
