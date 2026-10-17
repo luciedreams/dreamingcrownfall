@@ -151,6 +151,7 @@ const escMenu = createEscMenu({
     },
     home: () => select(HOME), stats: () => select(STATS), hud: () => hud?.toggle(),
     settings: () => showSettingsPage(''), quit: () => win?.close(),
+    globalShortcuts: () => appSettings.get('shortcuts.global') === true,
     get updater() { return updater; },
 });
 const views = []; // je Account: { acc, view, name, guest, playerId, avatar }
@@ -548,6 +549,7 @@ function handleKeys(e, input, wc) {
     else if (k === 'F12' || (ctrl && input.shift && k.toLowerCase() === 'i')) wc.toggleDevTools();
     else if (k === 'F11') { win.setFullScreen(!win.isFullScreen()); }
     else if (k === 'F2' && !ctrl && !input.alt) hud?.toggle();
+    else if (k === 'F1' && !ctrl && !input.alt && !input.shift) { if (!input.isAutoRepeat) escMenu.toggle(activeContents(), 'keys'); }
     // ESC-Menü auf Home und Stats (im Spiel entscheidet die Spiel-Ebene, core/windows.js).
     else if (k === 'Escape' && active < 0 && !ctrl && !input.alt && !input.shift) { if (!input.isAutoRepeat) escMenu.toggle(activeContents()); }
     else if (ctrl && k === ',') showSettingsPage('');

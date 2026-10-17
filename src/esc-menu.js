@@ -32,6 +32,7 @@ function PAGE() {
         scroll: '<path d="M8 3h11v15a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3v-2h11v2a3 3 0 0 0 3 3"/><path d="M8 3a3 3 0 0 0-3 3v10M11 8h5M11 12h5"/>',
         refresh: '<path d="M21 12a9 9 0 1 1-2.6-6.4L21 8"/><path d="M21 3v5h-5"/>',
         power: '<path d="M12 3v9"/><path d="M6.3 6.3a8 8 0 1 0 11.4 0"/>',
+        keyboard: '<rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10"/>',
     };
     const CSS = `
         :host { all: initial; }
@@ -89,6 +90,18 @@ function PAGE() {
         .it.quit:hover, .it.quit:focus-visible { background: rgba(224, 122, 122, 0.14); }
         .foot { margin-top: 10px; text-align: center; font-size: 11.5px; color: var(--dim); text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6); }
         kbd { font: inherit; font-weight: 700; color: var(--muted); padding: 0 5px; border: 1px solid rgba(180, 138, 232, 0.3); border-radius: 4px; }
+        /* Tastenkürzel (F1): breitere Karte, Gruppen, Tasten als Kappen */
+        .col.wide { width: 460px; }
+        .keys { padding: 6px 20px 16px; overflow: auto; scrollbar-width: thin; scrollbar-color: rgba(180, 138, 232, 0.4) transparent; }
+        .grp { margin: 14px 0 6px; font-size: 11px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; color: var(--gold); }
+        .row { display: flex; align-items: center; gap: 12px; padding: 6px 0; border-bottom: 1px solid rgba(180, 138, 232, 0.08); font-size: 13.5px; }
+        .row:last-child { border-bottom: 0; }
+        .row .lb { white-space: normal; }
+        .row .ks { display: flex; gap: 4px; flex: none; flex-wrap: wrap; justify-content: flex-end; }
+        .row kbd { min-width: 22px; text-align: center; padding: 2px 7px; color: var(--text); background: rgba(180, 138, 232, 0.12); border-color: rgba(180, 138, 232, 0.35); border-bottom-width: 2px; }
+        .row .or { color: var(--dim); font-size: 11.5px; align-self: center; }
+        .note { margin: 10px 0 0; font-size: 12px; color: var(--muted); line-height: 1.45; }
+        .title { margin: 0; font-size: 20px; font-weight: 800; }
         @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
         @keyframes rise { from { opacity: 0; transform: translateY(8px) scale(0.98); } to { opacity: 1; transform: none; } }
         @media (prefers-reduced-motion: reduce) { .esc, .col { animation: none; } }`;
@@ -119,28 +132,78 @@ function PAGE() {
         if (s.stay != null) it.stay = s.stay;
     }
 
+    // Gemeinsames Gerüst: verschleierter Hintergrund, Säule, Karte; Esc/Klick daneben schließt.
+    // Die Schrift der Seite (Spiel: seine eigene) — ein Shadow-Root erbt sie über den Host nicht immer.
+    function frame(wide) {
+        const host = document.createElement('dcf-esc-menu');
+        const sh = host.attachShadow({ mode: 'closed' });
+        const style = el('style');
+        style.textContent = CSS;
+        const root = el('div', 'esc');
+        if (/noblur/.test(document.documentElement.getAttribute('data-mcfo-perf') || '')) root.classList.add('noblur');
+        root.setAttribute('role', 'dialog');
+        root.setAttribute('aria-modal', 'true');
+        const col = el('div', 'col' + (wide ? ' wide' : '')), card = el('div', 'card');
+        col.appendChild(card);
+        root.appendChild(col);
+        root.addEventListener('mousedown', e => { if (e.target === root) finish(null); });
+        try { root.style.setProperty('--font', getComputedStyle(document.body).fontFamily); } catch (e) {}
+        sh.append(style, root);
+        return { host, sh, root, col, card };
+    }
+    function head(cfg, title) {
+        const h = el('div', 'head');
+        const logo = el('img', 'logo');
+        logo.alt = '';
+        logo.src = cfg.logo || '';
+        if (title) { h.append(logo, el('h2', 'title', title)); return h; }
+        const brand = el('div', 'brand', 'Dreaming');
+        brand.appendChild(el('b', '', 'Crownfall'));
+        h.append(logo, brand);
+        return h;
+    }
+
     window.__dcfEsc = {
+        // Tastenkürzel-Übersicht (F1). cfg: { logo, groups: [{ title, rows: [[label, [keys…] | 'a / b']] }], note }
+        keys(cfg) {
+            if (cur) return 'open';
+            const f = frame(true);
+            f.root.setAttribute('aria-label', 'Keyboard shortcuts');
+            const body = el('div', 'keys');
+            for (const g of cfg.groups) {
+                body.appendChild(el('div', 'grp', g.title));
+                for (const [label, combos] of g.rows) {
+                    const row = el('div', 'row');
+                    const ks = el('span', 'ks');
+                    combos.forEach((c, i) => {
+                        if (i) ks.appendChild(el('span', 'or', 'or'));
+                        c.split('+').forEach((k, j) => { if (j) ks.appendChild(el('span', 'or', '+')); ks.appendChild(el('kbd', '', k)); });
+                    });
+                    row.append(el('span', 'lb', label), ks);
+                    body.appendChild(row);
+                }
+            }
+            if (cfg.note) body.appendChild(el('p', 'note', cfg.note));
+            f.card.append(head(cfg, 'Keyboard shortcuts'), body);
+            const foot = el('div', 'foot');
+            foot.append(el('kbd', '', 'Esc'), ' or ', el('kbd', '', 'F1'), ' to close');
+            f.col.appendChild(foot);
+            const keyHandler = e => {
+                if (e.key === 'Escape') { e.stopPropagation(); e.preventDefault(); finish(null); }
+            };
+            window.addEventListener('keydown', keyHandler, true);
+            (document.body || document.documentElement).appendChild(f.host);
+            cur = { host: f.host, items: new Map(), waiter: null, queue: [], keyHandler };
+            return 'ok';
+        },
         // cfg: { version, logo, items: [{ id, icon, label, hint?, cls?, stay?, tone? } | { sep: true }] }
         open(cfg) {
             if (cur) return 'open';
             const a = document.activeElement;
             if (a && a.closest && a.closest('input, textarea, select, [contenteditable="true"]')) return 'busy';
-            const host = document.createElement('dcf-esc-menu');
-            const sh = host.attachShadow({ mode: 'closed' });
-            const style = el('style');
-            style.textContent = CSS;
-            const root = el('div', 'esc');
-            if (/noblur/.test(document.documentElement.getAttribute('data-mcfo-perf') || '')) root.classList.add('noblur');
-            root.setAttribute('role', 'dialog');
-            root.setAttribute('aria-modal', 'true');
+            const { host, sh, root, col, card } = frame(false);
             root.setAttribute('aria-label', 'Game menu');
-            const col = el('div', 'col'), card = el('div', 'card'), head = el('div', 'head'), list = el('div', 'list');
-            const logo = el('img', 'logo');
-            logo.alt = '';
-            logo.src = cfg.logo || '';
-            const brand = el('div', 'brand', 'Dreaming');
-            brand.appendChild(el('b', '', 'Crownfall'));
-            head.append(logo, brand);
+            const list = el('div', 'list');
             const items = new Map();
             let first = null;
             for (const it of cfg.items) {
@@ -156,15 +219,10 @@ function PAGE() {
                 list.appendChild(b);
                 if (!first) first = b;
             }
-            card.append(head, list);
+            card.append(head(cfg), list);
             const foot = el('div', 'foot');
             foot.append(`v${cfg.version} · `, el('kbd', '', 'Esc'), ' to resume');
-            col.append(card, foot);
-            root.appendChild(col);
-            root.addEventListener('mousedown', e => { if (e.target === root) finish(null); });
-            // Die Schrift der Seite (Spiel: seine eigene) — ein Shadow-Root erbt sie über den Host nicht immer.
-            try { root.style.setProperty('--font', getComputedStyle(document.body).fontFamily); } catch (e) {}
-            sh.append(style, root);
+            col.appendChild(foot);
             const keyHandler = e => {
                 if (e.key === 'Escape') { e.stopPropagation(); e.preventDefault(); finish(null); return; }
                 if (!['ArrowDown', 'ArrowUp', 'Home', 'End', 'Tab'].includes(e.key)) return;
@@ -235,6 +293,7 @@ module.exports = function createEscMenu(ctx) {
         if (where !== 'stats' && ctx.statsOk()) list.push({ id: 'stats', icon: 'chart', label: 'Stats' });
         list.push({ id: 'hud', icon: 'hud', label: ctx.hudOpen() ? 'Hide the HUD' : 'Show the HUD', hint: 'F2' });
         list.push({ id: 'settings', icon: 'gear', label: 'Settings', hint: 'Ctrl+,' });
+        list.push({ id: 'keys', icon: 'keyboard', label: 'Keyboard shortcuts', hint: 'F1' });
         list.push({ id: 'patchnotes', icon: 'scroll', label: 'Patch notes' });
         const u = updateLook(ctx.updater?.state());
         list.push({ id: 'update', icon: 'refresh', label: u.label, hint: u.hint, tone: u.tone, stay: u.stay });
@@ -250,12 +309,59 @@ module.exports = function createEscMenu(ctx) {
         if (id === 'hud') return ctx.hud();
         if (id === 'settings') return ctx.settings();
         if (id === 'quit') return ctx.quit();
+        if (id === 'keys') return keys(wc);
         if (id === 'update') {
             const now = updateLook(ctx.updater?.state());
             if (now.act) { ctx.updater.install(); return; }
             await run(wc, `__dcfEsc.set('update', ${JSON.stringify(updateLook({ status: 'checking' }))})`);
             const s = await ctx.updater.check();
             await run(wc, `__dcfEsc.set('update', ${JSON.stringify(updateLook(s))})`);
+        }
+    }
+
+    // Tastenkürzel-Übersicht (F1, oder aus dem Menü). Spiegelt main.js/handleKeys und shortcuts.js.
+    function keyGroups() {
+        const global = ctx.globalShortcuts();
+        return [
+            { title: 'Accounts', rows: [
+                ['Switch to account 1–9', ['Ctrl+1–9']],
+                ['Next / previous account', ['Ctrl+Tab', 'Ctrl+Shift+Tab']],
+            ] },
+            { title: 'App', rows: [
+                ['Game menu', ['Esc']],
+                ['Keyboard shortcuts', ['F1']],
+                ['HUD on / off', ['F2']],
+                ['Settings', ['Ctrl+,']],
+                ['Full screen', ['F11']],
+                ['Reload this tab', ['F5', 'Ctrl+R']],
+                ['Reload without cache', ['Shift+F5']],
+                ['Zoom in / out', ['Ctrl+Plus', 'Ctrl+Minus']],
+                ['Reset zoom', ['Ctrl+0']],
+            ] },
+            { title: 'Mouse', rows: [
+                ['Menu for names, links and the page', ['Right click']],
+                ['Reload an account', ['Middle click on its frame']],
+            ] },
+            { title: global ? 'Anywhere on the desktop' : 'Anywhere on the desktop (off)', rows: [
+                ['Show / hide the app', ['Ctrl+Alt+M']],
+                ['Next account', ['Ctrl+Alt+N']],
+                ['Go to the chat', ['Ctrl+Alt+C']],
+            ] },
+        ];
+    }
+    async function keys(wc) {
+        if (!wc || wc.isDestroyed() || open.has(wc.id)) return;
+        const token = {};
+        open.set(wc.id, token);
+        try {
+            await run(wc, PAGE_CODE);
+            const note = ctx.globalShortcuts() ? '' : 'The desktop-wide shortcuts are off. Turn them on in Settings › General.';
+            if (await run(wc, `__dcfEsc.keys(${JSON.stringify({ logo, groups: keyGroups(), note })})`) !== 'ok') return;
+            await run(wc, '__dcfEsc.wait()');
+        } catch (e) {
+            console.error(`[dcf] Tastenkürzel: ${e.message}`);
+        } finally {
+            if (open.get(wc.id) === token) open.delete(wc.id);
         }
     }
 
@@ -287,9 +393,11 @@ module.exports = function createEscMenu(ctx) {
         show,
         isOpen: (wc) => !!wc && open.has(wc.id),
         // Home/Stats: ESC kommt über main.js an, nicht über die Seite — offen = schließen.
-        toggle(wc) {
+        // F1 überall: dasselbe für die Tastenkürzel.
+        toggle(wc, what = 'menu') {
             if (!wc || wc.isDestroyed()) return;
             if (open.has(wc.id)) run(wc, 'window.__dcfEsc && __dcfEsc.close()').catch(() => {});
+            else if (what === 'keys') keys(wc);
             else show(wc);
         },
         // Neue Seite im View: die alte Welt samt Menü ist weg, ein hängendes wait() kommt nie zurück.
