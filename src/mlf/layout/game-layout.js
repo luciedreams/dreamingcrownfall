@@ -182,15 +182,21 @@
     const glDrink = n => glQ(`[data-role="king-action-tray"] .mcfo-drink[title^="${n}"]`);
     // key → what it does. Pages open like from the account menu (core/anchors.js PAGES).
     const GL_SLOTS = [
-        { grp: 'bids', id: 'rebel', key: 'R', name: 'Rebel', cls: 'warn', icon: 'rebel', target: () => glQ('.mcfo-rebellion') },
+        // Slots with a menu (open) open it at the hotbar button — the game's own buttons are hidden,
+        // a menu anchored there would open in a corner.
+        { grp: 'bids', id: 'rebel', key: 'R', name: 'Rebel', cls: 'warn', icon: 'rebel', target: () => glQ('.mcfo-rebellion'),
+          open: b => (settings.rebellionPanel ? (isRoyalMode() ? showCelebrationPopup : showRebellionPopup)(b) : glQ('.mcfo-rebellion')?.click()) },
         { grp: 'bids', id: 'b1', key: '1', text: '×1', name: 'Bid 1', cls: 'bid', target: () => glQ('[data-role="bid-1"]') },
         { grp: 'bids', id: 'b5', key: '5', text: '×5', name: 'Bid 5', cls: 'bid', target: () => glQ('[data-role="bid-5"]') },
         { grp: 'bids', id: 'b10', key: '0', text: '×10', name: 'Bid 10', cls: 'bid', target: () => glQ('[data-role="bid-10"]') },
         { grp: 'bids', id: 'unbid', key: 'U', name: 'Unbid', icon: 'unbid', target: () => glQ('.mcfo-unbid') },
         // Autobid opens its menu right at the hotbar; the button shows whether it runs and how much.
-        { grp: 'bids', id: 'auto', key: 'B', name: 'Autobid', icon: 'auto', auto: true, target: () => glQ('.mcfo-autobid') },
-        { grp: 'king', id: 'attack', key: 'F', name: 'Attack', cls: 'warn', icon: 'attack', target: () => glQ('[data-role="king-action-tray"] .mcf-king-attack-placeholder:not([hidden])') },
-        ...GL_DRINKS.map((n, i) => ({ grp: 'king', id: 'drink-' + n, key: 'QWEASD'[i], name: n, drink: n, target: () => glDrink(n) })),
+        { grp: 'bids', id: 'auto', key: 'B', name: 'Autobid', icon: 'auto', auto: true, target: () => glQ('.mcfo-autobid'), open: b => showAutobidMenu(b) },
+        // Attack when free is the app's copy of the game's button (the game's own one stays 0×0 under it).
+        { grp: 'king', id: 'attack', key: 'F', name: 'Attack', cls: 'warn', icon: 'attack',
+          target: () => glQ('[data-role="king-action-tray"] .mcfo-attack') || glQ('[data-role="king-action-tray"] .mcf-king-attack-placeholder:not([hidden])') },
+        ...GL_DRINKS.map((n, i) => ({ grp: 'king', id: 'drink-' + n, key: 'QWEASD'[i], name: n, drink: n, target: () => glDrink(n),
+          open: b => { const bev = BEVERAGES.find(x => x.label === n); if (bev) showBeveragePanel(bev, b); } })),
     ];
     const GL_PAGE_KEYS = { I: 'inventory-nav', P: 'profile-nav' };
 
@@ -246,7 +252,8 @@
                 b.className = (s.cls || '') + (s.text ? '' : ' has-n');
                 b.title = `${s.name} (${s.key})`;
                 b.innerHTML = `<span>${s.text || (s.icon ? glSvg(s.icon) : '')}</span><span class="dcf-gl-bar__k">${s.key}</span>` + (s.text ? '' : `<span class="dcf-gl-bar__n">${s.name}</span>`);
-                b.addEventListener('click', () => glFire(s));
+                // stopPropagation: the menus close on any click that reaches the page — the opening one included.
+                b.addEventListener('click', e => { e.stopPropagation(); glFire(s); });
                 row.append(b);
                 buttons.set(s.id, b);
             }
@@ -261,7 +268,7 @@
         const t = s.target();
         const b = glBuilt && glBuilt.buttons.get(s.id);
         if (b) { b.setAttribute('data-hit', ''); setTimeout(() => b.removeAttribute('data-hit'), 120); }
-        if (s.auto) { if (t && b) showAutobidMenu(b); return; }
+        if (s.open) { if (t && b) s.open(b); return; }
         if (t && !t.disabled) t.click();
     }
 
@@ -338,7 +345,8 @@
         if (!glOn || e.ctrlKey || e.altKey || e.metaKey || e.repeat) return;
         const t = e.target;
         if (t && t.closest && t.closest('input, textarea, select, [contenteditable="true"]')) return;
-        if (glQ('dcf-esc-menu, .dcf-pn, .dcf-set, .dcf-tour, .mcfo-menu')) return;
+        // An open hotbar menu does not block: the same key closes it again (showPanel toggles per anchor).
+        if (glQ('dcf-esc-menu, .dcf-pn, .dcf-set, .dcf-tour')) return;
         const k = e.key.length === 1 ? e.key.toUpperCase() : e.key;
         const page = GL_PAGE_KEYS[k];
         // The same key closes the page again, like a bag in a game.
