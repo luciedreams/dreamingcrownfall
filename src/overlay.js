@@ -3,6 +3,7 @@
 // capturePage und eine Ebene darüber störten unter Wayland das Zeichnen der Tabs (17.10.).
 //   Laden        solange der Tab vorn noch lädt: Porträt, „Loading <Name> …“ statt leerer Seite.
 //   Fehler       statt Chromiums grauer Fehlerseite: eigene Seite mit „Try again now“.
+//   Anmelden     Tab ohne Login: „Add an account“ mit „Sign in with Twitch“ / „Watch as guest“.
 // Die Ebene ist ein eigener durchsichtiger View ganz oben. Solange sie nichts zeigt, wird sie NICHT
 // versteckt, sondern außerhalb des Fensters geparkt: ein versteckter View zeichnet nicht weiter und
 // zeigte beim Wiederanzeigen sein altes Bild (bei Luce ein schmaler „Loading“-Streifen über der
@@ -13,7 +14,7 @@ const { WebContentsView, ipcMain } = require('electron');
 
 const ACK_MS = 400;   // so lange wird höchstens auf die Seite gewartet
 
-module.exports = function createOverlay({ win, onRetry }) {
+module.exports = function createOverlay({ win, onRetry, onSignin, onGuest }) {
     const view = new WebContentsView({ webPreferences: {
         preload: path.join(__dirname, 'overlay-preload.js'), contextIsolation: true, sandbox: true,
     } });
@@ -30,7 +31,7 @@ module.exports = function createOverlay({ win, onRetry }) {
 
     let seq = 0;
     const waiting = new Map();
-    let shown = 'none';   // was die Ebene gerade zeigt: none | loading | error
+    let shown = 'none';   // was die Ebene gerade zeigt: none | loading | error | signin
     let lastKey = '';     // Lade-/Fehlerbild nicht bei jedem Aufruf neu zeichnen
 
     function send(m) {
@@ -45,6 +46,8 @@ module.exports = function createOverlay({ win, onRetry }) {
     ipcMain.on('overlay:ack', (e, id) => { if (e.sender !== wc) return; const r = waiting.get(id); waiting.delete(id); r?.(); });
     ipcMain.on('overlay:done', (e) => { if (e.sender === wc && shown === 'none') { onStage = false; place(); } });
     ipcMain.on('overlay:retry', (e) => { if (e.sender === wc) onRetry(); });
+    ipcMain.on('overlay:signin', (e) => { if (e.sender === wc) onSignin(); });
+    ipcMain.on('overlay:guest', (e) => { if (e.sender === wc) onGuest(); });
 
     // Ganz nach oben (über die gerade gewählte Ansicht) und sichtbar.
     function raise() {
@@ -56,7 +59,7 @@ module.exports = function createOverlay({ win, onRetry }) {
         view,
         // Aus layout() in main.js: Fläche unter der Leiste. Geparkt bleibt die Größe gleich.
         setArea(b) { area = b; place(); },
-        // m: { kind: 'loading' | 'error', name, avatar, icon, code, desc, detail }
+        // m: { kind: 'loading' | 'error' | 'signin', name, avatar, icon, code, desc, detail }
         async screen(m, instant = false) {
             const key = JSON.stringify(m);
             if (shown === m.kind && key === lastKey) return;

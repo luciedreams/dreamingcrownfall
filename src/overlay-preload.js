@@ -6,4 +6,6 @@ contextBridge.exposeInMainWorld('overlay', {
     ack: (id) => ipcRenderer.send('overlay:ack', id),
     done: () => ipcRenderer.send('overlay:done'),
     retry: () => ipcRenderer.send('overlay:retry'),
+    signin: () => ipcRenderer.send('overlay:signin'),
+    guest: () => ipcRenderer.send('overlay:guest'),
 });

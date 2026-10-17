@@ -31,6 +31,7 @@ const startContextMenu = require('./context-menu.js');
 const createEscMenu = require('./esc-menu.js');
 const tooltip = require('./tooltip.js');
 const createServerWatch = require('./server-watch.js');
+const openLogin = require('./login.js');
 const { pathToFileURL } = require('url');
 
 const START_URL = 'https://marblecrownfall.com/';
@@ -92,7 +93,7 @@ const newPartition = () => `persist:acc-${Date.now().toString(36)}${Math.random(
 function loadAccounts() {
     try {
         const j = JSON.parse(fs.readFileSync(ACCOUNTS_FILE(), 'utf8'));
-        const list = (j.accounts || []).filter((a) => a && /^persist:[\w-]+$/.test(a.partition));
+        const list = (j.accounts || []).filter((a) => a && /^persist:[\w-]+$/.test(a.partition)).map((a) => ({ partition: a.partition, guestOk: a.guestOk === true }));
         if (list.length) return list;
     } catch {}
     // Erster Start. Sitzungen aus dem Prototyp (persist:mcf…) übernehmen, damit Logins bleiben.
@@ -103,7 +104,7 @@ function loadAccounts() {
 }
 function saveAccounts() {
     try {
-        fs.writeFileSync(ACCOUNTS_FILE(), JSON.stringify({ accounts: views.map((v) => ({ partition: v.acc.partition })) }, null, 2));
+        fs.writeFileSync(ACCOUNTS_FILE(), JSON.stringify({ accounts: views.map((v) => ({ partition: v.acc.partition, ...(v.acc.guestOk ? { guestOk: true } : {}) })) }, null, 2));
     } catch (e) { console.error(`[dcf] accounts.json nicht schreibbar: ${e.message}`); }
 }
 
@@ -357,11 +358,26 @@ function syncOverlay(instant = false) {
     if (!overlay || switching) return;
     const v = active >= 0 ? views[active] : null;
     if (v?.failed) overlay.screen({ kind: 'error', variant: v.failed.kind || 'unreachable', name: label(v), avatar: v.avatar || '', icon: v.avatar ? '' : APP_ICON_URL, code: v.failed.code, desc: v.failed.desc, ...serverWatch.state() }, instant);
+    // Nicht angemeldet (und nicht „Watch as guest“ gewählt): Anmelde-Bildschirm statt Gast-Spiel.
+    else if (v && wantsSignin(v)) overlay.screen({ kind: 'signin', name: '', icon: APP_ICON_URL }, instant);
     // Ladebildschirm nur beim ersten Laden und beim Neuladen des Tabs, den man gerade ansieht —
     // nie beim Wechsel auf einen Tab, der im Hintergrund noch lädt.
     else if (v && (priming || (!v.ready && (!v.everReady || v.reloadFront)))) overlay.screen({ kind: 'loading', name: v.name || '', avatar: v.avatar || '', icon: v.avatar ? '' : APP_ICON_URL }, instant);
     else overlay.reveal();
 }
+
+const wantsSignin = (v) => v.ready && v.identityKnown && v.guest && !v.acc.guestOk && !priming;
+// Twitch-Anmeldung im eigenen Fenster (login.js) für den Account v; danach den Tab neu laden.
+function signIn(v) {
+    if (!v) return;
+    openLogin({ parent: win, partition: v.acc.partition, name: v.guest ? '' : label(v), icon: ICON, onDone: (ok) => {
+        if (!ok || !views.includes(v)) return;
+        v.acc.guestOk = false;
+        saveAccounts();
+        v.view.webContents.reload();
+    } });
+}
+const isLoginStart = (url) => { try { const u = new URL(url); return isGame(u.hostname) && u.pathname.startsWith('/auth/twitch/start'); } catch { return false; } };
 
 // Ist die Seite im Tab so weit, dass man sie zeigen kann? Spielseite: Dokument komplett, Spiel hat sein
 // Layout gewählt, alle Bilder sind da — danach noch eine Nachlaufzeit, in der das Spiel fertig zeichnet
@@ -509,12 +525,14 @@ async function refreshIdentity(v) {
             if (pid !== v.playerId) notifier?.resetAccount(v); // anderer Account → neuer Wasserstand
             v.playerId = pid;
             v.guest = !!me.isGuest;
+            v.identityKnown = true;
             v.name = me.isGuest ? null : me.displayName;
             v.avatar = me.isGuest ? '' : (me.profileImageUrl || me.avatarUrl || '');
             addons?.identityChanged(v);
         }
     } catch {}
     pushTabs();
+    if (views[active] === v) syncOverlay();
 }
 
 // ---- Tastatur ---------------------------------------------------------------------------------
@@ -583,6 +601,8 @@ function wireGameContents(wc, v) {
         return { action: 'deny' };
     });
     wc.on('will-navigate', (e, url) => {
+        // „Sign in“ des Spiels (Gast): Twitch im Login-Fenster statt im Tab.
+        if (isLoginStart(url) && views.includes(v)) { e.preventDefault(); signIn(v); return; }
         if (!staysInApp(url)) { e.preventDefault(); shell.openExternal(url); }
     });
     wc.on('did-create-window', (child, { frameName }) => {
@@ -726,7 +746,11 @@ function createWindow() {
     tabBar.webContents.loadFile(path.join(__dirname, 'tabs.html'));
     tabBar.webContents.on('before-input-event', (e, input) => { const wc = activeContents(); if (wc) handleKeys(e, input, wc); });
     win.contentView.addChildView(tabBar);
-    overlay = createOverlay({ win, onRetry: () => serverWatch.now() });
+    overlay = createOverlay({
+        win, onRetry: () => serverWatch.now(),
+        onSignin: () => signIn(views[active]),
+        onGuest: () => { const v = views[active]; if (!v) return; v.acc.guestOk = true; saveAccounts(); syncOverlay(); },
+    });
 
     stats = createStats({
         win, setting: appSettings.get, onSettingsChange: appSettings.onChange,

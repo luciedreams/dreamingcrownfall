@@ -35,6 +35,12 @@
     button { margin-top: 6px; border: 1px solid rgba(180, 138, 232, 0.45); background: rgba(139, 92, 246, 0.18); color: var(--text); border-radius: 10px; padding: 9px 18px; font: inherit; font-weight: 700; cursor: pointer; }
     button:hover { background: rgba(139, 92, 246, 0.32); border-color: var(--violet); }
     small { color: var(--dim); font-size: 12px; }
+    /* Anmelden: Twitch-Knopf in Twitch-Lila, darunter leise „Watch as guest“ */
+    .twitch { display: inline-flex; align-items: center; gap: 10px; margin-top: 10px; padding: 12px 22px; border: 0; border-radius: 10px; background: #9146ff; color: #fff; font-size: 15px; box-shadow: 0 8px 22px rgba(145, 70, 255, 0.35); }
+    .twitch:hover { background: #a366ff; border: 0; }
+    .twitch svg { width: 18px; height: 18px; }
+    .link { margin-top: 0; border: 0; background: none; color: var(--muted); font-weight: 600; padding: 6px 10px; }
+    .link:hover { background: none; color: var(--text); text-decoration: underline; }
 </style>
 </head>
 <body>
@@ -53,7 +59,17 @@
         const card = $('card');
         card.className = 'card' + (m.kind === 'error' ? ' err ' + (m.variant || '') : '');
         const kids = [portrait(m)];
-        if (m.kind === 'loading') {
+        if (m.kind === 'signin') {
+            kids.push(el('div', 'kicker', 'DreamingCrownfall'), el('h1', null, 'Add an account'),
+                el('p', null, 'Sign in with Twitch to play on this account. Your login stays in this account only.'));
+            const b = el('button', 'twitch');
+            b.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M4.3 2 3 5.4v13.8h4.7V22h2.6l2.6-2.8h3.9L22 14V2Zm15.9 11.2-2.9 2.9h-4.7l-2.5 2.5v-2.5H6.1V3.8h14.1ZM17 7.1h-1.8v5.2H17Zm-4.9 0h-1.8v5.2h1.8Z"/></svg>';
+            b.append('Sign in with Twitch');
+            b.onclick = () => window.overlay.signin();
+            const g = el('button', 'link', 'Watch as guest');
+            g.onclick = () => window.overlay.guest();
+            kids.push(b, g);
+        } else if (m.kind === 'loading') {
             kids.push(el('div', 'kicker', 'DreamingCrownfall'), el('h1', null, m.name ? `Loading ${m.name} …` : 'Loading …'));
             const t = el('div', 'track'); t.append(el('i')); kids.push(t);
         } else {
@@ -91,7 +107,7 @@
     const wait = (ms) => new Promise((r) => setTimeout(r, ms));
     window.overlay.on(async (m) => {
         const screen = $('screen');
-        if (m.kind === 'loading' || m.kind === 'error') {
+        if (m.kind === 'loading' || m.kind === 'error' || m.kind === 'signin') {
             drawScreen(m);
             screen.classList.remove('instant');
             if (m.instant) screen.classList.add('instant');

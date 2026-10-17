@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'unsafe-inline'; script-src 'unsafe-inline'">
+<title>Sign in</title>
+<style>
+    /* Leiste des Login-Fensters (login.js): wie die Leisten der anderen App-Fenster. Ziehen überall. */
+    :root { --bg1: #1d1431; --bg2: #110c1b; --line: rgba(180, 138, 232, 0.22); --text: #ece4f7; --muted: #a99cc0; }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; overflow: hidden; user-select: none; }
+    body {
+        display: flex; align-items: center; gap: 10px; padding-left: 8px; color: var(--text);
+        font: 600 12.5px/1 system-ui, sans-serif; background: linear-gradient(180deg, var(--bg1), var(--bg2));
+        border-bottom: 1px solid var(--line); -webkit-app-region: drag;
+    }
+    img { width: 20px; height: 20px; flex: none; -webkit-user-drag: none; }
+    .t { font-weight: 700; white-space: nowrap; }
+    .who { color: var(--muted); font-size: 11.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .sp { flex: 1; }
+    button { -webkit-app-region: no-drag; border: 0; padding: 0; background: none; color: var(--muted); display: grid; place-items: center; cursor: default; }
+    button svg { width: 13px; height: 13px; }
+    button:hover { background: rgba(255, 255, 255, 0.07); color: var(--text); }
+    button:focus:not(:focus-visible) { outline: none; }
+    .back { width: 26px; height: 26px; border-radius: 6px; }
+    .wbs { display: flex; align-self: stretch; }
+    .wb { width: 42px; }
+    .wb.close:hover { background: #c4314b; color: #fff; }
+</style>
+</head>
+<body>
+<button class="back" id="back" title="Back"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 3 4.5 7l4 4"/></svg></button>
+<img src="assets/icon.png" alt="">
+<span class="t">Sign in with Twitch</span>
+<span class="who" id="who"></span>
+<span class="sp"></span>
+<div class="wbs">
+    <button class="wb" id="min" title="Minimize"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2 7h10"/></svg></button>
+    <button class="wb close" id="close" title="Close"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M3 3l8 8M11 3l-8 8"/></svg></button>
+</div>
+<script>
+    const name = new URLSearchParams(location.search).get('name');
+    if (name) document.getElementById('who').textContent = '· ' + name;
+    document.getElementById('back').onclick = () => window.login.back();
+    document.getElementById('min').onclick = () => window.login.minimize();
+    document.getElementById('close').onclick = () => window.login.close();
+</script>
+</body>
+</html>
