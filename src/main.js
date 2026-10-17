@@ -423,6 +423,10 @@ ipcMain.on('tabs:ctx', (_e, i, x) => {
 ipcMain.on('win:minimize', () => win?.minimize());
 ipcMain.on('win:maximize', () => { if (!win) return; if (win.isMaximized()) win.unmaximize(); else win.maximize(); });
 ipcMain.on('win:close', () => win?.close());
+// ESC-Menü der Spiel-Ebene (seit 0.7.0): was es anbieten kann, Home und Beenden.
+ipcMain.on('dcf:menu:state', (e) => { e.returnValue = { home: !!home?.available(), stats: !!stats?.enabled(), hud: !!hud?.isOpen() }; });
+ipcMain.on('dcf:home:open', () => select(HOME));
+ipcMain.on('dcf:quit', () => win?.close());
 ipcMain.on('dcf:notify:test', () => notifier?.test());
 // Willkommen-Schritte: nur ein Tab zeigt sie (der erste, der fragt, behält sie auch nach dem Neuladen).
 let welcomeOwner = null;

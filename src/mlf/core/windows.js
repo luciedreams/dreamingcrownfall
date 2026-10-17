@@ -391,7 +391,8 @@
         return PAGE_BY_PATH.get(url.pathname.replace(/\/+$/, '')) || null;
     }
 
-    // Esc closes the topmost open window — the one you were last in.
+    // Esc closes the topmost open window — the one you were last in. With nothing left to close
+    // it opens the game menu (panel/esc-menu.js); its own Esc closes it again.
     document.addEventListener('keydown', e => {
         if (e.key !== 'Escape') return;
         // Not while typing: Esc in the chat field would otherwise dock the popped-out chat.
@@ -402,7 +403,11 @@
             closeWindow(offen[0][0]);
             return;
         }
-        closeMenus();
+        if (openMenu) { closeMenus(); return; }
+        // The game's own Esc: its sound panel (handled before us, marks the event) and the help
+        // bubbles over the board (handled after us — still open at this point).
+        if (e.defaultPrevented || e.repeat || document.querySelector('.arenaHelpTooltip:not([hidden])')) return;
+        showEscMenu();
     });
 
     // Pointer events rather than mouse events: they cover touch and pen, and setPointerCapture
