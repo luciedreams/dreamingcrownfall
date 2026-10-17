@@ -169,11 +169,17 @@ const contextMenu = startContextMenu({
 const escMenu = createEscMenu({
     where: (wc) => (wc === home?.view.webContents ? 'home' : wc === stats?.view()?.webContents ? 'stats' : wc === wiki?.view()?.webContents ? 'wiki' : 'game'),
     homeOk: () => !!home?.available(), statsOk: () => !!stats?.enabled(), hudOpen: () => !!hud?.isOpen(),
-    // Spielseiten und Patch notes zeichnet die Spiel-Ebene (src/mlf/panel/esc-menu.js) — von Home/Stats aus
-    // erst zurück in den zuletzt gewählten Spiel-Tab.
-    gameAct: (id) => {
-        if (active < 0) select(lastGame);
-        views[active]?.view.webContents.executeJavaScript(`window.dcfEscAct && window.dcfEscAct(${JSON.stringify(id)})`).catch(() => {});
+    // Spielseiten und Patch notes zeichnet die Spiel-Ebene (src/mlf/panel/esc-menu.js) im zuletzt gewählten
+    // Spiel-Tab. Spielseiten als eigene Fenster (Standard): von Home/Stats/Wiki aus NICHT dorthin wechseln —
+    // der Wechsel holte das Hauptfenster über das gerade geöffnete Fenster (Luce, 17.10.); stattdessen das
+    // Fenster ausdrücklich nach vorn holen. Patch notes und Fenster im Spiel brauchen den Spiel-Tab vorn.
+    gameAct: (id, title) => {
+        const own = id.startsWith('page:') && appSettings.get('windows.popOut') !== false;
+        if (active < 0 && !own) select(lastGame);
+        const v = views[active >= 0 ? active : lastGame];
+        if (!v) return;
+        v.view.webContents.executeJavaScript(`window.dcfEscAct && window.dcfEscAct(${JSON.stringify(id)})`).catch(() => {});
+        if (own && title) for (const ms of [300, 900]) setTimeout(() => raisePopup(v, title), ms);
     },
     home: () => select(HOME), stats: () => select(STATS), wiki: () => select(WIKI), hud: () => hud?.toggle(),
     settings: () => showSettingsPage(''), quit: () => win?.close(),
@@ -555,6 +561,14 @@ ipcMain.on('dcf:popwin:info', (e) => {
     e.returnValue = { name: v ? (v.guest ? 'Not signed in' : label(v)) : '', avatar: v?.avatar || '', icon: popIcon(), maximized: !!w?.isMaximized() };
 });
 ipcMain.on('dcf:popwin:min', (e) => BrowserWindow.fromWebContents(e.sender)?.minimize());
+// Ausgekoppeltes Fenster eines Accounts nach vorn (Titel beginnt mit dem Seitentitel, popup-Titel siehe did-create-window).
+function raisePopup(v, title) {
+    for (const w of BrowserWindow.getAllWindows()) {
+        if (w.isDestroyed() || popOwners.get(w.webContents.id) !== v || !w.getTitle().startsWith(title)) continue;
+        if (w.isMinimized()) w.restore();
+        w.show(); w.moveTop(); w.focus();
+    }
+}
 ipcMain.on('dcf:popwin:max', (e) => { const w = BrowserWindow.fromWebContents(e.sender); if (!w) return; if (w.isMaximized()) w.unmaximize(); else w.maximize(); });
 ipcMain.on('dcf:popwin:close', (e) => BrowserWindow.fromWebContents(e.sender)?.close());
 ipcMain.on('dcf:notify:test', () => notifier?.test());

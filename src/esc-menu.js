@@ -276,7 +276,7 @@ function updateLook(s) {
 // ctx: was das Menü über die App wissen muss und was es auslösen darf (main.js).
 //   where(wc)     'game' | 'home' | 'stats'
 //   homeOk() statsOk() hudOpen()   welche Einträge es gibt
-//   gameAct(id)   in den Spiel-Tab wechseln und dort 'page:<key>' / 'patchnotes' ausführen
+//   gameAct(id, title)  'page:<key>' / 'patchnotes' im Spiel-Tab ausführen (title = Fenstertitel der Seite)
 //   home() stats() wiki() hud() settings() quit()
 //   updater       { state(), check(), install() }
 module.exports = function createEscMenu(ctx) {
@@ -305,7 +305,7 @@ module.exports = function createEscMenu(ctx) {
     }
 
     async function act(wc, id) {
-        if (id.startsWith('page:') || id === 'patchnotes') return ctx.gameAct(id);
+        if (id.startsWith('page:') || id === 'patchnotes') return ctx.gameAct(id, GAME_PAGES.find((p) => 'page:' + p[2] === id)?.[1] || '');
         if (id === 'home') return ctx.home();
         if (id === 'stats') return ctx.stats();
         if (id === 'hud') return ctx.hud();
