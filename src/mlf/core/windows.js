@@ -66,12 +66,46 @@
                 b.appendChild(badge);
             }
             b.title = 'Restore ' + w.title;
+            b.dataset.path = path;
             b.addEventListener('click', () => restoreWindow(path));
             taskbar.appendChild(b);
         }
     }
 
     function raise(w) { w.el.style.zIndex = String(++zTop); }
+
+    // ---- WINDOW MOTION (DreamingCrownfall 0.7.0) ----
+    // Windows inside the game (Every window on its own: off) no longer just vanish: minimising
+    // flies the window into its taskbar button, restoring grows it back out of the button, opening
+    // and closing fade in and out. Follows the app's "Smooth transitions" switch and the system's
+    // reduced-motion wish. Windows of their own (popped out) are the system's business.
+    const appSetting = key => { try { return window.dcfApp ? window.dcfApp.settings()[key] : undefined; } catch (e) { return undefined; } };
+    function winMotion() {
+        if (document.hidden || window.__dcfQuitting) return false;
+        if (matchMedia('(prefers-reduced-motion: reduce)').matches) return false;
+        return appSetting('ui.transitions') !== false;
+    }
+    const inGameWindows = () => appSetting('windows.popOut') === false;
+    const taskbarButton = path => taskbar && [...taskbar.children].find(b => b.dataset.path === path);
+    // Between the window's own place and r (a taskbar button): toButton shrinks it in, else out of it.
+    function flyWindow(w, r, toButton) {
+        if (w.anim) w.anim.cancel();
+        const b = w.el.getBoundingClientRect();
+        if (!b.width || !b.height) return null;
+        const dx = (r.left + r.width / 2) - (b.left + b.width / 2), dy = (r.top + r.height / 2) - (b.top + b.height / 2);
+        const away = { transform: `translate(${dx}px, ${dy}px) scale(${Math.max(0.04, r.width / b.width)}, ${Math.max(0.04, r.height / b.height)})`, opacity: 0 };
+        const here = { transform: 'none', opacity: 1 };
+        w.anim = w.el.animate(toButton ? [here, away] : [away, here], toButton
+            ? { duration: 260, easing: 'cubic-bezier(.55, 0, .8, .2)' }
+            : { duration: 300, easing: 'cubic-bezier(.2, .8, .2, 1)' });
+        const a = w.anim;
+        a.finished.then(() => { if (w.anim === a) w.anim = null; }, () => {});
+        return a;
+    }
+    function popButton(btn, delay) {
+        if (btn) btn.animate([{ transform: 'scale(.6)', opacity: 0 }, { transform: 'none', opacity: 1 }],
+            { duration: 220, delay, easing: 'cubic-bezier(.2, .8, .2, 1.2)', fill: 'backwards' });
+    }
 
     function clampWindow(el, left, top, width, height) {
         const wd = Math.max(WIN_MIN_W, Math.min(width  ?? el.offsetWidth,  innerWidth));
@@ -96,6 +130,11 @@
             + ['n', 's', 'e', 'w', 'ne', 'nw', 'sw'].map(e => `<div class="mcfo-win__edge" data-edge="${e}"></div>`).join('');
         el.querySelector('.mcfo-win__title').textContent = title;
         desk.appendChild(el);
+        // Opening (DreamingCrownfall 0.7.0): grows in softly — only where it stays in the game.
+        if (inGameWindows() && winMotion()) {
+            el.animate([{ opacity: 0, transform: 'scale(.96)' }, { opacity: 1, transform: 'none' }],
+                { duration: 170, easing: 'cubic-bezier(.2, .8, .2, 1)' });
+        }
 
         // Where it opens: the last known place, otherwise cascaded so a second window does not
         // land exactly on the first.
@@ -124,12 +163,17 @@
         const w = windows.get(path);
         if (!w || !w.el) return;
         w.min = true;
-        w.el.hidden = true;
         // The chat's counter starts at this very moment. Set later, on the next pass, lines
         // arriving in between would already count as seen.
         if (path === CHAT_WIN) markChatForPark();
         saveWinState(path, { min: true, title: w.title });
         drawTaskbar();
+        const btn = taskbarButton(path);
+        const a = !w.el.hidden && btn && winMotion() ? flyWindow(w, btn.getBoundingClientRect(), true) : null;
+        if (!a) { w.el.hidden = true; return; }
+        popButton(btn, 140);
+        w.el.style.pointerEvents = 'none';
+        a.finished.then(() => { if (w.min) w.el.hidden = true; }, () => {}).then(() => { w.el.style.pointerEvents = ''; });
     }
 
     function restoreWindow(path) {
@@ -147,11 +191,15 @@
             if (own) own(); else openPage(path, w.title);
             return;
         }
+        const btn = taskbarButton(path);
+        const from = btn && winMotion() ? btn.getBoundingClientRect() : null;
         w.min = false;
         w.el.hidden = false;
+        w.el.style.pointerEvents = '';
         raise(w);
         saveWinState(path, { min: false });
         drawTaskbar();
+        if (from) flyWindow(w, from, false);
         if (w.frame) frameFreshCheck(w);   // parked through a game update? (6.41)
     }
 
@@ -193,7 +241,16 @@
         if (!w) return;
         // A window may hold something that is not ours to destroy (the chat): it takes it out first.
         if (w.onClose) { try { w.onClose(); } catch (e) { console.warn('[DreamingCrownfall] window close:', e.message); } }
-        if (w.el) w.el.remove();   // the frame goes with it — park it instead to keep it loaded
+        // The frame goes with it — park it instead to keep it loaded. In the game it fades out first.
+        if (w.el) {
+            const el = w.el;
+            if (!w.min && !el.hidden && el.ownerDocument === document && inGameWindows() && winMotion()) {
+                if (w.anim) w.anim.cancel();
+                el.style.pointerEvents = 'none';
+                el.animate([{ opacity: 1, transform: 'none' }, { opacity: 0, transform: 'scale(.96)' }],
+                    { duration: 150, easing: 'cubic-bezier(.4, 0, 1, 1)' }).finished.then(() => el.remove(), () => el.remove());
+            } else el.remove();
+        }
         windows.delete(path);
         // Up to 3.7 the parked flag outlived the window. Harmless then, because nothing read it
         // back; now it would bring a closed window back into the taskbar on the next load.
