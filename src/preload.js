@@ -17,6 +17,8 @@ if (location.href === 'about:blank' && /^mlfpop-/.test(window.name)) {
         close: () => ipcRenderer.send('dcf:popwin:close'),
         onMaximized: (cb) => { if (typeof cb === 'function') ipcRenderer.on('dcf:popwin:max', (_e, m) => { try { cb(!!m); } catch (err) {} }); },
     });
+    // Diamanten-Shop im ausgekoppelten Fenster: die Stripe-Übergabe (windows.js) fragt window.top.dcfApp.
+    contextBridge.exposeInMainWorld('dcfApp', { openCheckout: (url) => ipcRenderer.send('dcf:open:checkout', String(url || '')) });
 }
 if (host === 'marblecrownfall.com' || host.endsWith('.marblecrownfall.com')) {
     // Kein Zoomen aus Versehen: Touchpad-Pinch und Strg+Mausrad kommen als wheel mit ctrlKey an.
@@ -52,6 +54,7 @@ if (host === 'marblecrownfall.com' || host.endsWith('.marblecrownfall.com')) {
             openStats: (tab) => ipcRenderer.send('dcf:stats:open', typeof tab === 'string' ? tab : ''),
             menu: { open: () => ipcRenderer.send('dcf:menu:open') },
             introClaim: () => ipcRenderer.sendSync('dcf:intro:claim'),
+            openCheckout: (url) => ipcRenderer.send('dcf:open:checkout', String(url || '')),
             sound: (kind) => ipcRenderer.send('dcf:sound', String(kind || '')),
             hud: {
                 get: () => ipcRenderer.sendSync('dcf:hud:get'),

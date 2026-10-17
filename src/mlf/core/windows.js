@@ -317,10 +317,14 @@
         const BUTTON_TEXT = /stripe checkout/i;
         const CHECKOUT_API = /\/api\/payments\/checkout(?:[?#]|$)/;
         let popup = null;
+        // DreamingCrownfall: the app hands Stripe to the system browser itself (dcfApp lives in the top
+        // frame, same origin) — no empty window first; an app cannot open about:blank in a browser.
+        const app = () => { try { return window.top.dcfApp && window.top.dcfApp.openCheckout ? window.top.dcfApp : null; } catch (err) { return null; } };
 
         document.addEventListener('click', e => {
             const b = e.target && e.target.closest ? e.target.closest('button') : null;
             if (!b || b.disabled || !BUTTON_TEXT.test(b.textContent || '')) return;
+            if (app()) return;
             try {
                 popup = window.open('', 'mcfo-stripe', 'popup,width=620,height=860');
                 if (popup) {
@@ -348,6 +352,17 @@
             if (!res.ok || !target) {          // the game refused: its message shows on the page
                 if (win && !win.closed) win.close();
                 return res;
+            }
+            const a = app();
+            if (a) {
+                a.openCheckout(target);
+                setTimeout(() => {
+                    const status = document.getElementById('payment-status');
+                    if (status) { status.className = ''; status.textContent = 'Stripe Checkout opened in your browser.'; }
+                    for (const b of document.querySelectorAll('button')) if (BUTTON_TEXT.test(b.textContent || '')) b.disabled = false;
+                }, 0);
+                const body = JSON.stringify(Object.assign({}, data, { checkoutUrl: '#stripe-checkout-opened' }));
+                return new Response(body, { status: res.status, statusText: res.statusText, headers: res.headers });
             }
             if (!win || win.closed) {          // no window (popup blocker): the whole tab goes
                 window.top.location.href = target;

@@ -440,6 +440,9 @@ function watchReady(v) {
     let run = 0;
     wc.on('did-start-navigation', (d) => {
         if (!d.isMainFrame || d.isSameDocument) return;
+        // Ziele außerhalb der App (will-navigate bricht sie ab und öffnet den Browser): der Tab bleibt,
+        // wie er ist — vorher blieb er danach im Ladebildschirm hängen (Stripe-Checkout, Luce 17.10.).
+        if (!staysInApp(d.url)) return;
         v.ready = false; v.failed = null; run++;
         v.reloadFront = views[active] === v;
         veiled.delete(wc);   // neue Seite: der Schleier ist weg
@@ -534,6 +537,10 @@ ipcMain.on('win:maximize', () => { if (!win) return; if (win.isMaximized()) win.
 ipcMain.on('win:close', () => win?.close());
 // ESC-Menü der Spiel-Ebene (seit 0.7.0): was es anbieten kann, Home und Beenden.
 ipcMain.on('dcf:menu:open', (e) => escMenu.show(e.sender));
+// Stripe-Checkout aus dem Diamanten-Shop: im System-Browser, nur Stripes eigene Seiten.
+ipcMain.on('dcf:open:checkout', (_e, url) => {
+    try { const u = new URL(String(url)); if (u.protocol === 'https:' && /(^|\.)stripe\.com$/.test(u.hostname)) shell.openExternal(u.href); } catch {}
+});
 // „Welcome to the new design“: nur der Spiel-Tab, der gerade vorn ist, begrüßt (game-layout.js).
 ipcMain.on('dcf:intro:claim', (e) => { e.returnValue = active >= 0 && e.sender === views[active]?.view.webContents && !!win?.isVisible(); });
 // Zahl am Taskleisten-Symbol: alles Abholbare über alle Accounts (badge.js). Windows-Symbol zeichnet die Leiste.
@@ -673,6 +680,8 @@ function wireGameContents(wc, v) {
                 webPreferences: webPrefs(v.acc),
             } };
         }
+        // Leeres Fenster der Stripe-Übergabe (windows.js): die App öffnet Stripe selbst im Browser.
+        if (frameName === 'mcfo-stripe') return { action: 'deny' };
         if (staysInApp(url)) {
             return { action: 'allow', overrideBrowserWindowOptions: {
                 autoHideMenuBar: true, icon: ICON, webPreferences: webPrefs(v.acc),
