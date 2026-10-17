@@ -10,16 +10,21 @@
     :root { --bg1: #201634; --bg2: #120d1c; --text: #ece4f7; --muted: #a99cc0; --dim: #7d7194; --violet: #b48ae8; --gold: #ffd36e; --red: #ff8a8a; }
     * { box-sizing: border-box; }
     html, body { margin: 0; height: 100%; overflow: hidden; background: transparent; user-select: none; font: 14px/1.4 system-ui, sans-serif; color: var(--text); }
-    /* Wechsel = Abblenden und Aufblenden (Luce 17.10.: bloßes Überblenden war „ein harter Cut“):
-       altes Bild sinkt in den Schleier (DIP_MS), dahinter wird umgeschaltet, die neue Seite taucht
-       langsam aus dem Schleier auf (RISE_MS). Kein Zoom. */
-    :root { --dip: 190ms; --rise: 420ms; }
-    .layer { position: fixed; inset: 0; opacity: 0; transition: opacity var(--rise) cubic-bezier(0.33, 0, 0.2, 1); }
+    /* Wechsel wie in einem Spiel (Luce 17.10.: Überblenden auf die LIVE-Seite war „ein harter Cut“,
+       das Spiel ploppte beim Sichtbarwerden auf). Gezeigt werden nur Bilder, nie die Seite im Aufbau:
+         dip     altes Bild verschwimmt und dunkelt ab (DIP)
+         arrive  Bild der FERTIG gezeichneten neuen Seite, erst unscharf, dann langsam scharf und hell (RISE)
+         reveal  Ebene weg — darunter liegt die echte Seite, genauso wie das letzte Bild. */
+       Unschärfe wird nicht als Filter animiert (der schnappte am Ende um), sondern zwischen einer
+       scharfen und einer unscharfen Kopie übergeblendet — das läuft immer weich. */
+    .layer { position: fixed; inset: 0; opacity: 0; transition: opacity 180ms ease-out; }
     .layer.on { opacity: 1; }
     .layer.instant { transition: none; }
-    #shot { background: center / 100% 100% no-repeat; }
-    #veil { background: radial-gradient(900px 500px at 50% 30%, rgba(139, 92, 246, 0.16), transparent 65%), linear-gradient(180deg, #1c1430, #110c1b); }
-    #veil.dip { transition: opacity var(--dip) cubic-bezier(0.4, 0, 1, 1); }
+    .shot { background: center / 100% 100% no-repeat; }
+    .soft { filter: blur(16px) brightness(0.5) saturate(0.85); transform: scale(1.04); }   /* scale: keine hellen Blur-Ränder */
+    #shot.dip { transition: opacity 320ms cubic-bezier(0.45, 0, 0.55, 1); }
+    #nextSoft.in { transition: opacity 240ms ease-out; }
+    #next.in { transition: opacity 560ms cubic-bezier(0.25, 0.1, 0.25, 1); }
     #screen {
         display: grid; place-items: center;
         background: radial-gradient(900px 500px at 50% 30%, rgba(139, 92, 246, 0.2), transparent 65%), linear-gradient(180deg, var(--bg1), var(--bg2));
@@ -43,8 +48,10 @@
 </head>
 <body>
 <div class="layer" id="screen"><div class="card" id="card"></div></div>
-<div class="layer" id="shot"></div>
-<div class="layer" id="veil"></div>
+<div class="layer shot soft" id="shotSoft"></div>
+<div class="layer shot" id="shot"></div>
+<div class="layer shot soft" id="nextSoft"></div>
+<div class="layer shot" id="next"></div>
 <script>
     const $ = (id) => document.getElementById(id);
     const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
@@ -74,25 +81,42 @@
         card.replaceChildren(...kids);
     }
 
-    const DIP_MS = 190;
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    const clear = (...ls) => { for (const l of ls) { l.className = 'layer shot' + (l.id.endsWith('Soft') ? ' soft' : ''); l.style.backgroundImage = ''; } };
     window.overlay.on(async (m) => {
-        const shot = $('shot'), screen = $('screen'), veil = $('veil');
+        const shot = $('shot'), next = $('next'), screen = $('screen'), shotSoft = $('shotSoft'), nextSoft = $('nextSoft');
         if (m.kind === 'dip') {
-            // Altes Bild sinkt in den Schleier; erst wenn er deckt, schaltet die App dahinter um.
-            veil.className = 'layer dip';
+            // Scharfes altes Bild blendet weg, die unscharfe, dunkle Kopie dahinter bleibt.
+            shot.className = 'layer shot dip on';
             await frames(1);
-            veil.classList.add('on');
-            setTimeout(() => {
-                shot.className = 'layer'; shot.style.backgroundImage = '';
-                state = 'veil';
-                window.overlay.ack(m.id);
-            }, DIP_MS + 20);
+            shot.classList.remove('on');
+            await wait(330);
+            state = 'dip';
+            window.overlay.ack(m.id);
+            return;
+        }
+        if (m.kind === 'arrive') {
+            // Neue Seite (fertig gezeichnet): erst unscharf über das alte, dann scharf darüber.
+            for (const l of [nextSoft, next]) l.style.backgroundImage = `url("${m.img}")`;
+            nextSoft.className = 'layer shot soft in';
+            next.className = 'layer shot in';
+            await frames(2);
+            nextSoft.classList.add('on');
+            await wait(160);
+            next.classList.add('on');
+            await wait(580);
+            clear(shot, shotSoft);
+            state = 'arrived';
+            window.overlay.ack(m.id);
             return;
         }
         if (m.kind === 'cover') {
-            // Bild des bisherigen Tabs sofort und deckend — erst danach schaltet die App darunter um.
-            shot.className = 'layer instant on';
-            shot.style.backgroundImage = `url("${m.img}")`;
+            // Bild des bisherigen Tabs sofort und deckend (scharf, dahinter die unscharfe Kopie) —
+            // erst danach schaltet die App darunter um.
+            const soft = $('shotSoft');
+            for (const l of [shot, soft]) { l.style.backgroundImage = `url("${m.img}")`; }
+            soft.className = 'layer shot soft instant on';
+            shot.className = 'layer shot instant on';
             await frames(2);
             state = 'cover';
             window.overlay.ack(m.id);
@@ -103,11 +127,10 @@
             screen.classList.remove('instant');
             if (m.instant) screen.classList.add('instant');
             screen.classList.add('on');
-            // Aus dem Schleier (oder dem eingefrorenen Bild) in den Lade-/Fehlerbildschirm, gleicher Hintergrund.
-            if (veil.classList.contains('on') || shot.classList.contains('on')) {
-                screen.classList.add('instant', 'on');
-                await frames(1);
-                veil.className = 'layer'; shot.className = 'layer'; shot.style.backgroundImage = '';
+            // Aus dem (verschwommenen) alten Bild in den Lade-/Fehlerbildschirm: weich darüber blenden.
+            if ([shot, shotSoft, next, nextSoft].some((l) => l.classList.contains('on'))) {
+                await wait(220);
+                clear(shot, shotSoft, next, nextSoft);
             }
             state = m.kind;
             window.overlay.ack(m.id);
@@ -115,15 +138,16 @@
         }
         if (m.kind === 'reveal') {
             // Alles weich weg; danach meldet die Seite „fertig“, und die App blendet die Ebene aus.
-            // Die neue Seite taucht langsam auf: Schleier, Bild und Lade-/Fehlerbildschirm blenden aus.
-            for (const l of [veil, shot, screen]) { l.classList.remove('instant', 'dip'); l.classList.remove('on'); }
+            // Ebene weg: nach einem Wechsel liegt darunter dieselbe Seite wie das letzte Bild (kurz und
+            // unauffällig), nach dem Ladebildschirm taucht das Spiel weich auf.
+            for (const l of [shot, shotSoft, next, nextSoft, screen]) { l.classList.remove('instant', 'dip', 'in'); l.classList.remove('on'); }
             state = 'none';
             window.overlay.ack(m.id);
             setTimeout(() => {
                 if (state !== 'none') return;
-                shot.style.backgroundImage = '';
+                clear(shot, shotSoft, next, nextSoft);
                 window.overlay.done();
-            }, 460);
+            }, 260);
         }
     });
 </script>

@@ -195,8 +195,33 @@ function select(i, statsTab) {
         && before && before !== frontOf(i) && overlay.state() === 'none';
     if (!smooth) { show(active, switchTab); return; }
     switching = true;
-    overlay.cover(before.webContents).then((ok) => ok && overlay.dip()).finally(() => { switching = false; show(active, switchTab); });
+    transition(before).catch(() => {}).finally(() => {
+        switching = false;
+        // Während des Übergangs woanders hingeklickt: dorthin, dann eben ohne zweiten Übergang.
+        if (shownFront !== frontOf(active)) show(active, switchTab); else syncOverlay();
+    });
 }
+// Altes Bild verschwimmen lassen → umschalten → warten, bis die neue Seite fertig gezeichnet ist →
+// ihr Bild scharf werden lassen. Lädt das Ziel noch, übernimmt der Ladebildschirm (syncOverlay).
+// Die neue Seite wird gleich hinter dem Bild eingeschaltet und baut sich auf, während das alte
+// verschwimmt — so gibt es keine stehende Wartepause.
+async function transition(before) {
+    if (!(await overlay.cover(before.webContents))) { show(active, switchTab); return; }
+    const target = active;
+    show(target, switchTab);
+    const v = target >= 0 ? views[target] : null;
+    if (v && (v.failed || !v.ready)) { await overlay.dip(); return; }
+    await Promise.all([overlay.dip(), settle(frontOf(target).webContents)]);
+    if (active !== target) return;
+    await overlay.arrive(frontOf(target).webContents);
+}
+// Bis die frisch sichtbare Seite sich gezeichnet hat: ein paar Bilder abwarten, dann noch eine Pause,
+// in der das Spiel nach document.hidden seine Grafik wieder aufnimmt. Höchstens 1,2 s.
+const SETTLE_JS = `new Promise((r) => { let n = 0; const f = () => (++n >= 4 ? setTimeout(r, 200) : requestAnimationFrame(f)); requestAnimationFrame(f); })`;
+function settle(wc) {
+    return Promise.race([wc.executeJavaScript(SETTLE_JS).catch(() => {}), new Promise((r) => setTimeout(r, 1200))]);
+}
+let shownFront = null;   // die Ansicht, die zuletzt nach vorn geholt wurde
 function show(i, statsTab) {
     views.forEach((v, j) => v.view.setVisible(j === i || v.warming));
     home?.setVisible(i === HOME);
@@ -206,6 +231,7 @@ function show(i, statsTab) {
     // Der gewählte Tab nach oben: Tabs, die noch anlaufen (warmUp), liegen sichtbar darunter.
     // Die Überblend-Ebene bleibt darüber.
     win.contentView.addChildView(front);
+    shownFront = front;
     if (overlay && overlay.state() !== 'none') win.contentView.addChildView(overlay.view);
     layout();
     front.webContents.focus();
