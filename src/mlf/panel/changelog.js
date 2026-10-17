@@ -1,5 +1,8 @@
     // Newest first. The first entry is what What's new shows after a fresh install.
     const CHANGELOG = [
+        { v: '0.7.1', date: '2026-10-17', items: [
+            'Welcome to the new design now waits until you have closed the patch notes. Right after the update it came up on top of them, and its tour could not show anything while they were still open.',
+        ] },
         { v: '0.7.0', date: '2026-10-17', items: [
             'A new design: the board as a game instead of a website. Your tickets, points, gold and diamonds sit in a bar at the top, with buttons for your inventory, profile, achievements, dailies, shop and leaderboards. Every action of the footer is in a hotbar at the bottom, with keys: 1, 5 and 0 bid, U unbids, B opens Autobid, R Rebellion, F attacks (as King: Royal Celebrations), Q W E A S D are the drinks, I P Y J O L open your pages. The chat floats in the corner and fades while it is quiet, lanes and King are one arena, and everything takes the colours of your theme. A short tour shows it the first time; Settings › General › Layout switches back to the classic layout at any time.',
             'In the new design your pages open as panels at the sides, like the frames in a game: inventory, profile and achievements on the left, shop, dailies and leaderboards on the right. Drag their inner edge to make them wider; the same key or button closes them. In the shop the offers come first, and switching between the shops is instant once each has loaded.',
