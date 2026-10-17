@@ -344,7 +344,7 @@ module.exports = function createEscMenu(ctx) {
             ...(ctx.gameLayout() ? [{ title: 'Game layout', rows: [
                 ['Bid 1 / 5 / 10', ['1', '5', '0']],
                 ['Unbid · Autobid · Rebellion', ['U', 'B', 'R']],
-                ['Attack when free', ['F']],
+                ['Attack when free · as King: Royal Celebrations', ['F']],
                 ['Water · Lava · Bomb', ['Q', 'W', 'E']],
                 ['Milk · Acid · Mystery', ['A', 'S', 'D']],
                 ['Inventory · Profile · Achievements', ['I', 'P', 'Y']],

@@ -25,6 +25,50 @@
 
     function tollMax() { return tollCap.max; }
 
+    // Above 17 (DreamingCrownfall, 17.10.): the game's own buttons step through a list it never
+    // updates — 0 to 17 (allowedValues in app.js stays at its default, applyKingTollTruth only
+    // takes min and max) — so Increase stops at 17 although the server allows up to
+    // toll.maxBaseToll (20). Values the buttons cannot reach go to the server the way the game
+    // sends them itself (POST /api/king/toll {baseToll}); the server checks them as always. The
+    // game's own number stays behind at 17 then, so the field shows what the server confirmed
+    // until the game's number moves again (its own buttons, a new reign).
+    const tollServer = { value: null, gameValue: null, msg: '', msgAt: 0, busy: false };
+    async function postToll(box, want) {
+        if (tollServer.busy) return;
+        tollServer.busy = true;
+        const gameValue = tollState().value;
+        tollServer.msg = 'Syncing…'; tollServer.msgAt = Date.now();
+        syncTollField(box, true);
+        try {
+            const r = await fetch('/api/king/toll', {
+                method: 'POST', credentials: 'include',
+                headers: { Accept: 'application/json', 'content-type': 'application/json' },
+                body: JSON.stringify({ baseToll: want }),
+            });
+            const body = await r.json().catch(() => null);
+            if (!r.ok || !body || body.ok !== true) {
+                tollServer.msg = String((body && (body.reason || body.error)) || 'toll_http_' + r.status);
+            } else {
+                const t = body.toll && typeof body.toll === 'object' ? body.toll : body;
+                tollServer.value = Math.trunc(Number(t.baseToll));
+                tollServer.gameValue = gameValue;
+                tollServer.msg = 'Updated';
+            }
+        } catch (e) {
+            tollServer.msg = (e && e.message) || 'toll_update_failed';
+        } finally {
+            tollServer.msgAt = Date.now();
+            tollServer.busy = false;
+            syncTollField(box, true);
+        }
+    }
+    // The value to show: the server's answer to our own request, as long as the game's number has
+    // not moved since; otherwise the game's.
+    function shownToll(st) {
+        if (tollServer.value !== null && (st.value !== tollServer.gameValue || !st.canEdit)) tollServer.value = null;
+        return tollServer.value !== null ? tollServer.value : st.value;
+    }
+
     function refreshTollCap(box) {
         if (tollCap.busy || Date.now() - tollCap.at < TOLL_CAP_EVERY_MS) return;
         tollCap.busy = true;
@@ -84,8 +128,10 @@
         if (st.value === null || !Number.isFinite(want) || String(target).trim() === '') { syncTollField(box, true); return; }
         want = Math.max(0, Math.min(tollMax(), want));
         input.value = String(want);
-        stepTollTo(want);
         input.removeAttribute('data-mcfo-dirty');
+        // Out of the game buttons' reach (above 17, or the server already stands above it): ask the server.
+        if (want > TOLL_FALLBACK_MAX || shownToll(st) > TOLL_FALLBACK_MAX) { if (want !== shownToll(st)) postToll(box, want); else syncTollField(box, true); return; }
+        stepTollTo(want);
         syncTollField(box, true);
     }
 
@@ -100,14 +146,17 @@
         range.disabled = !st.canEdit;
         range.hidden = !settings.tollSlider;
 
-        // Never overwrite what someone is typing; everything else follows the game.
-        if (st.value !== null && (force || !editing)) {
-            if (input.value !== String(st.value)) input.value = String(st.value);
-            if (!box._mcfoDragging && range.value !== String(st.value)) range.value = String(st.value);
+        // Never overwrite what someone is typing; everything else follows the game (or the server, above).
+        const shown = shownToll(st);
+        if (shown !== null && (force || !editing)) {
+            if (input.value !== String(shown)) input.value = String(shown);
+            if (!box._mcfoDragging && range.value !== String(shown)) range.value = String(shown);
         }
 
         const status = box.querySelector('.mcfo-toll__status');
-        const msg = /^Current toll:/i.test(st.message) ? '' : st.message.trim();
+        // Our own request (above 17) speaks for a few seconds, like the game's message would.
+        const own = tollServer.msg && Date.now() - tollServer.msgAt < TOLL_OK_SHOW_MS + 500 ? tollServer.msg : '';
+        const msg = own ? (own === 'Updated' ? 'Toll updated.' : own === 'Syncing…' ? 'Syncing toll...' : own) : /^Current toll:/i.test(st.message) ? '' : st.message.trim();
         let text = '', tone = '';
         if (/sync/i.test(msg))            { text = 'Syncing…'; tone = 'busy'; }
         else if (/updated/i.test(msg))    { text = 'Updated'; tone = 'ok'; }

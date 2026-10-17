@@ -112,6 +112,8 @@
                 border-radius: 14px !important; background: linear-gradient(180deg, rgba(var(--gl-panel), .94), rgba(var(--gl-panel), .98)) !important;
                 border: 1px solid rgba(var(--gl-line), .45) !important; box-shadow: 0 10px 28px rgba(0, 0, 0, .5), inset 0 1px 0 rgba(255, 255, 255, .06) !important; }
             html[data-dcf-gl-toll] .dcf-gl-bar { left: calc(50% + 6px); right: auto; transform: none; }
+            ${GL_ON}[data-dcf-gl-toll] [data-role="bid-area"] .mcfo-rebellion { display: none !important; }
+            html:not([data-dcf-gl-toll]) .dcf-gl-bar button[data-king-only], html[data-dcf-gl-toll] .dcf-gl-bar button[data-not-king] { display: none; }
             html[data-dcf-gl-toll] .dcf-gl-bar__grp[data-grp="bids"], html[data-dcf-gl-toll] .dcf-gl-bar__div { display: none; }
             .dcf-gl-bar__grp { display: flex; flex-direction: column; gap: 4px; }
             .dcf-gl-bar__gl { font: 800 9.5px/1 system-ui, sans-serif; letter-spacing: .16em; text-transform: uppercase; color: rgba(var(--gl-text), .6); padding-left: 2px; }
@@ -237,6 +239,7 @@
         unbid: '<path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/>',
         attack: '<path d="M14.5 17.5 3 6V3h3l11.5 11.5"/><path d="M13 19l6-6M16 16l4 4M19 21l2-2"/><path d="M9.5 6.5 21 18v3h-3"/>',
         auto: '<path d="M12 3v3M12 18v3M3 12h3M18 12h3"/><circle cx="12" cy="12" r="4"/>',
+        crown: '<path d="M3 8l4.5 4L12 5l4.5 7L21 8l-2 11H5Z"/><path d="M5 19h14"/>',
     };
     const glSvg = n => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${GL_ICON[n]}</svg>`;
     const GL_DRINKS = ['Water', 'Lava', 'Bomb', 'Milk', 'Acid', 'Mystery'];
@@ -254,7 +257,10 @@
         // Autobid opens its menu right at the hotbar; the button shows whether it runs and how much.
         { grp: 'bids', id: 'auto', key: 'B', name: 'Autobid', icon: 'auto', auto: true, target: () => glQ('.mcfo-autobid'), open: b => showAutobidMenu(b) },
         // Attack when free is the app's copy of the game's button (the game's own one stays 0×0 under it).
-        { grp: 'king', id: 'attack', key: 'F', name: 'Attack', cls: 'warn', icon: 'attack',
+        // While you are King there is nothing to attack: the same place and key open the Royal Celebrations.
+        { grp: 'king', id: 'celeb', key: 'F', name: 'Celebrate', icon: 'crown', kingOnly: true, target: () => glQ('.mcfo-rebellion'),
+          open: b => (settings.rebellionPanel ? showCelebrationPopup(b) : glQ('.mcfo-rebellion')?.click()) },
+        { grp: 'king', id: 'attack', key: 'F', name: 'Attack', cls: 'warn', icon: 'attack', notKing: true,
           target: () => glQ('[data-role="king-action-tray"] .mcfo-attack') || glQ('[data-role="king-action-tray"] .mcf-king-attack-placeholder:not([hidden])') },
         ...GL_DRINKS.map((n, i) => ({ grp: 'king', id: 'drink-' + n, key: 'QWEASD'[i], name: n, drink: n, target: () => glDrink(n),
           open: b => { const bev = BEVERAGES.find(x => x.label === n); if (bev) showBeveragePanel(bev, b); } })),
@@ -341,6 +347,8 @@
                 b.innerHTML = `<span>${s.text || (s.icon ? glSvg(s.icon) : '')}</span><span class="dcf-gl-bar__k">${s.key}</span>` + (s.text ? '' : `<span class="dcf-gl-bar__n">${s.name}</span>`);
                 // stopPropagation: the menus close on any click that reaches the page — the opening one included.
                 b.addEventListener('click', e => { e.stopPropagation(); glFire(s); });
+                if (s.kingOnly) b.dataset.kingOnly = '';
+                if (s.notKing) b.dataset.notKing = '';
                 row.append(b);
                 buttons.set(s.id, b);
             }
@@ -512,7 +520,8 @@
         const k = e.key.length === 1 ? e.key.toUpperCase() : e.key;
         const pg = GL_PAGES.find(x => x.key === k);
         if (pg) { e.preventDefault(); glTogglePage(pg.page); return; }
-        const s = GL_SLOTS.find(x => x.key === k);
+        const king = document.documentElement.hasAttribute('data-dcf-gl-toll');
+        const s = GL_SLOTS.find(x => x.key === k && !(king ? x.notKing : x.kingOnly));
         if (s) { e.preventDefault(); glFire(s); }
     }
 
