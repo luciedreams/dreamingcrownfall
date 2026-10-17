@@ -39,7 +39,7 @@ module.exports = function createStats({ win, setting, onSettingsChange, onChange
     function ensureView() {
         if (view) return view;
         view = new WebContentsView({ webPreferences: { partition: 'marblemind-public', contextIsolation: true, sandbox: true } });
-        view.setBackgroundColor('#14101c');
+        view.setBackgroundColor('#160f24');   // = Schleierfarbe der Übergänge (main.js VEIL_BG)
         const wc = view.webContents;
         // Alles außerhalb der öffentlichen Seite (Twitch-Profile, Spiel, Discord) im System-Browser.
         wc.setWindowOpenHandler(({ url }) => { if (/^https?:/.test(url)) shell.openExternal(url); return { action: 'deny' }; });

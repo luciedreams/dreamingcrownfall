@@ -192,30 +192,90 @@ function select(i, statsTab) {
     switchTab = statsTab;
     if (switching) return;
     const smooth = overlay && appSettings.get('ui.transitions') !== false && win.isVisible() && !win.isMinimized()
-        && before && before !== frontOf(i) && overlay.state() === 'none';
-    if (!smooth) { show(active, switchTab); return; }
+        && before && before !== frontOf(i) && (overlay?.state() || 'none') === 'none';
+    if (!smooth) { show(active, switchTab); veil(frontOf(active)?.webContents, 0, 0); return; }
     switching = true;
     transition(before).catch(() => {}).finally(() => {
+        // Der verlassene Tab behält seinen Schleier (siehe transition); der vorn verliert ihn sicher.
         switching = false;
         // Während des Übergangs woanders hingeklickt: dorthin, dann eben ohne zweiten Übergang.
-        if (shownFront !== frontOf(active)) show(active, switchTab); else syncOverlay();
+        if (shownFront !== frontOf(active)) { show(active, switchTab); veil(frontOf(active)?.webContents, 0, VEIL_OUT_MS); }
+        else syncOverlay();
     });
 }
-// Altes Bild verschwimmen lassen → umschalten → warten, bis die neue Seite fertig gezeichnet ist →
-// ihr Bild scharf werden lassen. Lädt das Ziel noch, übernimmt der Ladebildschirm (syncOverlay).
-// Die neue Seite wird gleich hinter dem Bild eingeschaltet und baut sich auf, während das alte
-// verschwimmt — so gibt es keine stehende Wartepause.
+// Wechsel ohne eigene Ebene und ohne Bildschirmfotos (die störten unter Wayland das Zeichnen der Tabs,
+// per Bildschirmaufnahme gesehen, 17.10.): ein Schleier IN den Seiten selbst. Im alten Tab blendet er
+// ein, erst dann wird umgeschaltet; der neue Tab hat seinen Schleier schon (auch sein letztes Bild vor
+// dem Verstecken war verschleiert, es kann also nichts Ungedecktes aufblitzen). Sobald das Spiel im
+// neuen Tab wieder zeichnet (und er fertig geladen ist), blendet sein Schleier langsam aus.
+const VEIL_IN_MS = 240, VEIL_OUT_MS = 460;
+// Einfarbig und gleich dem Hintergrund der Views: bevor ein frisch gezeigter Tab sein erstes Bild hat,
+// zeigt Electron die Hintergrundfarbe des Views — so ist auch diese Phase vom Schleier nicht zu unterscheiden.
+const VEIL_BG = '#160f24';
+const veiled = new WeakSet();   // webContents, deren aufgehobenes Bild verschleiert ist
+const veilJs = (opacity, ms, wait = true) => `(() => {
+    let v = document.getElementById('dcf-veil');
+    if (!v) {
+        v = document.createElement('div');
+        v.id = 'dcf-veil';
+        v.style.cssText = 'position:fixed;inset:0;z-index:2147483647;pointer-events:none;opacity:0;will-change:opacity;'
+            + 'background:${VEIL_BG}';
+        (document.body || document.documentElement).appendChild(v);
+    }
+    v.style.transition = ${ms} ? 'opacity ${ms}ms cubic-bezier(.4,0,.2,1)' : 'none';
+    void v.offsetWidth;
+    v.style.opacity = '${opacity}';
+    // Fertig = Übergang vorbei UND zwei Bilder gezeichnet (das verschleierte Bild ist dann das, was
+    // Chromium für den versteckten Tab aufhebt und beim nächsten Zeigen sofort wieder zeigt).
+    // Versteckte Tabs zeichnen nicht (kein requestAnimationFrame) — dort nicht warten.
+    return ${wait} ? new Promise((r) => setTimeout(() => requestAnimationFrame(() => requestAnimationFrame(r)), ${ms} + 20)) : true;
+})()`;
+function veil(wc, opacity, ms, wait = true) {
+    if (!wc || wc.isDestroyed()) return Promise.resolve();
+    return Promise.race([wc.executeJavaScript(veilJs(opacity, ms, wait)).catch(() => {}), new Promise((r) => setTimeout(r, ms + 600))]);
+}
+// Chromium hebt das letzte Bild eines versteckten Tabs auf und zeigt es beim Wiederanzeigen sofort.
+// Den versteckten Tab vorher anzufassen (z. B. Schleier setzen) macht dieses Bild ungültig → bis zu
+// 0,7 s schwarz/blau, bis er neu gezeichnet hat (Aufnahmen 17.10.). Darum: verlassene Tabs bleiben
+// verschleiert, der neue wird unberührt gezeigt (mit seinem verschleierten Bild) und erst dann entschleiert.
 async function transition(before) {
-    if (!(await overlay.cover(before.webContents))) { show(active, switchTab); return; }
     const target = active;
-    show(target, switchTab);
-    const v = target >= 0 ? views[target] : null;
-    if (v?.failed) { await overlay.dip(); return; }
-    // Lädt das Ziel noch: kein Ladebildschirm (Luce: „nur eine angenehme Animation, die immer passt“) —
-    // das verschwommene alte Bild bleibt stehen, bis die neue Seite fertig ist (höchstens 20 s).
-    await Promise.all([overlay.dip(), untilReady(v, target).then(() => settle(frontOf(target).webContents))]);
+    const next = frontOf(target)?.webContents;
+    // Hat der neue Tab noch kein verschleiertes Bild (seit dem Start nie vorn, neu geladen): Schleier
+    // vorher setzen — es gibt kein aufgehobenes Bild, das dabei verloren ginge.
+    await Promise.all([veil(before.webContents, 1, VEIL_IN_MS), next && !veiled.has(next) ? veil(next, 1, 0, false) : null]);
+    veiled.add(before.webContents);
     if (active !== target) return;
-    await overlay.arrive(frontOf(target).webContents);
+    show(target, switchTab);
+    if (!next || next.isDestroyed()) return;
+    // Ein paar Bilder, damit das Spiel nach document.hidden wieder zeichnet, dann langsam aufblenden.
+    await settle(next);
+    if (active !== target) return;
+    await veil(next, 0, VEIL_OUT_MS);
+}
+// Beim Start, hinter dem Ladebildschirm: jeden anderen Tab einmal kurz nach vorn holen und
+// verschleiert zeichnen lassen. Ein nie gezeigter Tab hat kein aufgehobenes Bild — sein erster
+// Wechsel blitzte sonst ~0,3 s grau/blau (Aufnahme 17.10.). Der Ladebildschirm wartet darauf (max. 15 s).
+let priming = true;
+async function primeTabs() {
+    const until = Date.now() + 15000;
+    for (const v of views.slice()) {
+        if (views[active] === v || v.guest === undefined) continue;
+        while (!v.ready && !v.failed && Date.now() < until) await new Promise((r) => setTimeout(r, 150));
+        const wc = v.view.webContents;
+        if (!v.ready || wc.isDestroyed() || views[active] === v) continue;
+        v.view.setVisible(true);
+        win.contentView.addChildView(v.view);
+        if (overlay) win.contentView.addChildView(overlay.view);
+        const ok = await Promise.race([wc.executeJavaScript(veilJs(1, 0, true)).then(() => true, () => false), new Promise((r) => setTimeout(() => r(false), 1500))]);
+        if (ok) veiled.add(wc);
+        if (views[active] !== v) v.view.setVisible(false);
+    }
+    const front = frontOf(active);
+    if (front) win.contentView.addChildView(front);
+    if (overlay) win.contentView.addChildView(overlay.view);
+    priming = false;
+    syncOverlay();
 }
 function untilReady(v, target) {
     if (!v || v.ready) return Promise.resolve();
@@ -226,7 +286,7 @@ function untilReady(v, target) {
 }
 // Bis die frisch sichtbare Seite sich gezeichnet hat: ein paar Bilder abwarten, dann noch eine Pause,
 // in der das Spiel nach document.hidden seine Grafik wieder aufnimmt. Höchstens 1,2 s.
-const SETTLE_JS = `new Promise((r) => { let n = 0; const f = () => (++n >= 4 ? setTimeout(r, 200) : requestAnimationFrame(f)); requestAnimationFrame(f); })`;
+const SETTLE_JS = `new Promise((r) => { let n = 0; const f = () => (++n >= 4 ? setTimeout(r, 120) : requestAnimationFrame(f)); requestAnimationFrame(f); })`;
 function settle(wc) {
     return Promise.race([wc.executeJavaScript(SETTLE_JS).catch(() => {}), new Promise((r) => setTimeout(r, 1200))]);
 }
@@ -253,7 +313,9 @@ function syncOverlay(instant = false) {
     if (!overlay || switching) return;
     const v = active >= 0 ? views[active] : null;
     if (v?.failed) overlay.screen({ kind: 'error', name: label(v), avatar: v.avatar || '', icon: v.avatar ? '' : APP_ICON_URL, code: v.failed.code, desc: v.failed.desc }, instant);
-    else if (v && !v.ready) overlay.screen({ kind: 'loading', name: v.name || '', avatar: v.avatar || '', icon: v.avatar ? '' : APP_ICON_URL }, instant);
+    // Ladebildschirm nur beim ersten Laden und beim Neuladen des Tabs, den man gerade ansieht —
+    // nie beim Wechsel auf einen Tab, der im Hintergrund noch lädt.
+    else if (v && (priming || (!v.ready && (!v.everReady || v.reloadFront)))) overlay.screen({ kind: 'loading', name: v.name || '', avatar: v.avatar || '', icon: v.avatar ? '' : APP_ICON_URL }, instant);
     else overlay.reveal();
 }
 
@@ -272,6 +334,8 @@ function watchReady(v) {
     wc.on('did-start-navigation', (d) => {
         if (!d.isMainFrame || d.isSameDocument) return;
         v.ready = false; v.failed = null; run++;
+        v.reloadFront = views[active] === v;
+        veiled.delete(wc);   // neue Seite: der Schleier ist weg
         if (views[active] === v) syncOverlay();
     });
     wc.on('did-fail-load', (_e, code, desc, _url, isMainFrame) => {
@@ -288,7 +352,7 @@ function watchReady(v) {
             if (mine !== run || v.failed) return;
             if (ok) await new Promise((r) => setTimeout(r, 700));   // Nachlauf: das Spiel zeichnet fertig
             if (mine !== run || v.failed) return;
-            if (ok || Date.now() - started > 20000) { v.ready = true; if (views[active] === v) syncOverlay(); }
+            if (ok || Date.now() - started > 20000) { v.ready = true; v.everReady = true; v.reloadFront = false; if (views[active] === v) syncOverlay(); }
             else setTimeout(poll, 250);
         };
         poll();
@@ -432,7 +496,7 @@ function setupSession(acc) {
 function addAccount(acc, focus = false) {
     setupSession(acc);
     const view = new WebContentsView({ webPreferences: webPrefs(acc) });
-    view.setBackgroundColor('#14101c');
+    view.setBackgroundColor(VEIL_BG);
     const v = { acc, view, name: null, guest: true, playerId: null, avatar: '', ready: false, failed: null };
     views.push(v);
     const wc = view.webContents;
@@ -462,7 +526,8 @@ function warmUp(v) {
     const done = () => {
         if (!v.warming) return;
         v.warming = false;
-        if (views[active] !== v && !wc.isDestroyed()) v.view.setVisible(false);
+        if (views[active] === v || wc.isDestroyed()) return;
+        v.view.setVisible(false);
     };
     const poll = async () => {
         if (!v.warming || wc.isDestroyed()) return;
@@ -545,6 +610,7 @@ function createWindow() {
     // ausgekoppelte Fenster sind auch Fenster und hielten die App sonst am Leben.
     win.on('closed', () => app.quit());
     select(0);
+    primeTabs().catch((e) => { priming = false; console.error(`[dcf] Tabs vorbereiten: ${e.message}`); syncOverlay(); });
 }
 
 // Settings im aktiven Tab öffnen, auf einer bestimmten Seite (Tray › Check for updates).
