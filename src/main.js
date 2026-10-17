@@ -216,6 +216,32 @@ ipcMain.on('mlf:script', (e) => {
 
 const label = (v) => v.name || `Account ${views.indexOf(v) + 1}`;
 
+// Geplante Rebellionen (mlf/king/rebellion-plan.js) laufen im Takt der Seite — und den bremst Chromium
+// in Hintergrund-Tabs (nach 5 min höchstens einmal pro Minute, dazu ein CPU-Budget, das das Spiel
+// selbst aufbraucht). CookingSum 17.10.: Plan im Hintergrund-Tab löste erst beim Hinwechseln aus.
+// Darum hier, im ungebremsten Hauptprozess: ab einer Minute vor Slot-Beginn bis Slot-Ende die
+// Hintergrund-Bremse dieses Tabs aus, und ab Beginn alle 5 s den Takt des Plans direkt anstoßen.
+// Die Pläne kennt tab-status (liest sie alle 10 s für die Profilkarte).
+const PLAN_LEAD_MS = 60 * 1000;
+const unthrottled = new Set();
+function startPlanWatch() {
+    setInterval(() => {
+        const now = Date.now();
+        for (const v of views) {
+            const wc = v.view?.webContents;
+            if (!wc || wc.isDestroyed()) continue;
+            const p = !v.guest && tabStatus ? tabStatus.of(v).plan : null;
+            const due = !!(p && p.cost && p.start && p.end && now >= p.start - PLAN_LEAD_MS && now < p.end);
+            if (due !== unthrottled.has(wc)) {
+                wc.setBackgroundThrottling(!due);
+                if (due) unthrottled.add(wc); else unthrottled.delete(wc);
+                console.log(`[dcf] geplante Rebellion ${v.name || ''}: Hintergrund-Bremse ${due ? 'aus' : 'wieder an'}`);
+            }
+            if (due && now >= p.start) wc.executeJavaScript('window.__dcfPlanKick && window.__dcfPlanKick()').catch(() => {});
+        }
+    }, 5000);
+}
+
 function tabState() {
     const king = notifier?.kingNow() || null;
     return {
@@ -856,6 +882,7 @@ function createWindow() {
     // Stats ein-/ausgeschaltet: Tab-Leiste nachziehen; wer gerade auf Stats steht, geht zurück ins Spiel.
     appSettings.onChange(() => { if (active === STATS && !stats.enabled()) select(lastGame); else pushTabs(); });
     tabStatus = startTabStatus({ views, onChange: pushTabs });
+    startPlanWatch();
     let shownKing = null;
     setInterval(() => { const k = notifier?.kingNow()?.playerId || null; if (k !== shownKing) { shownKing = k; pushTabs(); } }, 5000);
     home = createHome({ win, views, label, stats, kingNow: () => notifier?.kingNow() || null, onSelect: (i, tab) => select(i, tab) });

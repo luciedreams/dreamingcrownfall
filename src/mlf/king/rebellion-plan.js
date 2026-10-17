@@ -224,6 +224,10 @@
         document.documentElement.removeAttribute('data-mcfo-rebplan');
     }
 
+    // The app's main process kicks the beat of a due plan from outside (main.js startPlanWatch): in a
+    // background tab Chromium slows the page's own timers down to once a minute or less.
+    try { if (window.top === window.self) window.__dcfPlanKick = () => { try { rebPlanTick(); } catch (e) {} }; } catch (e) {}
+
     // ---- marks: Rebellion buttons, tileset card, game layout --------------------------------------
     function planMarkText(list) {
         if (list.some(p => !p.seen && (p.state === 'failed' || p.state === 'missed'))) return '!';

@@ -18,7 +18,7 @@ const HEADER_JS = `(() => { const c = document.querySelector('[data-role="metric
         const l = JSON.parse(localStorage.getItem('mcfo_reb_plans') || '[]');
         const p = l.filter((x) => x.state === 'planned').sort((a, b) => a.start - b.start)[0];
         const warn = l.some((x) => !x.seen && (x.state === 'failed' || x.state === 'missed'));
-        if (p || warn) plan = { cost: p ? p.cost : null, start: p ? p.start : null, tileset: p ? p.tilesetId : null, warn };
+        if (p || warn) plan = { cost: p ? p.cost : null, start: p ? p.start : null, end: p ? p.end : null, tileset: p ? p.tilesetId : null, warn };
     } catch (e) {}
     return { tickets: Number.isFinite(n) && n > 0 ? n : null, earning: /earning/i.test(status) && !/not earning/i.test(status), plan }; })()`;
 
