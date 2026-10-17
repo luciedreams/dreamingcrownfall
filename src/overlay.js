@@ -4,8 +4,10 @@
 //                ist, dann IHR Bild unscharf einblenden und scharf werden lassen — nie die Seite im Aufbau.
 //   Laden        solange der Tab vorn noch lädt: Porträt, „Loading <Name> …“ statt leerer Seite.
 //   Fehler       statt Chromiums grauer Fehlerseite: eigene Seite mit „Try again now“.
-// Die Ebene ist ein eigener durchsichtiger View ganz oben; versteckt, solange sie nichts zeigt
-// (sonst finge sie Klicks ab).
+// Die Ebene ist ein eigener durchsichtiger View ganz oben. Solange sie nichts zeigt, wird sie NICHT
+// versteckt, sondern außerhalb des Fensters geparkt: ein versteckter View zeichnet nicht weiter und
+// zeigte beim Wiederanzeigen sein altes Bild (bei Luce ein schmaler „Loading“-Streifen über der
+// ladenden Seite — per Bildschirmaufnahme gefunden, 17.10.). Geparkt bleibt er lebendig.
 
 const path = require('path');
 const { WebContentsView, ipcMain } = require('electron');
@@ -18,8 +20,10 @@ module.exports = function createOverlay({ win, onRetry }) {
     } });
     view.setBackgroundColor('#00000000');
     view.webContents.loadFile(path.join(__dirname, 'overlay.html'));
-    view.setVisible(false);
     win.contentView.addChildView(view);
+    let area = { x: 0, y: 0, width: 800, height: 600 }, onStage = false;
+    const place = () => view.setBounds(onStage ? area : { ...area, x: -area.width - 200 });
+    place();
     const wc = view.webContents;
 
     let loaded = false, queue = [];
@@ -40,7 +44,7 @@ module.exports = function createOverlay({ win, onRetry }) {
         });
     }
     ipcMain.on('overlay:ack', (e, id) => { if (e.sender !== wc) return; const r = waiting.get(id); waiting.delete(id); r?.(); });
-    ipcMain.on('overlay:done', (e) => { if (e.sender === wc && shown === 'none') view.setVisible(false); });
+    ipcMain.on('overlay:done', (e) => { if (e.sender === wc && shown === 'none') { onStage = false; place(); } });
     ipcMain.on('overlay:retry', (e) => { if (e.sender === wc) onRetry(); });
 
     async function snap(contents) {
@@ -53,11 +57,13 @@ module.exports = function createOverlay({ win, onRetry }) {
     // Ganz nach oben (über die gerade gewählte Ansicht) und sichtbar.
     function raise() {
         win.contentView.addChildView(view);
-        view.setVisible(true);
+        if (!onStage) { onStage = true; place(); }
     }
 
     return {
         view,
+        // Aus layout() in main.js: Fläche unter der Leiste. Geparkt bleibt die Größe gleich.
+        setArea(b) { area = b; place(); },
         // Bild des bisherigen Tabs festhalten, bevor umgeschaltet wird. Ohne Bild (z. B. Fenster
         // versteckt) einfach weiter — dann eben ohne Überblenden.
         async cover(contents) {

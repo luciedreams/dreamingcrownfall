@@ -210,10 +210,19 @@ async function transition(before) {
     const target = active;
     show(target, switchTab);
     const v = target >= 0 ? views[target] : null;
-    if (v && (v.failed || !v.ready)) { await overlay.dip(); return; }
-    await Promise.all([overlay.dip(), settle(frontOf(target).webContents)]);
+    if (v?.failed) { await overlay.dip(); return; }
+    // Lädt das Ziel noch: kein Ladebildschirm (Luce: „nur eine angenehme Animation, die immer passt“) —
+    // das verschwommene alte Bild bleibt stehen, bis die neue Seite fertig ist (höchstens 20 s).
+    await Promise.all([overlay.dip(), untilReady(v, target).then(() => settle(frontOf(target).webContents))]);
     if (active !== target) return;
     await overlay.arrive(frontOf(target).webContents);
+}
+function untilReady(v, target) {
+    if (!v || v.ready) return Promise.resolve();
+    const started = Date.now();
+    return new Promise((r) => { const t = setInterval(() => {
+        if (v.ready || v.failed || active !== target || Date.now() - started > 20000) { clearInterval(t); r(); }
+    }, 100); });
 }
 // Bis die frisch sichtbare Seite sich gezeichnet hat: ein paar Bilder abwarten, dann noch eine Pause,
 // in der das Spiel nach document.hidden seine Grafik wieder aufnimmt. Höchstens 1,2 s.
@@ -248,12 +257,15 @@ function syncOverlay(instant = false) {
     else overlay.reveal();
 }
 
-// Ist die Seite im Tab so weit, dass man sie zeigen kann? Spielseite: sobald das Spiel sein Layout
-// gewählt hat; Login (Twitch) und andere Seiten: sobald das Dokument steht. Höchstens 15 s.
+// Ist die Seite im Tab so weit, dass man sie zeigen kann? Spielseite: Dokument komplett, Spiel hat sein
+// Layout gewählt, alle Bilder sind da — danach noch eine Nachlaufzeit, in der das Spiel fertig zeichnet
+// (Luce: der Ladebildschirm soll erst gehen, wenn alles „völlig vollends geladen“ ist). Login (Twitch)
+// und andere Seiten: sobald das Dokument steht. Höchstens 20 s.
 // Eine fehlgeschlagene Ladung (did-fail-load) bleibt auf der Fehlerseite, bis ein neuer Versuch startet.
 const READY_JS = `(() => { if (document.readyState === 'loading') return false;
     if (!/(^|\.)marblecrownfall\.com$/.test(location.hostname) || location.pathname !== '/') return true;
-    return !!document.querySelector('[data-role=shell]')?.dataset.layoutMode; })()`;
+    return document.readyState === 'complete' && !!document.querySelector('[data-role=shell]')?.dataset.layoutMode
+        && [...document.images].every((i) => i.complete); })()`;
 function watchReady(v) {
     const wc = v.view.webContents;
     let run = 0;
@@ -274,7 +286,9 @@ function watchReady(v) {
             let ok = false;
             try { ok = await wc.executeJavaScript(READY_JS); } catch {}
             if (mine !== run || v.failed) return;
-            if (ok || Date.now() - started > 15000) { v.ready = true; if (views[active] === v) syncOverlay(); }
+            if (ok) await new Promise((r) => setTimeout(r, 700));   // Nachlauf: das Spiel zeichnet fertig
+            if (mine !== run || v.failed) return;
+            if (ok || Date.now() - started > 20000) { v.ready = true; if (views[active] === v) syncOverlay(); }
             else setTimeout(poll, 250);
         };
         poll();
@@ -290,7 +304,7 @@ function layout() {
     tabBar.setVisible(!full);
     tabBar.setBounds({ x: 0, y: 0, width, height: TAB_BAR_HEIGHT });
     for (const v of views) v.view.setBounds({ x: 0, y: top, width, height: height - top });
-    overlay?.view.setBounds({ x: 0, y: top, width, height: height - top });
+    overlay?.setArea({ x: 0, y: top, width, height: height - top });
     home?.view.setBounds({ x: 0, y: top, width, height: height - top });
     stats?.view()?.setBounds({ x: 0, y: top, width, height: height - top });
 }
