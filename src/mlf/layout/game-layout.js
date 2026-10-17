@@ -436,12 +436,13 @@
         const barH = glBuilt.bar.offsetHeight + 'px';
         if (document.documentElement.style.getPropertyValue('--gl-bar-h') !== barH) document.documentElement.style.setProperty('--gl-bar-h', barH);
         glAttackStatus();
-        // A theme plaque centred on the King tile goes over the left lane instead (see the CSS).
+        // A theme plaque centred on the King tile goes to the left lane's left edge instead (see the CSS).
         const plaque = glQ('[data-role="top-status-region"] > .mcfo-lb-plaque');
         const lane = glQ('[data-role="lane-panel"]'), kp = glQ('[data-role="king-pane"]');
         if (plaque && lane && kp) {
             const l = lane.getBoundingClientRect(), k = kp.getBoundingClientRect();
-            const dx = Math.round((l.left + l.width / 2) - (k.left + k.width / 2)) + 'px';
+            // Left-aligned at the lane's left edge: centred, the resource bar covered it at 1920 px (Luce).
+            const dx = Math.round((l.left + 16 + plaque.offsetWidth / 2) - (k.left + k.width / 2)) + 'px';
             if (document.documentElement.style.getPropertyValue('--gl-plaque-dx') !== dx) document.documentElement.style.setProperty('--gl-plaque-dx', dx);
         }
         // The hotbar sits in the middle, unless the chat in the corner reaches into it.
