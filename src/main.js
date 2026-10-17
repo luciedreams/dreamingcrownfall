@@ -29,6 +29,7 @@ const startTabStatus = require('./tab-status.js');
 const createOverlay = require('./overlay.js');
 const startContextMenu = require('./context-menu.js');
 const createEscMenu = require('./esc-menu.js');
+const tooltip = require('./tooltip.js');
 const { pathToFileURL } = require('url');
 
 const START_URL = 'https://marblecrownfall.com/';
@@ -439,6 +440,8 @@ ipcMain.on('win:maximize', () => { if (!win) return; if (win.isMaximized()) win.
 ipcMain.on('win:close', () => win?.close());
 // ESC-Menü der Spiel-Ebene (seit 0.7.0): was es anbieten kann, Home und Beenden.
 ipcMain.on('dcf:menu:open', (e) => escMenu.show(e.sender));
+// Tooltip der Account-Leiste: zeichnet die Ansicht darunter (tooltip.js).
+ipcMain.on('tabs:tip', (_e, text, r) => tooltip.showIn(activeContents(), typeof text === 'string' ? text : '', r && typeof r === 'object' ? r : null, TAB_BAR_HEIGHT));
 // Ausgekoppelte Fenster (rahmenlos, Leiste aus app-layer.js): wem sie gehören und ihre Fensterknöpfe.
 const popOwners = new Map();   // webContents-ID des Popups → Account-Eintrag
 // Krone als data:-URL — das Popup gehört zur Spielseite (https) und darf keine file://-Bilder laden.
@@ -523,6 +526,7 @@ img, a, svg, video { -webkit-user-drag: none; }
 function wireGameContents(wc, v) {
     contextMenu.attach(wc);
     escMenu.attach(wc);
+    tooltip.attach(wc);
     wc.on('dom-ready', () => {
         let host = '';
         try { host = new URL(wc.getURL()).hostname; } catch {}
@@ -556,6 +560,8 @@ function wireGameContents(wc, v) {
         wireGameContents(child.webContents, v);
         if (/^mlfpop-/.test(frameName || '')) {
             popOwners.set(child.webContents.id, v);
+            // about:blank füllt die App-Schicht selbst — kein dom-ready, auf das sich die Tooltips verlassen könnten.
+            setTimeout(() => tooltip.injectNow(child.webContents), 300);
             const id = child.webContents.id;
             child.once('closed', () => popOwners.delete(id));
             const sendMax = () => { if (!child.isDestroyed()) child.webContents.send('dcf:popwin:max', child.isMaximized()); };
@@ -687,6 +693,7 @@ function createWindow() {
         preload: path.join(__dirname, 'tabs-preload.js'), contextIsolation: true, sandbox: true,
     } });
     tabBar.setBackgroundColor('#14101c');
+    tooltip.attach(tabBar.webContents, { forward: true });
     tabBar.webContents.loadFile(path.join(__dirname, 'tabs.html'));
     tabBar.webContents.on('before-input-event', (e, input) => { const wc = activeContents(); if (wc) handleKeys(e, input, wc); });
     win.contentView.addChildView(tabBar);
@@ -695,7 +702,7 @@ function createWindow() {
     stats = createStats({
         win, setting: appSettings.get, onSettingsChange: appSettings.onChange,
         onChange: () => { home?.push(); hud?.update(); },
-        wire: (wc) => { escMenu.attach(wc); wc.on('before-input-event', (e, input) => handleKeys(e, input, wc)); },
+        wire: (wc) => { escMenu.attach(wc); tooltip.attach(wc); wc.on('before-input-event', (e, input) => handleKeys(e, input, wc)); },
     });
     // Stats ein-/ausgeschaltet: Tab-Leiste nachziehen; wer gerade auf Stats steht, geht zurück ins Spiel.
     appSettings.onChange(() => { if (active === STATS && !stats.enabled()) select(lastGame); else pushTabs(); });
@@ -705,6 +712,7 @@ function createWindow() {
     home = createHome({ win, views, label, stats, kingNow: () => notifier?.kingNow() || null, onSelect: (i, tab) => select(i, tab) });
     home.view.webContents.on('before-input-event', (e, input) => handleKeys(e, input, home.view.webContents));
     escMenu.attach(home.view.webContents);
+    tooltip.attach(home.view.webContents);
     for (const acc of loadAccounts()) addAccount(acc);
     saveAccounts();
     removeOrphanSessions();

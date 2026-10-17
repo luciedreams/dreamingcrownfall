@@ -11,6 +11,7 @@ contextBridge.exposeInMainWorld('tabs', {
     settings: () => ipcRenderer.send('tabs:settings'),
     minimize: () => ipcRenderer.send('win:minimize'),
     maximize: () => ipcRenderer.send('win:maximize'),
+    tip: (text, r) => ipcRenderer.send('tabs:tip', text == null ? '' : String(text), r ? { left: +r.left, top: +r.top, right: +r.right, bottom: +r.bottom, width: +r.width, height: +r.height } : null),
     close: () => ipcRenderer.send('win:close'),
     contextMenu: (i, x) => ipcRenderer.send('tabs:ctx', i, x),
     onConfirmRemove: (cb) => ipcRenderer.on('tabs:confirm-remove', (_e, i) => cb(i)),
