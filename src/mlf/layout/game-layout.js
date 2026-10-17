@@ -103,7 +103,15 @@
                 border: 1px solid rgba(var(--gl-line), .45); box-shadow: 0 10px 28px rgba(0, 0, 0, .5), inset 0 1px 0 rgba(255, 255, 255, .06); user-select: none; }
             .dcf-gl-bar::before { content: ''; position: absolute; left: 18px; right: 18px; top: -1px; height: 2px; border-radius: 2px;
                 background: linear-gradient(90deg, transparent, rgb(var(--gl-accent)) 30%, rgb(var(--gl-line)) 70%, transparent); opacity: .85; }
-            html[data-dcf-gl-toll] .dcf-gl-bar { left: auto; right: 18px; transform: none; }
+            /* King: the game's toll field and Royal Celebration button become a block in the hotbar's look,
+               left of the hotbar's King half, both in the middle; the rest of the footer stays hidden. */
+            ${GL_ON}[data-dcf-gl-toll] [data-role="action-region"] > :not([data-role="bid-area"]) { visibility: hidden !important; }
+            ${GL_ON}[data-dcf-gl-toll] [data-role="bid-area"] { position: fixed !important; top: auto !important; left: auto !important; bottom: 10px !important; right: calc(50% + 6px) !important;
+                width: auto !important; height: var(--gl-bar-h, 84px) !important; min-height: 0 !important; max-width: none !important; margin: 0 !important; transform: none !important; translate: none !important;
+                display: flex !important; align-items: center !important; gap: 10px !important; padding: 0 14px !important; box-sizing: border-box !important; z-index: 50 !important;
+                border-radius: 14px !important; background: linear-gradient(180deg, rgba(var(--gl-panel), .94), rgba(var(--gl-panel), .98)) !important;
+                border: 1px solid rgba(var(--gl-line), .45) !important; box-shadow: 0 10px 28px rgba(0, 0, 0, .5), inset 0 1px 0 rgba(255, 255, 255, .06) !important; }
+            html[data-dcf-gl-toll] .dcf-gl-bar { left: calc(50% + 6px); right: auto; transform: none; }
             html[data-dcf-gl-toll] .dcf-gl-bar__grp[data-grp="bids"], html[data-dcf-gl-toll] .dcf-gl-bar__div { display: none; }
             .dcf-gl-bar__grp { display: flex; flex-direction: column; gap: 4px; }
             .dcf-gl-bar__gl { font: 800 9.5px/1 system-ui, sans-serif; letter-spacing: .16em; text-transform: uppercase; color: rgba(var(--gl-text), .6); padding-left: 2px; }
@@ -123,6 +131,18 @@
             .dcf-gl-bar__k { position: absolute; left: 5px; top: 4px; font: 800 10px/1 system-ui, sans-serif; color: rgb(var(--gl-accent)); text-shadow: 0 1px 2px rgba(0, 0, 0, .9); }
             .dcf-gl-bar__n { position: absolute; bottom: 4px; left: 0; right: 0; font: 700 8.5px/1 system-ui, sans-serif; letter-spacing: .05em; text-transform: uppercase; color: rgba(var(--gl-text), .85); text-shadow: 0 1px 2px rgba(0, 0, 0, .9); }
             .dcf-gl-bar button.bid .dcf-gl-bar__k { color: rgb(var(--gl-bidText)); text-shadow: none; }
+            .dcf-gl-bar button[data-busy] { border-color: rgb(var(--gl-accent)); box-shadow: inset 0 0 0 2px rgba(0, 0, 0, .4), 0 0 14px rgba(var(--gl-accent), .45); }
+            /* attack running: what it is doing, at the bottom of the King tile */
+            .dcf-gl-atk { position: fixed; z-index: 48; transform: translateX(-50%); display: flex; align-items: center; gap: 9px; padding: 8px 14px 8px 10px; border-radius: 12px; cursor: pointer;
+                background: linear-gradient(180deg, rgba(var(--gl-panel), .96), rgba(var(--gl-panel), .9)); border: 1px solid rgba(var(--gl-accent), .6);
+                box-shadow: 0 0 18px rgba(var(--gl-accent), .25), 0 10px 26px rgba(0, 0, 0, .5); color: rgb(var(--gl-text));
+                font: 800 12.5px/1 system-ui, sans-serif; letter-spacing: .06em; white-space: nowrap; user-select: none; animation: dcf-gl-in .18s ease-out; }
+            .dcf-gl-atk[hidden] { display: none; }
+            .dcf-gl-atk i { width: 9px; height: 9px; border-radius: 50%; background: rgb(var(--gl-accent)); box-shadow: 0 0 8px rgb(var(--gl-accent)); flex: none; }
+            .dcf-gl-atk small { font-weight: 600; letter-spacing: 0; opacity: .6; margin-left: 4px; }
+            .dcf-gl-atk[data-state="warn"] { border-color: rgba(224, 122, 122, .75); box-shadow: 0 0 18px rgba(224, 122, 122, .3), 0 10px 26px rgba(0, 0, 0, .5); }
+            .dcf-gl-atk[data-state="warn"] i { background: #e07a7a; box-shadow: 0 0 8px #e07a7a; }
+            @keyframes dcf-gl-in { from { opacity: 0; transform: translate(-50%, 6px); } to { opacity: 1; transform: translateX(-50%); } }
             .dcf-gl-bar button[data-tone]:not([data-tone="off"]) { border-color: #7fd99a; box-shadow: inset 0 0 0 2px rgba(0, 0, 0, .4), 0 0 12px rgba(127, 217, 154, .35); }
             .dcf-gl-bar button[data-tone="alert"] { border-color: #e07a7a; box-shadow: inset 0 0 0 2px rgba(0, 0, 0, .4), 0 0 12px rgba(224, 122, 122, .45); }
             .dcf-gl-bar button[hidden] { display: none; }
@@ -327,7 +347,13 @@
             g.append(gl, row);
             bar.append(g);
         }
-        glBuilt = { res, chips, ev, fps, bar, buttons, pages };
+        // Attack status at the bottom of the King tile; a click cancels, like the button itself.
+        const atk = document.createElement('div');
+        atk.className = 'dcf-gl-atk';
+        atk.hidden = true;
+        atk.innerHTML = '<i></i><span></span><small>click to cancel</small>';
+        atk.addEventListener('click', e => { e.stopPropagation(); const s = GL_SLOTS.find(x => x.id === 'attack'); if (s) glFire(s); });
+        glBuilt = { res, chips, ev, fps, bar, buttons, pages, atk };
         return glBuilt;
     }
 
@@ -395,6 +421,9 @@
         }
         const toll = !!glQ('[data-role="bid-area"][data-king-toll-mode="true"]');
         document.documentElement.toggleAttribute('data-dcf-gl-toll', toll);
+        const barH = glBuilt.bar.offsetHeight + 'px';
+        if (document.documentElement.style.getPropertyValue('--gl-bar-h') !== barH) document.documentElement.style.setProperty('--gl-bar-h', barH);
+        glAttackStatus();
         // The hotbar sits in the middle, unless the chat in the corner reaches into it.
         const chat = glQ('[data-role="desktop-chat-pane"]'), bar = glBuilt.bar;
         const cr = chat && chat.getBoundingClientRect();
@@ -440,6 +469,25 @@
         el.append(g);
     }
 
+    // The app's attack-when-free button says what it is doing (WAITING: IN TILE, ATTACKING … — king/
+    // attack-when-free.js); its tray is hidden here, so the words go to the bottom of the King tile.
+    function glAttackStatus() {
+        const copy = glQ('[data-role="king-action-tray"] .mcfo-attack');
+        const state = copy ? copy.getAttribute('data-mcfo-state') || '' : '';
+        const a = glBuilt.atk, btn = glBuilt.buttons.get('attack');
+        btn.toggleAttribute('data-busy', !!state);
+        const king = glQ('[data-role="king-pane"]');
+        if (!state || !king) { a.hidden = true; return; }
+        const text = (copy.textContent || '').trim();
+        const span = a.querySelector('span');
+        if (span.textContent !== text) span.textContent = text;
+        if (a.dataset.state !== state) a.dataset.state = state;
+        const r = king.getBoundingClientRect();
+        a.style.left = Math.round(r.left + r.width / 2) + 'px';
+        a.style.bottom = Math.round(innerHeight - r.bottom + 18) + 'px';
+        a.hidden = false;
+    }
+
     // 4 chat: quiet after 8 s without a new line.
     function glChatWatch() {
         const pane = glQ('[data-role="desktop-chat-pane"]'), list = glQ('[data-role="chat-messages"]');
@@ -476,13 +524,16 @@
         if (want) {
             glStyles();
             const b = glBuild();
-            document.body.append(b.res, b.bar);
+            document.body.append(b.res, b.bar, b.atk);
             root.setAttribute('data-dcf-gl', '');
             glWidths();
             glColours();
             glTick();
             glChatWatch();
             glTimer = setInterval(() => { glTick(); glChatWatch(); }, 500);
+            // The attack status changes by the second (lava countdown): follow the button directly.
+            const tray = glQ('[data-role="king-action-tray"]');
+            if (tray && !tray.__dcfGlObs) { tray.__dcfGlObs = true; new MutationObserver(() => { if (glOn && glBuilt) glAttackStatus(); }).observe(tray, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ['data-mcfo-state'] }); }
         } else {
             clearInterval(glTimer);
             clearTimeout(glChatIdle);
@@ -490,7 +541,7 @@
             root.removeAttribute('data-dcf-gl-toll');
             glQ('[data-role="desktop-chat-pane"]')?.removeAttribute('data-dcf-gl-idle');
             for (const f of document.querySelectorAll('.mcfo-win iframe')) { try { f.contentDocument.documentElement.removeAttribute('data-dcf-gl-panel'); } catch (e) {} }
-            if (glBuilt) { glBuilt.res.remove(); glBuilt.bar.remove(); }
+            if (glBuilt) { glBuilt.res.remove(); glBuilt.bar.remove(); glBuilt.atk.remove(); }
         }
         // The game lays out its board from the room it has: let it measure again.
         dispatchEvent(new Event('resize'));
