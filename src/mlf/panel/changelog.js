@@ -1,5 +1,8 @@
     // Newest first. The first entry is what What's new shows after a fresh install.
     const CHANGELOG = [
+        { v: '0.9.1', date: '2026-10-18', items: [
+            'Planned Rebellions now start on time when that account\'s tab is in the background. Before, the plan could wait until you switched to the tab — the browser slows hidden tabs down to once a minute. The app now lifts that for the tab from a minute before the slot until it ends.',
+        ] },
         { v: '0.9.0', date: '2026-10-17', items: [
             'The new design now does everything the classic one does. More (M) in the hotbar opens every bid chip you have unlocked beyond \u00d710 — 25, 100, 500, 1K and the bigger ones like 10K or 100K. It stays open, so you can bid again right away.',
             'Daily rewards waiting? The Dailies button at the top shows how many in gold, and a click claims them all at once. J still opens the Dailies page.',
