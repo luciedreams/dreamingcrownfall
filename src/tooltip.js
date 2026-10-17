@@ -26,6 +26,7 @@ function PAGE(forward) {
         .t.up { transform: translateY(2px); }
         .t.up.on { transform: none; }`;
     let host = null, box = null, cur = null, saved = '', timer = 0, warmUntil = 0, shown = false;
+    let quiet = null;   // nach einem Klick: dieses Element zeigt keinen Tooltip, bis die Maus es verlässt
 
     function ensure() {
         if (host && host.isConnected) return;
@@ -87,13 +88,21 @@ function PAGE(forward) {
         const t = e.target;
         if (!(t instanceof Element)) return;
         if (cur && cur.contains(t)) return;
+        if (quiet && quiet.contains(t)) return;
+        quiet = null;
         const el = t.closest('[title]');
         if (el) enter(el); else if (cur) release();
     }, true);
     document.addEventListener('pointerout', (e) => {
+        if (quiet && (!e.relatedTarget || !quiet.contains(e.relatedTarget))) quiet = null;
         if (cur && (!e.relatedTarget || !cur.contains(e.relatedTarget))) release();
     }, true);
-    for (const ev of ['pointerdown', 'wheel', 'keydown']) document.addEventListener(ev, () => { if (cur) { release(); warmUntil = 0; } }, true);
+    document.addEventListener('pointerdown', (e) => {
+        const t = e.target instanceof Element ? e.target : null;
+        quiet = (t && t.closest('[title]')) || cur || null;
+        if (cur) { release(); warmUntil = 0; }
+    }, true);
+    for (const ev of ['wheel', 'keydown']) document.addEventListener(ev, () => { if (cur) { release(); warmUntil = 0; } }, true);
     window.addEventListener('scroll', () => { if (cur) release(); }, true);
     window.addEventListener('blur', () => { if (cur) release(); });
 

@@ -77,7 +77,7 @@
                 font: 700 14px/1 system-ui, sans-serif; color: rgb(var(--gl-text)); user-select: none; }
             .dcf-gl-res__c { display: flex; align-items: center; gap: 7px; padding: 5px 12px 5px 6px; border-radius: 10px; cursor: pointer; font-variant-numeric: tabular-nums; white-space: nowrap; }
             .dcf-gl-res__c:hover { background: rgba(var(--gl-line), .16); }
-            .dcf-gl-res__c img { width: 22px; height: 22px; }
+            .dcf-gl-res__ic { width: 22px; height: 22px; flex: none; filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .45)); }
             .dcf-gl-res__dot { width: 7px; height: 7px; border-radius: 50%; background: #7fd99a; box-shadow: 0 0 8px #7fd99a; }
             .dcf-gl-res__dot[data-off] { background: rgba(var(--gl-text), .3); box-shadow: none; }
             .dcf-gl-res__sep { width: 1px; height: 20px; background: rgba(var(--gl-line), .3); }
@@ -184,6 +184,33 @@
         }
     }
 
+    // ---- resource icons (own, Luce 17.10.: nicer than the game's) and what a click does -----------
+    const GL_RES = [
+        { role: 'tickets', name: 'Tickets', hint: 'ticket history',
+          run: el => { if (settings.ticketHistory !== false) showTicketHistory(el); },
+          svg: '<defs><linearGradient id="glr-t" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff9cc0"/><stop offset="1" stop-color="#e0457a"/></linearGradient></defs>'
+             + '<path d="M3 7.5A2.5 2.5 0 0 1 5.5 5h13A2.5 2.5 0 0 1 21 7.5v2a2.5 2.5 0 0 0 0 5v2a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 16.5v-2a2.5 2.5 0 0 0 0-5Z" fill="url(#glr-t)" stroke="#6b1735" stroke-width="1.1"/>'
+             + '<path d="M15 5.6v12.8" stroke="#fff" stroke-opacity=".7" stroke-width="1.2" stroke-dasharray="1.6 1.6"/>'
+             + '<path d="m9 9.2.9 1.8 2 .3-1.45 1.4.35 2-1.8-.95-1.8.95.35-2L6.1 11.3l2-.3Z" fill="#fff"/>' },
+        { role: 'current-points', name: 'Points', hint: 'loadouts',
+          run: el => { if (settings.pointsLoadouts !== false) showLoadoutMenu(el); },
+          svg: '<defs><linearGradient id="glr-p" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#d9b8ff"/><stop offset="1" stop-color="#7b4fd6"/></linearGradient></defs>'
+             + '<path d="M12 2.5 20.2 7v10L12 21.5 3.8 17V7Z" fill="url(#glr-p)" stroke="#2e1660" stroke-width="1.1" stroke-linejoin="round"/>'
+             + '<path d="M12 6.8 13.6 10l3.5.5-2.55 2.45.6 3.5L12 14.8l-3.15 1.65.6-3.5L6.9 10.5l3.5-.5Z" fill="#fff"/>' },
+        { role: 'gold', name: 'Gold', hint: 'shop',
+          run: () => glTogglePage('shop-nav'),
+          svg: '<defs><radialGradient id="glr-g" cx=".35" cy=".3" r=".8"><stop offset="0" stop-color="#fff1b8"/><stop offset=".55" stop-color="#ffcf4d"/><stop offset="1" stop-color="#c4851a"/></radialGradient></defs>'
+             + '<circle cx="12" cy="12" r="9" fill="url(#glr-g)" stroke="#7a4a07" stroke-width="1.1"/>'
+             + '<circle cx="12" cy="12" r="6.6" fill="none" stroke="#a8670f" stroke-opacity=".55" stroke-width="1"/>'
+             + '<path d="M7.8 14.6 7 9.3l2.6 2 2.4-3.3 2.4 3.3 2.6-2-.8 5.3Z" fill="#8a5509" fill-opacity=".85"/>' },
+        { role: 'diamonds', name: 'Diamonds', hint: 'buy diamonds',
+          run: () => openPage('/payment/packages', 'Buy Diamonds'),
+          svg: '<defs><linearGradient id="glr-d" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#c9f6ff"/><stop offset="1" stop-color="#2f8fd6"/></linearGradient></defs>'
+             + '<path d="M7 4h10l4 5.2L12 20.5 3 9.2Z" fill="url(#glr-d)" stroke="#0f3f6b" stroke-width="1.1" stroke-linejoin="round"/>'
+             + '<path d="M3 9.2h18M9.2 4 8 9.2l4 11.3 4-11.3L14.8 4" fill="none" stroke="#0f3f6b" stroke-opacity=".55" stroke-width=".9" stroke-linejoin="round"/>'
+             + '<path d="M8 9.2 12 4l4 5.2" fill="#fff" fill-opacity=".35"/>' },
+    ];
+
     // ---- pieces -----------------------------------------------------------------------------------
     const GL_ICON = {
         rebel: '<path d="M14.5 17.5 3 6V3h3l11.5 11.5"/><path d="M13 19l6-6M16 16l4 4M19 21l2-2"/>',
@@ -234,22 +261,19 @@
         // 1 resource bar
         const res = document.createElement('div');
         res.className = 'dcf-gl-res';
-        const chips = ['tickets', 'current-points', 'gold', 'diamonds'].map(roleName => {
+        const chips = GL_RES.map(r => {
             const c = document.createElement('div');
             c.className = 'dcf-gl-res__c';
-            const img = document.createElement('img');
-            img.alt = '';
+            c.title = `${r.name} · click: ${r.hint}`;
+            c.insertAdjacentHTML('beforeend', `<svg class="dcf-gl-res__ic" viewBox="0 0 24 24" aria-hidden="true">${r.svg}</svg>`);
             const v = document.createElement('span');
-            c.append(img, v);
+            c.append(v);
             let dot = null;
-            if (roleName === 'tickets') { dot = document.createElement('i'); dot.className = 'dcf-gl-res__dot'; c.append(dot); }
-            c.addEventListener('click', () => {
-                const cell = glQ(`[data-role="metric-cell"][data-metric-role="${roleName}"]`) || glQ(`[data-role="${roleName}"]`)?.closest('[data-role="metric-cell"]');
-                const go = cell && (glQ('[data-role="diamonds-purchase-link"]', cell) || glQ('.mcfo-signpost', cell) || glQ('.mcfo-tstatus', cell) || cell);
-                if (go) go.click();
-            });
+            if (r.role === 'tickets') { dot = document.createElement('i'); dot.className = 'dcf-gl-res__dot'; c.append(dot); }
+            // Menus open right here; stopPropagation, or the click that opens one also closes it.
+            c.addEventListener('click', e => { e.stopPropagation(); r.run(c); });
             res.append(c);
-            return { roleName, c, img, v, dot };
+            return { roleName: r.role, r, c, v, dot };
         });
         const sep = document.createElement('i');
         sep.className = 'dcf-gl-res__sep';
@@ -323,12 +347,11 @@
             const val = glQ(`[data-role="${ch.roleName}"]`);
             ch.v.textContent = (val && val.textContent.trim()) || '–';
             const cell = val && val.closest('[data-role="metric-cell"]');
-            const icon = cell && glQ('img', cell);
-            if (icon && ch.img.src !== icon.src) ch.img.src = icon.src;
             if (ch.dot) {
                 const earning = /earning tickets/i.test(cell ? cell.textContent : '') && !/not earning/i.test(cell ? cell.textContent : '');
                 ch.dot.toggleAttribute('data-off', !earning);
-                ch.c.title = earning ? 'Tickets · earning' : 'Tickets · not earning';
+                const t = `Tickets · ${earning ? 'earning' : 'not earning'} · click: ${ch.r.hint}`;
+                if (ch.c.title !== t && !ch.c.matches(':hover')) ch.c.title = t;   // under the mouse the tooltip holds it
             }
         }
         const t = (glQ('[data-role="session-cell"]')?.textContent || '').replace(/\s+/g, ' ');
