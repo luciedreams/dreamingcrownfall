@@ -119,12 +119,14 @@
 
             /* 4 chat: floating in the bottom-left corner, see-through, fades while quiet */
             ${GL_ON} [data-role="desktop-chat-pane"] { position: fixed !important; left: 14px !important; bottom: 12px !important; top: auto !important;
-                width: 400px !important; height: 360px !important; max-height: 360px !important; z-index: 40 !important; transition: opacity .6s ease; }
+                width: 480px !important; height: 360px !important; max-height: 360px !important; z-index: 40 !important; transition: opacity .6s ease; }
             ${GL_ON} [data-role="desktop-chat-pane"][data-dcf-gl-idle]:not(:hover):not(:focus-within) { opacity: .28; }
             ${GL_ON} [data-role="chat-pane"] { height: 100% !important; background: rgba(var(--gl-panel), .38) !important; backdrop-filter: blur(6px);
                 border: 1px solid rgba(var(--gl-line), .22) !important; border-radius: 12px !important; box-shadow: 0 10px 30px rgba(0, 0, 0, .3) !important; }
             ${GL_ON} [data-role="chat-pane"] .mcf-chat__header { background: transparent !important; border-color: rgba(var(--gl-line), .15) !important; box-shadow: none !important; }
             ${GL_ON} [data-role="chat-status"] { display: none !important; }
+            /* Pop-out and folding make no sense for a chat that floats in its corner. */
+            ${GL_ON} [data-role="chat-pane"] :is([data-role="chat-collapse"], .mcfo-chatpop-btn) { display: none !important; }
             ${GL_ON} [data-role="chat-messages"] { background: transparent !important; }
             ${GL_ON} [data-role="lane-play-region"] { grid-template-columns: minmax(0, 1fr) !important; }
 
@@ -294,7 +296,15 @@
         if (glQ('dcf-esc-menu, .dcf-pn, .dcf-set, .dcf-tour, .mcfo-menu')) return;
         const k = e.key.length === 1 ? e.key.toUpperCase() : e.key;
         const page = GL_PAGE_KEYS[k];
-        if (page) { e.preventDefault(); const p = PAGES[page]; if (p) openPage(p.path, p.title); return; }
+        // The same key closes the page again, like a bag in a game.
+        if (page) {
+            e.preventDefault();
+            const p = PAGES[page];
+            if (!p) return;
+            const w = windows.get(p.path);
+            if (w && !w.min && !w.lazy) closeWindow(p.path); else openPage(p.path, p.title);
+            return;
+        }
         const s = GL_SLOTS.find(x => x.key === k);
         if (s) { e.preventDefault(); glFire(s); }
     }
