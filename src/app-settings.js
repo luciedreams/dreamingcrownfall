@@ -32,6 +32,8 @@ const SCHEMA = {
     'discord.enabled': false,
     'discord.showAccount': true,
     'discord.showKing': true,
+    // Öffentliche MarbleMind-Statistik: Tab „Stats“, „Today“ auf Home, Bausteine im HUD (stats.js). Opt-in.
+    'stats.enabled': false,
 };
 
 const RANGES = { 'notify.unattendedSeconds': [10, 60] };

@@ -15,7 +15,17 @@ const HUD_ITEMS = {
     pointsPer: 'Points per account',
     claim: 'Rewards to claim',
     clock: 'Clock',
+    mmRuns: 'Runs today',
+    mmPlayers: 'Ø players per run',
+    mmReigns: 'Reigns today',
+    mmAttacks: 'Attacks on the throne today',
+    mmRebellions: 'Rebellions today',
+    mmChat: 'Chat messages today',
+    mmFrozen: 'Frozen runs (24 h)',
+    mmDroughts: 'Droughts (rare rarities)',
 };
+// Bausteine aus der öffentlichen MarbleMind-Statistik und die Unterseite, die ein Klick öffnet.
+const HUD_STATS = { mmRuns: 'activity', mmPlayers: 'activity', mmReigns: 'king', mmAttacks: 'attacks', mmRebellions: 'rebellions', mmChat: 'chat', mmFrozen: 'freezes', mmDroughts: 'tileguide' };
 
 function hudCss() {
     return `
@@ -46,6 +56,10 @@ function hudCss() {
     .dcf-hud__dim { color: #8f84a6; font-weight: 500; }
     .dcf-hud__dot { width: 0.5em; height: 0.5em; border-radius: 50%; background: #7d7194; flex: none; }
     .dcf-hud__dot--on { background: #7fd99a; box-shadow: 0 0 5px #7fd99a; }
+    .dcf-hud__seg--link { -webkit-app-region: no-drag; cursor: pointer; }
+    .dcf-hud__seg--link:hover { background: rgba(255, 255, 255, 0.05); }
+    .dcf-hud__green { color: #7fd99a; } .dcf-hud__red { color: #ff8a8a; }
+    .dcf-hud__rdot { width: 0.6em; height: 0.6em; border-radius: 50%; flex: none; border: 1px solid rgba(255, 255, 255, 0.3); }
     /* Werte je Account: in beiden Layouts untereinander, Name links, Wert rechtsbündig — nebeneinander
        wurde die Bar mit drei, vier Accounts und mehreren solchen Bausteinen endlos lang. */
     .dcf-hud__per { display: grid; grid-template-columns: auto auto; column-gap: 0.8em; row-gap: 0.25em; }
@@ -61,7 +75,8 @@ function hudCss() {
 }
 
 // root: ein leeres Element; cfg: hud-config; d: Werte (data() in hud.js). onClose: ✕ zeigen.
-function renderHud(root, cfg, d, { onClose = null } = {}) {
+// onStats(tab): Klick auf einen MarbleMind-Baustein öffnet diese Unterseite (nur im HUD-Fenster).
+function renderHud(root, cfg, d, { onClose = null, onStats = null } = {}) {
     const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
     const fmt = (n) => (n == null ? '–' : Number(n).toLocaleString('en-US'));
     // Punkte gehen in die Milliarden — kurz wie auf Home (1.2B), sonst sprengen sie die Leiste.
@@ -125,6 +140,46 @@ function renderHud(root, cfg, d, { onClose = null } = {}) {
             perSeg('⭐', '', 'points', short);
         } else if (id === 'claim') {
             seg(d.claim ? el('span', 'dcf-hud__gold', `🎁 ${d.claim} to claim`) : el('span', 'dcf-hud__dim', d.claim === 0 ? '🎁 all claimed' : '🎁 …'));
+        } else if (HUD_STATS[id]) {
+            // Ohne Settings › Stats (d.mm null) bleiben diese Bausteine einfach weg.
+            const m = d.mm;
+            if (!m) continue;
+            const t = m.today || {}, f = m.frozen || {};
+            const num = (v, cls) => el('span', 'dcf-hud__num' + (cls ? ' ' + cls : ''), v == null ? '–' : v);
+            const sub = (s) => el('span', 'dcf-hud__sub', s);
+            let s = null;
+            if (id === 'mmRuns') s = seg(el('span', null, '🏁'), num(fmt(t.runs)), sub('runs today'));
+            else if (id === 'mmPlayers') s = seg(el('span', null, '👥'), num(t.players == null ? null : Number(t.players).toFixed(1)), sub('players per run'));
+            else if (id === 'mmReigns') s = seg(el('span', null, '🏰'), num(fmt(t.reigns)), sub('reigns'));
+            else if (id === 'mmAttacks') s = seg(el('span', null, '⚔️'), num(fmt(t.attacks)), sub('attacks'));
+            else if (id === 'mmRebellions') s = seg(el('span', null, '⚡'), num(fmt(t.rebellions)), sub('rebellions'));
+            else if (id === 'mmChat') s = seg(el('span', null, '💬'), num(fmt(t.chat)), sub('chat'));
+            else if (id === 'mmFrozen') {
+                const r = f.rate24h;
+                s = seg(el('span', null, '🧊'), num(r == null ? null : r + ' %', r == null ? '' : r >= 10 ? 'dcf-hud__red' : r >= 4 ? '' : 'dcf-hud__green'),
+                    sub(f.rate7d == null ? 'frozen 24 h' : `frozen 24 h · 7 d ${f.rate7d} %`));
+            } else if (id === 'mmDroughts') {
+                // Die vier seltensten (Cosmic … Legendary): seit wann nicht mehr, rot über dem Rekord.
+                const rows = (m.droughts || []).slice(0, 4);
+                if (!rows.length) continue;
+                const RAR = { legendary: '#BC7824', mythic: '#992824', ethereal: '#C6A0C1', cosmic: '#272330', epic: '#592285', rare: '#20569D', common: '#214D24' };
+                const t2 = (x) => { if (x == null) return '–'; if (x < 90) return Math.round(x) + ' min'; const h = x / 60; return h < 48 ? h.toFixed(1) + ' h' : (h / 24).toFixed(1) + ' d'; };
+                const box = el('span', 'dcf-hud__per');
+                for (const r of rows) {
+                    const x = el('span', 'dcf-hud__acc');
+                    const name = el('span', 'dcf-hud__name');
+                    const dot = el('span', 'dcf-hud__rdot'); dot.style.background = RAR[String(r.rarity).toLowerCase()] || '#555';
+                    name.append(dot, el('span', null, r.rarity));
+                    const v = el('span', 'dcf-hud__sub dcf-hud__num' + (r.since > r.longest ? ' dcf-hud__red' : ''), t2(r.since));
+                    v.title = `usually ${t2(r.median)}, longest ${t2(r.longest)}`;
+                    x.append(name, v);
+                    box.append(x);
+                }
+                s = seg(el('span', null, '⏳'), box);
+                s.classList.add('dcf-hud__seg--per');
+                s.title = 'Since each rarity last showed up (red: longer than ever before)';
+            }
+            if (s && onStats) { s.classList.add('dcf-hud__seg--link'); s.onclick = () => onStats(HUD_STATS[id]); if (!s.title) s.title = 'Open in Stats'; }
         } else if (id === 'clock') {
             const t = new Date();
             seg(el('span', 'dcf-hud__num', `${String(t.getHours()).padStart(2, '0')}:${String(t.getMinutes()).padStart(2, '0')}`));

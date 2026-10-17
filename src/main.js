@@ -24,6 +24,7 @@ const createHome = require('./home.js');
 const windowState = require('./window-state.js');
 const startShortcuts = require('./shortcuts.js');
 const createHud = require('./hud.js');
+const createStats = require('./stats.js');
 
 const START_URL = 'https://marblecrownfall.com/';
 const TAB_BAR_HEIGHT = 36;
@@ -124,8 +125,10 @@ const webPrefs = (acc) => ({
 let win = null, tabBar = null, tray = null, notifier = null, addons = null, updater = null, vitals = null;
 let active = 0;
 const HOME = -1;      // active === HOME: der Home-Tab (Übersicht, erst ab zwei Accounts)
+const STATS = -2;     // active === STATS: die öffentliche MarbleMind-Seite (stats.js, nur mit Schalter)
+// active < 0 = kein Spiel-Tab vorn (Home oder Stats) — wer ein Spiel braucht, nimmt lastGame.
 let lastGame = 0;     // zuletzt gewählter Spiel-Tab (für Discord, Settings aus dem Tray)
-let home = null, hud = null;
+let home = null, hud = null, stats = null;
 const views = []; // je Account: { acc, view, name, guest, playerId, avatar }
 
 // ---- App-Schicht und MLF an den Preload ------------------------------------------------------
@@ -150,31 +153,37 @@ function tabState() {
     return {
         active,
         home: !!home?.available(),
+        stats: !!stats?.enabled(),
         tabs: views.map((v) => ({ name: label(v), guest: v.guest, avatar: v.avatar || '', loading: v.view.webContents.isLoading() })),
     };
 }
 function pushTabs() {
     if (tabBar && !tabBar.webContents.isDestroyed()) tabBar.webContents.send('tabs:state', tabState());
     const cur = views[active];
-    if (win) win.setTitle(active === HOME ? `${APP_TITLE} – Home` : cur ? `${APP_TITLE} – ${label(cur)}` : APP_TITLE);
+    if (win) win.setTitle(active === HOME ? `${APP_TITLE} – Home` : active === STATS ? `${APP_TITLE} – Stats` : cur ? `${APP_TITLE} – ${label(cur)}` : APP_TITLE);
     home?.push();
 }
 
-function select(i) {
+// statsTab: Unterseite der Stats-Seite (aus Home/HUD), sonst bleibt sie, wo sie war.
+function select(i, statsTab) {
     if (i === HOME && !home?.available()) i = lastGame;
-    if (i !== HOME && !views[i]) i = Math.min(Math.max(0, i), views.length - 1);
-    if (i !== HOME && !views[i]) return;
+    if (i === STATS && !stats?.enabled()) i = lastGame;
+    if (i >= 0 && !views[i]) i = Math.min(Math.max(0, i), views.length - 1);
+    if (i >= 0 && !views[i]) return;
     active = i;
-    if (i !== HOME) lastGame = i;
+    if (i >= 0) lastGame = i;
     views.forEach((v, j) => v.view.setVisible(j === i || v.warming));
     home?.setVisible(i === HOME);
+    if (i === STATS) stats.show(statsTab); else stats?.view()?.setVisible(false);
+    const front = i === HOME ? home.view : i === STATS ? stats.view() : views[i].view;
+    if (i === STATS) front.setVisible(true);
     // Der gewählte Tab nach oben: Tabs, die noch anlaufen (warmUp), liegen sichtbar darunter.
-    win.contentView.addChildView(i === HOME ? home.view : views[i].view);
+    win.contentView.addChildView(front);
     layout();
-    (i === HOME ? home.view : views[i].view).webContents.focus();
+    front.webContents.focus();
     pushTabs();
 }
-const activeContents = () => (active === HOME ? home?.view.webContents : views[active]?.view.webContents);
+const activeContents = () => (active === HOME ? home?.view.webContents : active === STATS ? stats?.view()?.webContents : views[active]?.view.webContents);
 
 function layout() {
     if (!win) return;
@@ -185,14 +194,17 @@ function layout() {
     tabBar.setBounds({ x: 0, y: 0, width, height: TAB_BAR_HEIGHT });
     for (const v of views) v.view.setBounds({ x: 0, y: top, width, height: height - top });
     home?.view.setBounds({ x: 0, y: top, width, height: height - top });
+    stats?.view()?.setBounds({ x: 0, y: top, width, height: height - top });
 }
 
 ipcMain.on('tabs:select', (_e, i) => select(i));
-ipcMain.on('tabs:reload', (_e, i) => views[i]?.view.webContents.reload());
+ipcMain.on('tabs:reload', (_e, i) => (i === STATS ? stats?.view()?.webContents : views[i]?.view.webContents)?.reload());
 ipcMain.on('tabs:add', () => { addAccount({ partition: newPartition() }, true); saveAccounts(); });
 ipcMain.on('tabs:remove', (_e, i) => removeAccount(i));
 // Zahnrad in der Tab-Leiste: immer erreichbar, auch wenn die Spiel-Ebene „wie die Website“ aussieht.
 ipcMain.on('tabs:settings', () => showSettingsPage(''));
+// Settings › Stats › „Open the Stats tab“ (Spiel-Ebene).
+ipcMain.on('dcf:stats:open', (_e, tab) => select(STATS, tab || undefined));
 ipcMain.handle('tabs:state', () => tabState());
 ipcMain.on('dcf:notify:test', () => notifier?.test());
 // Willkommen-Schritte: nur ein Tab zeigt sie (der erste, der fragt, behält sie auch nach dem Neuladen).
@@ -235,7 +247,7 @@ function handleKeys(e, input, wc) {
     const k = input.key;
     let done = true;
     if (ctrl && /^[1-9]$/.test(k)) select(Number(k) - 1);
-    else if (ctrl && k === 'Tab') select(active === HOME ? (input.shift ? views.length - 1 : 0) : (active + (input.shift ? views.length - 1 : 1)) % views.length);
+    else if (ctrl && k === 'Tab') select(active < 0 ? (input.shift ? views.length - 1 : 0) : (active + (input.shift ? views.length - 1 : 1)) % views.length);
     else if (k === 'F5' || (ctrl && k.toLowerCase() === 'r')) input.shift ? wc.reloadIgnoringCache() : wc.reload();
     else if (k === 'F12' || (ctrl && input.shift && k.toLowerCase() === 'i')) wc.toggleDevTools();
     else if (k === 'F11') { win.setFullScreen(!win.isFullScreen()); }
@@ -357,7 +369,7 @@ async function removeAccount(i) {
     try { await session.fromPartition(v.acc.partition).clearStorageData(); } catch {}
     saveAccounts();
     if (lastGame >= i) lastGame = Math.max(0, lastGame - 1);
-    select(active === HOME ? HOME : Math.min(active >= i ? Math.max(0, active - 1) : active, views.length - 1));
+    select(active < 0 ? active : Math.min(active >= i ? Math.max(0, active - 1) : active, views.length - 1));
 }
 
 // ---- Fenster ----------------------------------------------------------------------------------
@@ -383,7 +395,14 @@ function createWindow() {
     tabBar.webContents.on('before-input-event', (e, input) => { const wc = activeContents(); if (wc) handleKeys(e, input, wc); });
     win.contentView.addChildView(tabBar);
 
-    home = createHome({ win, views, label, kingNow: () => notifier?.kingNow() || null, onSelect: (i) => select(i) });
+    stats = createStats({
+        win, setting: appSettings.get, onSettingsChange: appSettings.onChange,
+        onChange: () => { home?.push(); hud?.update(); },
+        wire: (wc) => wc.on('before-input-event', (e, input) => handleKeys(e, input, wc)),
+    });
+    // Stats ein-/ausgeschaltet: Tab-Leiste nachziehen; wer gerade auf Stats steht, geht zurück ins Spiel.
+    appSettings.onChange(() => { if (active === STATS && !stats.enabled()) select(lastGame); else pushTabs(); });
+    home = createHome({ win, views, label, stats, kingNow: () => notifier?.kingNow() || null, onSelect: (i, tab) => select(i, tab) });
     home.view.webContents.on('before-input-event', (e, input) => handleKeys(e, input, home.view.webContents));
     for (const acc of loadAccounts()) addAccount(acc);
     saveAccounts();
@@ -403,7 +422,7 @@ function createWindow() {
 // Settings im aktiven Tab öffnen, auf einer bestimmten Seite (Tray › Check for updates).
 function showSettingsPage(page) {
     win.show(); win.focus();
-    if (active === HOME) select(lastGame);
+    if (active < 0) select(lastGame);
     const wc = views[active]?.view.webContents;
     if (wc) wc.executeJavaScript(`window.dcfOpenSettings && window.dcfOpenSettings(${JSON.stringify(page)})`).catch(() => {});
 }
@@ -421,7 +440,7 @@ function buildTrayMenu() {
     tray.setContextMenu(Menu.buildFromTemplate([
         { label: 'Show', click: show },
         { label: 'HUD (F2)', type: 'checkbox', checked: !!hud?.isOpen(), click: () => hud?.toggle() },
-        { label: 'Take the tour', click: () => { win.show(); win.focus(); if (active === HOME) select(lastGame);
+        { label: 'Take the tour', click: () => { win.show(); win.focus(); if (active < 0) select(lastGame);
             views[active]?.view.webContents.executeJavaScript('window.dcfStartTour && window.dcfStartTour()').catch(() => {}); } },
         { label: 'Reload all tabs', click: () => { loadAppLayer(); views.forEach((v) => v.view.webContents.reloadIgnoringCache()); } },
         { label: 'Check for updates', click: () => { showSettingsPage('about'); updater?.check(); } },
@@ -437,10 +456,10 @@ function buildTrayMenu() {
 // Ziele der globalen Tastenkürzel.
 const shortcutActions = {
     toggle() { if (win.isVisible() && win.isFocused()) win.hide(); else { win.show(); win.focus(); } },
-    next() { win.show(); win.focus(); select(active === HOME ? 0 : (active + 1) % views.length); },
+    next() { win.show(); win.focus(); select(active < 0 ? 0 : (active + 1) % views.length); },
     chat() {
         win.show(); win.focus();
-        if (active === HOME) select(lastGame);
+        if (active < 0) select(lastGame);
         views[active]?.view.webContents.executeJavaScript(`(() => { const c = [...document.querySelectorAll('.mcf-chat__form [data-role="chat-input"], .mcf-chat__form textarea.mcfo-chatgrow')].find((e) => e.offsetParent); if (c) c.focus(); })()`).catch(() => {});
     },
 };
@@ -463,7 +482,8 @@ if (!app.requestSingleInstanceLock()) {
         vitals = startVitals({ views, setting: appSettings.get, label });
         loadAppLayer();
         createWindow();
-        hud = createHud({ views, icon: ICON, kingNow: () => notifier?.kingNow() || null, onToggle: () => buildTrayMenu(),
+        hud = createHud({ views, stats, icon: ICON, kingNow: () => notifier?.kingNow() || null, onToggle: () => buildTrayMenu(),
+            openStats: (tab) => { win.show(); win.focus(); select(STATS, tab); },
             refocus: () => { win.focus(); activeContents()?.focus(); } });
         createTray();
         startShortcuts({ setting: appSettings.get, onSettingsChange: appSettings.onChange, actions: shortcutActions });
@@ -479,7 +499,7 @@ if (!app.requestSingleInstanceLock()) {
         startDiscord({
             setting: appSettings.get,
             onSettingsChange: appSettings.onChange,
-            activeAccount: () => { const v = views[active === HOME ? lastGame : active]; return v && !v.guest ? v.name : null; },
+            activeAccount: () => { const v = views[active < 0 ? lastGame : active]; return v && !v.guest ? v.name : null; },
             kingOfMine: () => notifier.kingOfMine(),
             startedAt: Date.now(),
         });

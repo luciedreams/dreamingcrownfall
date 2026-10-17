@@ -91,6 +91,25 @@
     .done { color: var(--green); font-size: 12.5px; font-weight: 700; }
     .qt .chip.claim { display: inline-block; }
     .none { color: var(--dim); }
+    /* „Today“ der öffentlichen MarbleMind-Seite (Settings › Stats): dieselben Karten und Namen wie dort */
+    .game { margin-top: 26px; }
+    .game .gh { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin: 0 0 12px; }
+    .game h2 { margin: 0; font-size: 13px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+    .game .src { color: var(--dim); font-size: 12px; }
+    .game .gh .open { margin-left: auto; }
+    .today { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+    .tcard { padding: 12px 14px; border: 1px solid var(--line2); border-radius: 12px; background: var(--card); cursor: pointer; transition: background 120ms, border-color 120ms; }
+    .tcard:hover { background: var(--card-hover); border-color: var(--line); }
+    .tcard span { display: block; color: var(--dim); font-size: 10.5px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+    .tcard b { display: block; margin-top: 4px; font-size: 20px; font-variant-numeric: tabular-nums; }
+    .tcard small { display: block; margin-top: 2px; color: var(--dim); font-size: 11.5px; }
+    .tcard.pink b { color: #ff9fd0; } .tcard.blue b { color: #9fd3ff; } .tcard.green b, b.green { color: var(--green); } b.red { color: #ff8a8a; }
+    .dr { margin-top: 12px; cursor: pointer; }
+    .dr:hover { border-color: var(--line); }
+    .dr .qt td.r, .dr .qt th.r { text-align: right; }
+    .rdot { display: inline-block; width: 9px; height: 9px; margin-right: 8px; border-radius: 50%; border: 1px solid rgba(255, 255, 255, 0.25); vertical-align: -1px; }
+    .over { color: #ff8a8a; font-weight: 700; }
+    .gempty { color: var(--dim); font-size: 13px; padding: 4px 0; }
 </style>
 </head>
 <body>
@@ -101,6 +120,11 @@
     </header>
     <div class="bar"><div class="king" id="king"></div><span id="reset"></span><span class="sep"></span><span id="age"></span><button id="refresh" type="button">Refresh</button></div>
     <div class="grid" id="grid"></div>
+    <section class="game" id="game" hidden>
+        <div class="gh"><h2>Today in the game</h2><span class="src" id="gsrc"></span><button class="open" id="gopen" type="button">Open Stats</button></div>
+        <div class="today" id="today"></div>
+        <div class="qwrap dr" id="dr" title="Open the Tile guide"><table class="qt" id="drt"></table></div>
+    </section>
     <section class="quests" id="quests" hidden>
         <h2>Daily quests</h2>
         <div class="qwrap"><table class="qt" id="qt"></table></div>
@@ -239,6 +263,54 @@
         $('qt').replaceChildren(thead, tbody);
     }
 
+    // „Today“ und Droughts wie auf marblemind.fun/public (Home bzw. Tile guide). Klick = passende Unterseite im Stats-Tab.
+    const RARITY = { common: '#214D24', rare: '#20569D', epic: '#592285', legendary: '#BC7824', mythic: '#992824', ethereal: '#C6A0C1', cosmic: '#272330' };
+    const fmtMin = (m) => { if (m == null) return '–'; if (m < 90) return Math.round(m) + ' min'; const h = m / 60; return h < 48 ? h.toFixed(1) + ' h' : (h / 24).toFixed(1) + ' d'; };
+    const freezeCls = (r) => (r >= 10 ? 'red' : r >= 4 ? '' : 'green');
+    function gameStats(st) {
+        $('game').hidden = !st;
+        if (!st) return;
+        const t = st.today || {}, f = st.frozen || {};
+        const tcard = (label, value, tab, cls, sub, valueCls) => {
+            const c = el('div', 'tcard' + (cls ? ' ' + cls : ''));
+            const b = el('b', valueCls || null, value);
+            c.append(el('span', null, label), b);
+            if (sub) c.append(el('small', null, sub));
+            c.onclick = () => window.home.stats(tab);
+            return c;
+        };
+        const z = (v) => (v == null ? '–' : fmt(v));
+        $('today').replaceChildren(
+            tcard('Runs', z(t.runs), 'activity', 'pink'),
+            tcard('Ø players per run', t.players == null ? '–' : Number(t.players).toFixed(1), 'activity'),
+            tcard('Reigns', z(t.reigns), 'king', 'blue'),
+            tcard('Attacks on the throne', z(t.attacks), 'attacks'),
+            tcard('Rebellions', z(t.rebellions), 'rebellions', 'green'),
+            tcard('Chat messages', z(t.chat), 'chat'),
+            tcard('Frozen runs (24 h)', f.rate24h == null ? '–' : f.rate24h + ' %', 'freezes', '', f.rate7d == null ? '' : `7 days: ${f.rate7d} %`, f.rate24h == null ? '' : freezeCls(f.rate24h)),
+        );
+        $('gsrc').textContent = st.failed && !st.at ? 'MarbleMind is not reachable right now'
+            : st.at ? `since midnight · updated ${new Date(st.at).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })} · MarbleMind${st.failed ? ' · last update failed' : ''}` : 'Loading …';
+        const rows = st.droughts || [];
+        $('dr').hidden = !rows.length;
+        if (rows.length) {
+            const head = el('tr');
+            head.append(el('th', null, 'Droughts'), el('th', 'r', 'Median'), el('th', 'r', 'Longest'), el('th', 'r', 'Last seen'));
+            const thead = el('thead'); thead.append(head);
+            const tbody = el('tbody');
+            for (const r of rows) {
+                const tr = el('tr');
+                const name = el('td');
+                const dot = el('span', 'rdot'); dot.style.background = RARITY[String(r.rarity).toLowerCase()] || '#555';
+                name.append(dot, document.createTextNode(r.rarity));
+                tr.append(name, el('td', 'r', fmtMin(r.median)), el('td', 'r', fmtMin(r.longest)),
+                    el('td', 'r' + (r.since > r.longest ? ' over' : ''), fmtMin(r.since)));
+                tbody.append(tr);
+            }
+            $('drt').replaceChildren(thead, tbody);
+        }
+    }
+
     function render(s) {
         last = s;
         const acc = s.accounts.filter((a) => !a.guest);
@@ -259,9 +331,12 @@
         grid.replaceChildren(...s.accounts.map((a) => card(a, k)));
         if (!s.accounts.length) grid.replaceChildren(el('div', 'empty', 'No accounts yet.'));
         questTable(s);
+        gameStats(s.stats);
     }
 
     $('refresh').onclick = () => window.home.refresh();
+    $('gopen').onclick = () => window.home.stats('home');
+    $('dr').onclick = () => window.home.stats('tileguide');
     window.home.onState(render);
     window.home.state().then(render);
     // Zeitangaben (King seit, aktualisiert vor) laufen zwischen den Abrufen weiter.

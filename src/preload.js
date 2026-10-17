@@ -22,6 +22,7 @@ if (host === 'marblecrownfall.com' || host.endsWith('.marblecrownfall.com')) {
             addAccount: () => ipcRenderer.send('dcf:account:add'),
             welcomeClaim: () => ipcRenderer.sendSync('dcf:welcome:claim'),
             displayHz: () => ipcRenderer.sendSync('dcf:display:hz'),
+            openStats: (tab) => ipcRenderer.send('dcf:stats:open', typeof tab === 'string' ? tab : ''),
             hud: {
                 get: () => ipcRenderer.sendSync('dcf:hud:get'),
                 set: (cfg) => ipcRenderer.send('dcf:hud:set', JSON.parse(JSON.stringify(cfg || {}))),

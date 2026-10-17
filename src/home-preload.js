@@ -6,4 +6,5 @@ contextBridge.exposeInMainWorld('home', {
     onState: (cb) => ipcRenderer.on('home:state', (_e, s) => cb(s)),
     select: (i) => ipcRenderer.send('home:select', i),
     refresh: () => ipcRenderer.send('home:refresh'),
+    stats: (tab) => ipcRenderer.send('home:stats', tab),
 });

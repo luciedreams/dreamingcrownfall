@@ -20,6 +20,15 @@ const ITEMS = [
     { id: 'pointsPer', on: false },  // Punkte je Account
     { id: 'claim', on: true },       // Abholbares (Quest-Belohnungen + Daily Items)
     { id: 'clock', on: false },      // Uhr
+    // Öffentliche MarbleMind-Statistik (Settings › Stats, stats.js) — „Today“ der Seite, je Karte ein Baustein
+    { id: 'mmRuns', on: false },       // Runs heute
+    { id: 'mmPlayers', on: false },    // Ø Spieler je Run
+    { id: 'mmReigns', on: false },     // Regentschaften
+    { id: 'mmAttacks', on: false },    // Angriffe auf den Thron
+    { id: 'mmRebellions', on: false }, // Rebellionen
+    { id: 'mmChat', on: false },       // Chat-Nachrichten
+    { id: 'mmFrozen', on: false },     // eingefrorene Runs (24 h, 7 Tage)
+    { id: 'mmDroughts', on: false },   // wie lange die seltenen Raritäten nicht kamen
 ];
 const CHOICES = { layout: ['bar', 'column'], size: ['s', 'm', 'l'], style: ['app', 'dark', 'glass'] };
 const DEFAULTS = { items: ITEMS.map(({ id, on }) => ({ id, on })), layout: 'bar', size: 'm', style: 'app', opacity: 92 };

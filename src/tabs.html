@@ -31,7 +31,8 @@
     .tab:hover { background: var(--tab-hover); }
     .tab.active { background: var(--tab-active); border-color: var(--accent); }
     .tab.home { gap: 6px; color: #ffd36e; font-weight: 600; }
-    .tab.home svg { width: 15px; height: 15px; }
+    .tab.home svg, .tab.stats svg { width: 15px; height: 15px; }
+    .tab.stats { gap: 6px; color: #b48ae8; font-weight: 600; }
     .tab .avatar { width: 18px; height: 18px; border-radius: 50%; object-fit: cover; }
     .tab .dot { width: 7px; height: 7px; border-radius: 50%; background: #6fd18f; }
     .tab.guest .dot { background: #e0a050; }
@@ -86,7 +87,17 @@
             b.onclick = () => window.tabs.select(-1);
             return b;
         };
-        box.replaceChildren(...(s.home ? [homeTab()] : []), ...s.tabs.map((t, i) => {
+        // Öffentliche MarbleMind-Statistik (Settings › Stats), gleich neben Home.
+        const statsTab = () => {
+            const b = el('div', 'tab stats' + (s.active === -2 ? ' active' : ''));
+            b.title = 'Live numbers of the whole game (MarbleMind)';
+            b.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V10"/><path d="M10 20V4"/><path d="M16 20v-7"/><path d="M22 20H2"/></svg>';
+            b.append(el('span', 'name', 'Stats'));
+            b.onclick = () => window.tabs.select(-2);
+            b.onauxclick = (e) => { if (e.button === 1) window.tabs.reload(-2); };
+            return b;
+        };
+        box.replaceChildren(...(s.home ? [homeTab()] : []), ...(s.stats ? [statsTab()] : []), ...s.tabs.map((t, i) => {
             const b = el('div', 'tab' + (i === s.active ? ' active' : '') + (t.guest ? ' guest' : '') + (t.loading ? ' loading' : ''));
             if (i === confirmAt) {
                 b.classList.add('confirm');

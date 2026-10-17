@@ -6,4 +6,5 @@ contextBridge.exposeInMainWorld('hud', {
     onState: (cb) => ipcRenderer.on('hud:state', (_e, s) => cb(s)),
     close: () => ipcRenderer.send('hud:close'),
     fit: (w, h) => ipcRenderer.send('hud:fit', w, h),
+    stats: (tab) => ipcRenderer.send('hud:stats', tab),
 });

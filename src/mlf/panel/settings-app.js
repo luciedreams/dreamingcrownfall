@@ -27,6 +27,7 @@
         sound: '<path d="M11 5 6 9H2v6h4l5 4V5Z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M19 5a10 10 0 0 1 0 14"/>',
         info: '<circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h0"/>',
         hud: '<rect x="2" y="6" width="20" height="6" rx="2"/><path d="M6 9h.01M10 9h4M18 9h.01"/><path d="M5 16h14M8 19h8"/>',
+        chart: '<path d="M4 20V10"/><path d="M10 20V4"/><path d="M16 20v-7"/><path d="M22 20H2"/>',
         search: '<circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/>',
         close: '<path d="M18 6 6 18M6 6l12 12"/>',
     };
@@ -40,6 +41,7 @@
             { id: 'notifications', title: 'Notifications', icon: 'bell', blurb: 'Desktop notifications for every account, also while the window is in the background.', app: 'notifications' },
             { id: 'discord', title: 'Discord', icon: 'discord', blurb: 'Show on your Discord profile that you are playing.', app: 'discord' },
             { id: 'hud', title: 'HUD', icon: 'hud', blurb: 'A small always-on-top window with what you want to keep an eye on. F2 opens and closes it.', app: 'hud' },
+            { id: 'stats', title: 'Stats', icon: 'chart', blurb: 'Live numbers of the whole game from MarbleMind: a Stats tab, today on Home and in the HUD.', app: 'stats' },
         ]},
         { group: 'Game', pages: [
             { id: 'appearance', title: 'Appearance', icon: 'palette', blurb: 'Theme, colours and how windows look over the board.', parts: ['Theme', 'Windows'] },
@@ -80,6 +82,7 @@
         { page: 'discord', key: 'discord.enabled', label: 'Show on Discord', hint: 'Opt-in. Your Discord profile shows "Playing Marble Crownfall" while the app runs. Needs the Discord app (or Vesktop) running on this computer.' },
         { page: 'discord', key: 'discord.showAccount', label: 'Show the account', hint: 'The name of the account in the tab you are looking at.', needs: 'discord.enabled' },
         { page: 'discord', key: 'discord.showKing', label: 'Show when you are King', hint: '"King for 12 min" while one of your accounts sits on the throne.', needs: 'discord.enabled' },
+        { page: 'stats', key: 'stats.enabled', label: 'MarbleMind stats', hint: 'Opt-in. A Stats tab next to Home with the public statistics page of marblemind.fun, "Today in the game" on Home, and more pieces for the HUD. Only public numbers about the whole game are loaded, without a login; nothing about you or your accounts is sent.' },
     ];
 
     function dcfSetStyles() {
@@ -160,6 +163,9 @@
             /* ---- HUD page ---- */
             .dcf-hudprev { display: flex; align-items: center; justify-content: center; min-height: 120px; padding: 24px; border-radius: 12px; overflow: auto;
                 border: 1px solid var(--ds-line2); background: repeating-conic-gradient(#2b2339 0% 25%, #211a2d 0% 50%) 0 0 / 22px 22px; }
+            /* The HUD keeps its own width (it was squeezed and cut off on the right); a wide bar scrolls instead. */
+            .dcf-hudprev { justify-content: safe center; }
+            .dcf-hudprev > * { flex: none; }
             .dcf-hudprev__bar { display: flex; align-items: center; gap: 12px; margin-top: 12px; flex-wrap: wrap; }
             .dcf-hudprev__bar .dcf-set__note { margin: 0; }
             .dcf-hudrow { position: relative; display: flex; align-items: center; gap: 10px; padding: 9px 14px 9px 16px; }
@@ -305,6 +311,22 @@
             box.appendChild(board);
         } else if (page.id === 'hud') {
             dcfHudPage(box, api);
+        } else if (page.id === 'stats') {
+            // The public page of the MarbleMind bot (marblemind.fun/public); the app only shows it (src/stats.js).
+            const part = dcfPart('MarbleMind');
+            const card = dcfEl('div', 'mcfo-set__card');
+            for (const i of items) card.appendChild(dcfAppSwitch(i, state));
+            part.appendChild(card);
+            part.appendChild(dcfEl('p', 'dcf-set__note', 'What you get: the Stats tab (rotation, tile guide, shops, freezes, king, attacks, rebellions and more), "Today in the game" with droughts on Home, and eight HUD pieces under Settings › HUD — runs, players, reigns, attacks, rebellions, chat, frozen runs and droughts. Numbers are loaded only while Home or the HUD shows them, every 30 seconds.'));
+            if (state['stats.enabled'] && api.openStats) {
+                const btns = dcfEl('div', 'dcf-set__btns');
+                const b = dcfEl('button', 'dcf-set__btn dcf-set__btn--main', 'Open the Stats tab');
+                b.type = 'button';
+                b.addEventListener('click', () => { closeAppSettings(); api.openStats(); });
+                btns.appendChild(b);
+                part.appendChild(btns);
+            }
+            box.appendChild(part);
         } else if (page.id === 'discord') {
             const part = dcfPart('Rich Presence');
             const card = dcfEl('div', 'mcfo-set__card');
@@ -403,8 +425,16 @@
             earning: d.earning && d.earning.total ? d.earning : { n: per.filter(a => a.earning).length, total: per.length },
             gold: d.gold != null ? d.gold : 12803, diamonds: d.diamonds != null ? d.diamonds : 455, claim: d.claim != null ? d.claim : 2,
             points: d.points != null ? d.points : per.reduce((n, a) => n + (a.points || 0), 0),
+            // MarbleMind pieces: real values once loaded, examples until then (only drawn with Settings › Stats on).
+            mm: d.mm && d.mm.today ? d.mm : (d.mm || dcfStatsOn()) ? {
+                today: { runs: 130, players: 7.5, reigns: 3, attacks: 3, rebellions: 1, chat: 19 },
+                frozen: { rate24h: 0, rate7d: 1 },
+                droughts: (d.mm && d.mm.droughts) || [{ rarity: 'Cosmic', median: 55, longest: 848, since: 346 }, { rarity: 'Ethereal', median: 19, longest: 398, since: 43 },
+                           { rarity: 'Mythic', median: 12, longest: 195, since: 55 }, { rarity: 'Legendary', median: 9, longest: 536, since: 15 }],
+            } : null,
         };
     }
+    const dcfStatsOn = () => { const api = dcfApi(); try { return !!(api && api.settings()['stats.enabled']); } catch (e) { return false; } };
     function dcfHudPage(box, api) {
         if (!api.hud) { box.appendChild(dcfEl('p', 'dcf-set__empty', 'The HUD needs a newer version of the app.')); return; }
         const lib = dcfHudRenderer(api);
@@ -451,7 +481,9 @@
                 // that was the ↑ button — every click on the switch moved the row instead.
                 const row = dcfEl('div', 'dcf-hudrow');
                 if (!it.on) row.setAttribute('data-off', '');
-                const name = dcfEl('label', 'dcf-hudrow__name', (lib && lib.HUD_ITEMS[it.id]) || it.id);
+                const needsStats = it.id.startsWith('mm') && !dcfStatsOn();
+                const name = dcfEl('label', 'dcf-hudrow__name', ((lib && lib.HUD_ITEMS[it.id]) || it.id) + (needsStats ? ' · needs Settings › Stats' : ''));
+                if (needsStats) row.setAttribute('data-off', '');
                 name.htmlFor = 'dcf-hud-item-' + it.id;
                 const mv = (dir, label) => {
                     const b = dcfEl('button', 'dcf-hudrow__mv', label);

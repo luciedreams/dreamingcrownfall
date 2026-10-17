@@ -21,7 +21,7 @@
 
     function render(s) {
         last = s;
-        renderHud(root, s.cfg, s.data, { onClose: () => window.hud.close() });
+        renderHud(root, s.cfg, s.data, { onClose: () => window.hud.close(), onStats: (tab) => window.hud.stats(tab) });
         // Fenster auf den Inhalt zuschneiden (nur wenn sich die Größe ändert).
         const r = root.getBoundingClientRect();
         const want = `${Math.ceil(r.width)}x${Math.ceil(r.height)}`;
