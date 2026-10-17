@@ -9,7 +9,7 @@
 // offene Menüs, Spiel-Popups, nie aus Eingabefeldern) und ruft dcfApp.menu.open(); auf Home und
 // Stats main.js/handleKeys.
 
-const { app, nativeImage, shell } = require('electron');
+const { app, nativeImage } = require('electron');
 const path = require('path');
 
 const WORLD = 1717;   // eigene isolierte Welt, getrennt von der des Preloads
@@ -260,9 +260,6 @@ const GAME_PAGES = [
     ['trophy', 'Leaderboards', 'leaderboards-nav'], ['medal', 'Achievements', 'achievements'], ['user', 'Profile', 'profile-nav'],
 ];
 
-// Das Wiki der Community (CookingSum), im System-Browser wie alle fremden Seiten.
-const WIKI_URL = 'https://marblecrownfall.wikioasis.org';
-
 // Anzeige des Update-Eintrags je Zustand des Updaters (updater.js).
 function updateLook(s) {
     const st = s?.status || '';
@@ -280,7 +277,7 @@ function updateLook(s) {
 //   where(wc)     'game' | 'home' | 'stats'
 //   homeOk() statsOk() hudOpen()   welche Einträge es gibt
 //   gameAct(id)   in den Spiel-Tab wechseln und dort 'page:<key>' / 'patchnotes' ausführen
-//   home() stats() hud() settings() quit()
+//   home() stats() wiki() hud() settings() quit()
 //   updater       { state(), check(), install() }
 module.exports = function createEscMenu(ctx) {
     const logo = nativeImage.createFromPath(path.join(__dirname, 'assets', 'icon.png')).resize({ width: 128, height: 128, quality: 'best' }).toDataURL();
@@ -292,7 +289,7 @@ module.exports = function createEscMenu(ctx) {
         const where = ctx.where(wc);
         const list = [{ id: 'resume', icon: 'play', label: 'Resume', cls: 'main' }];
         for (const [icon, label, key] of GAME_PAGES) list.push({ id: 'page:' + key, icon, label });
-        list.push({ id: 'wiki', icon: 'book', label: 'Wiki', hint: 'in your browser' });
+        if (where !== 'wiki') list.push({ id: 'wiki', icon: 'book', label: 'Wiki' });
         list.push({ sep: true });
         if (where !== 'home' && ctx.homeOk()) list.push({ id: 'home', icon: 'home', label: 'Home' });
         if (where !== 'stats' && ctx.statsOk()) list.push({ id: 'stats', icon: 'chart', label: 'Stats' });
@@ -315,7 +312,7 @@ module.exports = function createEscMenu(ctx) {
         if (id === 'settings') return ctx.settings();
         if (id === 'quit') return ctx.quit();
         if (id === 'keys') return keys(wc);
-        if (id === 'wiki') return shell.openExternal(WIKI_URL);
+        if (id === 'wiki') return ctx.wiki();
         if (id === 'update') {
             const now = updateLook(ctx.updater?.state());
             if (now.act) { ctx.updater.install(); return; }
@@ -347,6 +344,7 @@ module.exports = function createEscMenu(ctx) {
             { title: 'Mouse', rows: [
                 ['Menu for names, links and the page', ['Right click']],
                 ['Reload an account', ['Middle click on its frame']],
+                ['Back / forward in the wiki', ['Mouse side buttons', 'Alt+←', 'Alt+→']],
             ] },
             { title: global ? 'Anywhere on the desktop' : 'Anywhere on the desktop (off)', rows: [
                 ['Show / hide the app', ['Ctrl+Alt+M']],
@@ -403,6 +401,7 @@ module.exports = function createEscMenu(ctx) {
     return {
         show,
         isOpen: (wc) => !!wc && open.has(wc.id),
+        close(wc) { if (wc && !wc.isDestroyed() && open.has(wc.id)) run(wc, 'window.__dcfEsc && __dcfEsc.close()').catch(() => {}); },
         // Home/Stats: ESC kommt über main.js an, nicht über die Seite — offen = schließen.
         // F1 überall: dasselbe für die Tastenkürzel.
         toggle(wc, what = 'menu') {

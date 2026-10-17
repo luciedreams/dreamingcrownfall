@@ -25,6 +25,7 @@ const windowState = require('./window-state.js');
 const startShortcuts = require('./shortcuts.js');
 const createHud = require('./hud.js');
 const createStats = require('./stats.js');
+const createWiki = require('./wiki.js');
 const startTabStatus = require('./tab-status.js');
 const createOverlay = require('./overlay.js');
 const startContextMenu = require('./context-menu.js');
@@ -157,15 +158,16 @@ let win = null, tabBar = null, tray = null, notifier = null, addons = null, upda
 let active = 0;
 const HOME = -1;      // active === HOME: der Home-Tab (Übersicht, erst ab zwei Accounts)
 const STATS = -2;     // active === STATS: die öffentliche MarbleMind-Seite (stats.js, nur mit Schalter)
-// active < 0 = kein Spiel-Tab vorn (Home oder Stats) — wer ein Spiel braucht, nimmt lastGame.
+const WIKI = -3;      // active === WIKI: das Wiki der Community (wiki.js)
+// active < 0 = kein Spiel-Tab vorn (Home, Stats oder Wiki) — wer ein Spiel braucht, nimmt lastGame.
 let lastGame = 0;     // zuletzt gewählter Spiel-Tab (für Discord, Settings aus dem Tray)
-let home = null, hud = null, stats = null, tabStatus = null, overlay = null;
+let home = null, hud = null, stats = null, wiki = null, tabStatus = null, overlay = null;
 const contextMenu = startContextMenu({
     toggleHud: () => hud?.toggle(), hudOpen: () => !!hud?.isOpen(), openSettings: () => showSettingsPage(''),
     sound: (kind) => uiSound(kind),
 });
 const escMenu = createEscMenu({
-    where: (wc) => (wc === home?.view.webContents ? 'home' : wc === stats?.view()?.webContents ? 'stats' : 'game'),
+    where: (wc) => (wc === home?.view.webContents ? 'home' : wc === stats?.view()?.webContents ? 'stats' : wc === wiki?.view()?.webContents ? 'wiki' : 'game'),
     homeOk: () => !!home?.available(), statsOk: () => !!stats?.enabled(), hudOpen: () => !!hud?.isOpen(),
     // Spielseiten und Patch notes zeichnet die Spiel-Ebene (src/mlf/panel/esc-menu.js) — von Home/Stats aus
     // erst zurück in den zuletzt gewählten Spiel-Tab.
@@ -173,7 +175,7 @@ const escMenu = createEscMenu({
         if (active < 0) select(lastGame);
         views[active]?.view.webContents.executeJavaScript(`window.dcfEscAct && window.dcfEscAct(${JSON.stringify(id)})`).catch(() => {});
     },
-    home: () => select(HOME), stats: () => select(STATS), hud: () => hud?.toggle(),
+    home: () => select(HOME), stats: () => select(STATS), wiki: () => select(WIKI), hud: () => hud?.toggle(),
     settings: () => showSettingsPage(''), quit: () => win?.close(),
     globalShortcuts: () => appSettings.get('shortcuts.global') === true,
     sound: (kind) => uiSound(kind),
@@ -226,11 +228,11 @@ function pushTabs() {
     if (tabBar && !tabBar.webContents.isDestroyed()) tabBar.webContents.send('tabs:state', state);
     badge.set(state.tabs.reduce((sum, t) => sum + (t.guest ? 0 : Number(t.claim) || 0), 0));
     const cur = views[active];
-    if (win) win.setTitle(active === HOME ? `${APP_TITLE} – Home` : active === STATS ? `${APP_TITLE} – Stats` : cur ? `${APP_TITLE} – ${label(cur)}` : APP_TITLE);
+    if (win) win.setTitle(active === HOME ? `${APP_TITLE} – Home` : active === STATS ? `${APP_TITLE} – Stats` : active === WIKI ? `${APP_TITLE} – Wiki` : cur ? `${APP_TITLE} – ${label(cur)}` : APP_TITLE);
     home?.push();
 }
 
-const frontOf = (i) => (i === HOME ? home?.view : i === STATS ? stats?.view() : views[i]?.view);
+const frontOf = (i) => (i === HOME ? home?.view : i === STATS ? stats?.view() : i === WIKI ? wiki?.view() : views[i]?.view);
 
 // statsTab: Unterseite der Stats-Seite (aus Home/HUD), sonst bleibt sie, wo sie war.
 // Der Zustand (active, Tab-Leiste) wechselt sofort; das Bild blendet über (overlay.js): erst das alte
@@ -243,6 +245,9 @@ function select(i, statsTab, { quiet = false } = {}) {
     if (i >= 0 && !views[i]) i = Math.min(Math.max(0, i), views.length - 1);
     if (i >= 0 && !views[i]) return;
     const before = frontOf(active);
+    // Offenes ESC-Menü / Kürzel-Karte im verlassenen Bereich schließen, solange er noch sichtbar ist
+    // (versteckte Tabs anzufassen gäbe beim Wiederzeigen einen Blitz).
+    if (i !== active && before) escMenu.close(before.webContents);
     if (i !== active && !priming && !quiet) uiSound('switch');
     active = i;
     if (i >= 0) lastGame = i;
@@ -347,6 +352,8 @@ async function primeTabs() {
     if (home?.available()) await primeView(home.view, home.view.webContents);
     const sv = await stats?.preload();
     if (sv) { await new Promise((r) => setTimeout(r, 400)); await primeView(sv, sv.webContents); }
+    const wv = await wiki?.preload();
+    if (wv) { await new Promise((r) => setTimeout(r, 400)); await primeView(wv, wv.webContents); }
     const front = frontOf(active);
     if (front) win.contentView.addChildView(front);
     if (overlay) win.contentView.addChildView(overlay.view);
@@ -371,8 +378,9 @@ function show(i, statsTab) {
     views.forEach((v, j) => v.view.setVisible(j === i || v.warming));
     home?.setVisible(i === HOME);
     if (i === STATS) stats.show(statsTab); else stats?.view()?.setVisible(false);
-    const front = i === HOME ? home.view : i === STATS ? stats.view() : views[i].view;
-    if (i === STATS) front.setVisible(true);
+    if (i === WIKI) wiki.show(); else wiki?.view()?.setVisible(false);
+    const front = i === HOME ? home.view : i === STATS ? stats.view() : i === WIKI ? wiki.view() : views[i].view;
+    if (i === STATS || i === WIKI) front.setVisible(true);
     // Der gewählte Tab nach oben: Tabs, die noch anlaufen (warmUp), liegen sichtbar darunter.
     // Die Überblend-Ebene bleibt darüber.
     win.contentView.addChildView(front);
@@ -471,7 +479,8 @@ function watchReady(v) {
         poll();
     });
 }
-const activeContents = () => (active === HOME ? home?.view.webContents : active === STATS ? stats?.view()?.webContents : views[active]?.view.webContents);
+const activeContents = () => (active === HOME ? home?.view.webContents : active === STATS ? stats?.view()?.webContents
+    : active === WIKI ? wiki?.view()?.webContents : views[active]?.view.webContents);
 
 function layout() {
     if (!win) return;
@@ -484,10 +493,11 @@ function layout() {
     overlay?.setArea({ x: 0, y: top, width, height: height - top });
     home?.view.setBounds({ x: 0, y: top, width, height: height - top });
     stats?.view()?.setBounds({ x: 0, y: top, width, height: height - top });
+    wiki?.view()?.setBounds({ x: 0, y: top, width, height: height - top });
 }
 
 ipcMain.on('tabs:select', (_e, i) => select(i));
-ipcMain.on('tabs:reload', (_e, i) => (i === STATS ? stats?.view()?.webContents : views[i]?.view.webContents)?.reload());
+ipcMain.on('tabs:reload', (_e, i) => (i === STATS ? stats?.view()?.webContents : i === WIKI ? wiki?.view()?.webContents : views[i]?.view.webContents)?.reload());
 ipcMain.on('tabs:add', () => { addAccount({ partition: newPartition() }, true); saveAccounts(); });
 ipcMain.on('tabs:remove', (_e, i) => removeAccount(i));
 // Zahnrad in der Tab-Leiste: immer erreichbar, auch wenn die Spiel-Ebene „wie die Website“ aussieht.
@@ -595,6 +605,11 @@ function handleKeys(e, input, wc) {
     else if (k === 'F12' || (ctrl && input.shift && k.toLowerCase() === 'i')) wc.toggleDevTools();
     else if (k === 'F11') { win.setFullScreen(!win.isFullScreen()); }
     else if (k === 'F2' && !ctrl && !input.alt) hud?.toggle();
+    // Im Wiki blättern wie im Browser.
+    else if (active === WIKI && input.alt && !ctrl && (k === 'ArrowLeft' || k === 'ArrowRight')) {
+        const h = wc.navigationHistory;
+        if (k === 'ArrowLeft' ? h.canGoBack() : h.canGoForward()) (k === 'ArrowLeft' ? h.goBack() : h.goForward());
+    }
     else if (k === 'F1' && !ctrl && !input.alt && !input.shift) { if (!input.isAutoRepeat) escMenu.toggle(activeContents(), 'keys'); }
     // ESC-Menü auf Home und Stats (im Spiel entscheidet die Spiel-Ebene, core/windows.js).
     else if (k === 'Escape' && active < 0 && !ctrl && !input.alt && !input.shift) { if (!input.isAutoRepeat) escMenu.toggle(activeContents()); }
@@ -805,6 +820,7 @@ function createWindow() {
         onChange: () => { home?.push(); hud?.update(); },
         wire: (wc) => { escMenu.attach(wc); tooltip.attach(wc); wc.on('before-input-event', (e, input) => handleKeys(e, input, wc)); },
     });
+    wiki = createWiki({ win, wire: (wc) => { escMenu.attach(wc); tooltip.attach(wc); wc.on('before-input-event', (e, input) => handleKeys(e, input, wc)); } });
     // Stats ein-/ausgeschaltet: Tab-Leiste nachziehen; wer gerade auf Stats steht, geht zurück ins Spiel.
     appSettings.onChange(() => { if (active === STATS && !stats.enabled()) select(lastGame); else pushTabs(); });
     tabStatus = startTabStatus({ views, onChange: pushTabs });
@@ -835,7 +851,7 @@ function createWindow() {
     const game = Number.isInteger(ses.lastGame) && views[ses.lastGame] ? ses.lastGame : 0;
     select(Number.isInteger(ses.front) && views[ses.front] ? ses.front : game);
     primeTabs().catch((e) => { priming = false; console.error(`[dcf] Tabs vorbereiten: ${e.message}`); syncOverlay(); })
-        .then(() => { if (ses.front === HOME || ses.front === STATS) select(ses.front, undefined, { quiet: true }); });
+        .then(() => { if (ses.front === HOME || ses.front === STATS || ses.front === WIKI) select(ses.front, undefined, { quiet: true }); });
 }
 
 // Settings im aktiven Tab öffnen, auf einer bestimmten Seite (Tray › Check for updates).
