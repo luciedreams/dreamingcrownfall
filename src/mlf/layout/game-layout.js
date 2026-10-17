@@ -92,6 +92,10 @@
             .dcf-gl-res__nav svg { width: 18px; height: 18px; }
             .dcf-gl-res__fps { font-weight: 600; font-size: 11.5px; opacity: .65; padding: 0 8px 0 4px; white-space: nowrap; font-variant-numeric: tabular-nums; }
             ${GL_ON} .mcfo-fps { display: none !important; }
+            /* Themes that put a plaque over the King tile (The Lost Bookshop's quote): the resource bar sits
+               there now, so it moves over the left lane (shift from glTick) and stays visible. */
+            ${GL_ON} [data-role="top-status-region"] > .mcfo-lb-plaque { visibility: visible !important; translate: var(--gl-plaque-dx, 0px) 0 !important; }
+            ${GL_ON} [data-role="top-status-region"]:has(> .mcfo-lb-plaque) { overflow: visible !important; }
 
             /* 2 hotbar: the footer and the King's tray make room */
             ${GL_ON} [data-role="action-region"] { height: 92px !important; min-height: 92px !important;
@@ -432,6 +436,14 @@
         const barH = glBuilt.bar.offsetHeight + 'px';
         if (document.documentElement.style.getPropertyValue('--gl-bar-h') !== barH) document.documentElement.style.setProperty('--gl-bar-h', barH);
         glAttackStatus();
+        // A theme plaque centred on the King tile goes over the left lane instead (see the CSS).
+        const plaque = glQ('[data-role="top-status-region"] > .mcfo-lb-plaque');
+        const lane = glQ('[data-role="lane-panel"]'), kp = glQ('[data-role="king-pane"]');
+        if (plaque && lane && kp) {
+            const l = lane.getBoundingClientRect(), k = kp.getBoundingClientRect();
+            const dx = Math.round((l.left + l.width / 2) - (k.left + k.width / 2)) + 'px';
+            if (document.documentElement.style.getPropertyValue('--gl-plaque-dx') !== dx) document.documentElement.style.setProperty('--gl-plaque-dx', dx);
+        }
         // The hotbar sits in the middle, unless the chat in the corner reaches into it.
         const chat = glQ('[data-role="desktop-chat-pane"]'), bar = glBuilt.bar;
         const cr = chat && chat.getBoundingClientRect();
