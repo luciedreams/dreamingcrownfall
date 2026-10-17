@@ -205,6 +205,36 @@
     document.getElementById('stats').onclick = () => window.tabs.select(-2);
     document.getElementById('stats').onauxclick = (e) => { if (e.button === 1) window.tabs.reload(-2); };
     window.tabs.onConfirmRemove((i) => { confirmAt = i; render(last); });
+
+    // Interface sounds (seit 0.7.0): kurz und leise, synthetisch — die Leiste lebt immer, deshalb spielt sie
+    // für die ganze App (main.js uiSound). open/close = weiches Plopp, select = Tick, switch = zwei Töne.
+    let audio = null;
+    const SOUNDS = {
+        open: [['sine', 520, 760, 0, 0.09]],
+        close: [['sine', 700, 460, 0, 0.08]],
+        select: [['triangle', 1250, 1250, 0, 0.035]],
+        switch: [['sine', 660, 660, 0, 0.09], ['sine', 990, 990, 0.06, 0.11]],
+    };
+    window.tabs.onSound((kind, volume) => {
+        const notes = SOUNDS[kind];
+        if (!notes || !(volume > 0)) return;
+        try {
+            audio = audio || new AudioContext();
+            const t0 = audio.currentTime + 0.01, peak = 0.22 * Math.min(1, volume / 100);
+            for (const [type, f1, f2, at, len] of notes) {
+                const o = audio.createOscillator(), g = audio.createGain();
+                o.type = type;
+                o.frequency.setValueAtTime(f1, t0 + at);
+                o.frequency.exponentialRampToValueAtTime(f2, t0 + at + len);
+                g.gain.setValueAtTime(0.0001, t0 + at);
+                g.gain.exponentialRampToValueAtTime(peak, t0 + at + 0.008);
+                g.gain.exponentialRampToValueAtTime(0.0001, t0 + at + len);
+                o.connect(g).connect(audio.destination);
+                o.start(t0 + at);
+                o.stop(t0 + at + len + 0.02);
+            }
+        } catch (e) {}
+    });
     window.tabs.onState(render);
     window.tabs.state().then(render);
 </script>

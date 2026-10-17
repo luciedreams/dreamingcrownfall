@@ -160,6 +160,7 @@ let lastGame = 0;     // zuletzt gewählter Spiel-Tab (für Discord, Settings au
 let home = null, hud = null, stats = null, tabStatus = null, overlay = null;
 const contextMenu = startContextMenu({
     toggleHud: () => hud?.toggle(), hudOpen: () => !!hud?.isOpen(), openSettings: () => showSettingsPage(''),
+    sound: (kind) => uiSound(kind),
 });
 const escMenu = createEscMenu({
     where: (wc) => (wc === home?.view.webContents ? 'home' : wc === stats?.view()?.webContents ? 'stats' : 'game'),
@@ -173,6 +174,7 @@ const escMenu = createEscMenu({
     home: () => select(HOME), stats: () => select(STATS), hud: () => hud?.toggle(),
     settings: () => showSettingsPage(''), quit: () => win?.close(),
     globalShortcuts: () => appSettings.get('shortcuts.global') === true,
+    sound: (kind) => uiSound(kind),
     get updater() { return updater; },
 });
 const views = []; // je Account: { acc, view, name, guest, playerId, avatar }
@@ -231,12 +233,13 @@ const frontOf = (i) => (i === HOME ? home?.view : i === STATS ? stats?.view() : 
 // Bild einfrieren, dann darunter umschalten. Kommt ein weiterer Wechsel, solange das Bild noch
 // geholt wird, schaltet der laufende gleich aufs neueste Ziel.
 let switching = false, switchTab = undefined;
-function select(i, statsTab) {
+function select(i, statsTab, { quiet = false } = {}) {
     if (i === HOME && !home?.available()) i = lastGame;
     if (i === STATS && !stats?.enabled()) i = lastGame;
     if (i >= 0 && !views[i]) i = Math.min(Math.max(0, i), views.length - 1);
     if (i >= 0 && !views[i]) return;
     const before = frontOf(active);
+    if (i !== active && !priming && !quiet) uiSound('switch');
     active = i;
     if (i >= 0) lastGame = i;
     pushTabs();
@@ -509,6 +512,12 @@ ipcMain.on('win:maximize', () => { if (!win) return; if (win.isMaximized()) win.
 ipcMain.on('win:close', () => win?.close());
 // ESC-Menü der Spiel-Ebene (seit 0.7.0): was es anbieten kann, Home und Beenden.
 ipcMain.on('dcf:menu:open', (e) => escMenu.show(e.sender));
+// Interface sounds: spielt die Leiste (tabs.html), Schalter und Lautstärke aus den App-Einstellungen.
+function uiSound(kind) {
+    if (appSettings.get('ui.sounds') === false || !tabBar || tabBar.webContents.isDestroyed()) return;
+    tabBar.webContents.send('ui:sound', kind, appSettings.get('ui.soundVolume'));
+}
+ipcMain.on('dcf:sound', (_e, kind) => { if (['open', 'close', 'select', 'switch'].includes(kind)) uiSound(kind); });
 // Tooltip der Account-Leiste: zeichnet die Ansicht darunter (tooltip.js).
 ipcMain.on('tabs:tip', (_e, text, r) => tooltip.showIn(activeContents(), typeof text === 'string' ? text : '', r && typeof r === 'object' ? r : null, TAB_BAR_HEIGHT));
 // Ausgekoppelte Fenster (rahmenlos, Leiste aus app-layer.js): wem sie gehören und ihre Fensterknöpfe.
@@ -812,7 +821,7 @@ function createWindow() {
     const game = Number.isInteger(ses.lastGame) && views[ses.lastGame] ? ses.lastGame : 0;
     select(Number.isInteger(ses.front) && views[ses.front] ? ses.front : game);
     primeTabs().catch((e) => { priming = false; console.error(`[dcf] Tabs vorbereiten: ${e.message}`); syncOverlay(); })
-        .then(() => { if (ses.front === HOME || ses.front === STATS) select(ses.front); });
+        .then(() => { if (ses.front === HOME || ses.front === STATS) select(ses.front, undefined, { quiet: true }); });
 }
 
 // Settings im aktiven Tab öffnen, auf einer bestimmten Seite (Tray › Check for updates).

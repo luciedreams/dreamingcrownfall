@@ -357,7 +357,9 @@ module.exports = function createEscMenu(ctx) {
             await run(wc, PAGE_CODE);
             const note = ctx.globalShortcuts() ? '' : 'The desktop-wide shortcuts are off. Turn them on in Settings › General.';
             if (await run(wc, `__dcfEsc.keys(${JSON.stringify({ logo, groups: keyGroups(), note })})`) !== 'ok') return;
+            ctx.sound('open');
             await run(wc, '__dcfEsc.wait()');
+            ctx.sound('close');
         } catch (e) {
             console.error(`[dcf] Tastenkürzel: ${e.message}`);
         } finally {
@@ -373,9 +375,12 @@ module.exports = function createEscMenu(ctx) {
             await run(wc, PAGE_CODE);
             const cfg = { version: app.getVersion(), logo, items: items(wc) };
             if (await run(wc, `__dcfEsc.open(${JSON.stringify(cfg)})`) !== 'ok') return;
+            ctx.sound('open');
             for (;;) {
                 const id = await run(wc, '__dcfEsc.wait()');
-                if (open.get(wc.id) !== token || !id || id === 'resume') return;
+                if (open.get(wc.id) !== token) return;
+                if (!id || id === 'resume') { ctx.sound('close'); return; }
+                ctx.sound('select');
                 // Update: prüft und bleibt offen; steht ein Update bereit, installiert der nächste Klick
                 // (das Menü ist dann schon zu, wait() liefert null).
                 if (id === 'update') { await act(wc, id); continue; }

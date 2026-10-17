@@ -14,6 +14,8 @@ const SCHEMA = {
     'game.plain': false,      // Spiel-Ebene startet wie die Website (neue Installationen ab 0.3.0)
     'windows.popOut': true,
     'ui.transitions': true,   // Überblenden beim Wechsel zwischen Accounts, Home und Stats (overlay.js)
+    'ui.sounds': true,        // leise Klänge der App-Menüs und beim Account-Wechsel (tabs.html, seit 0.7.0)
+    'ui.soundVolume': 40,
     'stability.recover': true,
     'shortcuts.global': false,
     'autostart.hidden': true,   // Autostart im Tray (sonst mit sichtbarem Fenster)
@@ -37,7 +39,7 @@ const SCHEMA = {
     'stats.enabled': false,
 };
 
-const RANGES = { 'notify.unattendedSeconds': [10, 60] };
+const RANGES = { 'notify.unattendedSeconds': [10, 60], 'ui.soundVolume': [0, 100] };
 // Gleicher Typ wie der Vorgabewert; Zahlen nur ganz und im Bereich.
 function valid(key, value) {
     if (!(key in SCHEMA) || typeof value !== typeof SCHEMA[key]) return false;

@@ -2,7 +2,8 @@
 // - Wachhund: antwortet ein Tab 30 s nicht (eigener Herzschlag alle 5 s — Electrons 'unresponsive'
 //   kommt nur bei unbeantworteten Eingaben, ein still hängender Hintergrund-Tab fiele nie auf)
 //   oder stürzt sein Prozess ab, lädt er neu. Höchstens 3 Neustarts je Tab in 10 min, sonst bleibt er stehen (Absturzschleife).
-// - Seite nicht ladbar (kein Netz beim Start, Server weg): neuer Versuch nach 10 s, 30 s, 60 s, …
+// - Seite nicht ladbar (kein Netz beim Start, Server weg, Wartung): übernimmt seit 0.7.0 der Server-Wächter
+//   (server-watch.js) — er fragt das Spiel alle 10 s und lädt erst, wenn es antwortet.
 // - Nach Standby (länger als 1 min) und nach einem Netzausfall (länger als 20 s) laden alle Tabs
 //   einmal neu, damit Chat, Tickets und Socket nicht auf einer toten Verbindung sitzen bleiben.
 // Alles hängt am App-Schalter 'stability.recover' (Settings › General).
@@ -12,7 +13,6 @@ const { powerMonitor, net } = require('electron');
 const HANG_MS = 30 * 1000;
 const CRASH_WINDOW_MS = 10 * 60 * 1000;
 const CRASH_MAX = 3;
-const RETRY_MS = [10, 30, 60, 120, 300].map((s) => s * 1000);
 const SLEEP_MIN_MS = 60 * 1000;
 const OFFLINE_MIN_MS = 20 * 1000;
 
@@ -33,7 +33,6 @@ module.exports = function startVitals({ views, setting, label }) {
         const wc = v.view.webContents;
         if (wc.__dcfVitals) return;
         wc.__dcfVitals = true;
-        let retry = null, failures = 0;
         const restarts = [];
 
         // Neustart mit Bremse gegen Absturzschleifen.
@@ -73,17 +72,7 @@ module.exports = function startVitals({ views, setting, label }) {
             if (d.reason === 'clean-exit') return;
             restart(`Prozess weg (${d.reason}, Code ${d.exitCode})`);
         });
-        wc.on('did-fail-load', (_e, code, desc, url, isMainFrame) => {
-            // -3 = abgebrochen (eigene Navigation, Neuladen): kein Fehler.
-            if (!isMainFrame || code === -3 || !on()) return;
-            const wait = RETRY_MS[Math.min(failures, RETRY_MS.length - 1)];
-            failures++;
-            console.log(`[dcf] ${name(v)}: Laden fehlgeschlagen (${desc}) → neuer Versuch in ${wait / 1000} s`);
-            clearTimeout(retry);
-            retry = setTimeout(() => { if (!wc.isDestroyed()) wc.loadURL(url); }, wait);
-        });
-        wc.on('did-finish-load', () => { failures = 0; clearTimeout(retry); });
-        wc.once('destroyed', () => { clearInterval(beat); clearTimeout(retry); });
+        wc.once('destroyed', () => clearInterval(beat));
     }
 
     // Standby: die Zeit zwischen suspend und resume zählt. Kurz warten, bis Netz und DNS wieder da sind.

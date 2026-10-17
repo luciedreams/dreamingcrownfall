@@ -65,6 +65,7 @@
     const DCF_APP_ITEMS = [
         { page: 'general', part: 'windows', key: 'windows.popOut', label: 'Every window on its own', hint: 'Inventory, leaderboards, shop and the other windows open as windows of their own, to move anywhere, also onto another screen. Off: they open inside the game as before, and ⧉ in a window\'s title bar takes that one out. The chat always opens inside the game.' },
         { page: 'general', part: 'windows', key: 'ui.transitions', label: 'Smooth transitions', hint: 'Switching between accounts, Home and Stats fades over instead of cutting hard.' },
+        { page: 'general', part: 'windows', key: 'ui.sounds', label: 'Interface sounds', hint: 'Soft sounds when the game menu, the shortcuts card or the right-click menu open and close, when you pick an entry and when you switch accounts. Nothing plays on mouse-over.' },
         { page: 'general', part: 'stability', key: 'stability.recover', label: 'Recover on its own', hint: 'A tab that hangs for 30 seconds or crashes reloads itself; a page that does not load tries again. After sleep or a lost internet connection every tab reloads once, so chat and tickets do not sit on a dead connection.' },
         { page: 'general', part: 'shortcuts', key: 'shortcuts.global', label: 'Shortcuts outside the app', hint: 'Work while you are in another program too: Ctrl+Alt+M shows or hides the window, Ctrl+Alt+N goes to your next account, Ctrl+Alt+C puts the cursor in the chat. On Linux with Wayland the desktop asks once whether the app may have them. Inside the app, F2 opens and closes the HUD (built to your liking in Settings › HUD).' },
         { page: 'general', key: 'app.autostart', label: 'Start with your computer', hint: 'Starts when you log in, so notifications keep coming and your sessions stay fresh.' },
@@ -257,6 +258,21 @@
         return wrap;
     }
 
+    // Lautstärke der Interface sounds, unter ihrem Schalter; spielt beim Loslassen einmal zur Probe.
+    function dcfSoundVolume(api, state) {
+        const sub = dcfEl('div', 'mcfo-set__sub');
+        sub.innerHTML = '<span class="mcfo-set__sublabel">Volume</span>'
+                      + '<input type="range" class="mcfo-set__range" min="0" max="100" step="5">'
+                      + '<span class="mcfo-set__val"></span>';
+        const range = sub.querySelector('input'), val = sub.querySelector('.mcfo-set__val');
+        range.value = Number(state['ui.soundVolume']) || 0;
+        val.textContent = range.value + ' %';
+        range.addEventListener('input', () => { val.textContent = range.value + ' %'; });
+        range.addEventListener('change', () => { api.set('ui.soundVolume', Number(range.value)); if (api.sound) api.sound('select'); });
+        sub.toggleAttribute('data-off', state['ui.sounds'] === false);
+        return sub;
+    }
+
     function dcfPart(title, blurb, resetKeys) {
         const part = dcfEl('div', 'dcf-set__part');
         const head = dcfEl('div', 'dcf-set__parthead');
@@ -283,6 +299,7 @@
                 const part = dcfPart(title);
                 const card = dcfEl('div', 'mcfo-set__card');
                 for (const i of items.filter(x => x.part === group)) card.appendChild(dcfAppSwitch(i, state));
+                if (group === 'windows') card.appendChild(dcfSoundVolume(api, state));
                 part.appendChild(card);
                 box.appendChild(part);
             }

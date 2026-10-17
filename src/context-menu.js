@@ -14,12 +14,12 @@ const TWITCH_NAME = /^[A-Za-z0-9_]{4,25}$/;
 const info = new Map();   // webContents-ID → { player } aus der Seite (kommt vor 'context-menu')
 const shown = new Map();  // webContents-ID → zuletzt gezeigte Einträge
 
-module.exports = function startContextMenu({ toggleHud, hudOpen, openSettings }) {
+module.exports = function startContextMenu({ toggleHud, hudOpen, openSettings, sound = () => {} }) {
     ipcMain.on('dcf:ctx:info', (e, i) => { info.set(e.sender.id, i && typeof i === 'object' ? i : {}); e.returnValue = true; });
     ipcMain.on('dcf:ctx:act', (e, index) => {
         const it = shown.get(e.sender.id)?.[Number(index)];
         shown.delete(e.sender.id);
-        if (it && !it.disabled && it.run) it.run(e.sender);
+        if (it && !it.disabled && it.run) { sound('select'); it.run(e.sender); }
     });
 
     function build(wc, p) {
@@ -67,6 +67,7 @@ module.exports = function startContextMenu({ toggleHud, hudOpen, openSettings })
             const list = [{ type: 'head', label: title }, ...items];
             if (target && !target.isDestroyed()) {
                 shown.set(target.id, list);
+                sound('open');
                 target.send('dcf:ctx:show', { x, y: 2, items: list.map(({ run, ...rest }) => rest) });
                 return;
             }
@@ -79,6 +80,7 @@ module.exports = function startContextMenu({ toggleHud, hudOpen, openSettings })
                 const items = build(wc, p);
                 if (!items.length) return;
                 shown.set(wc.id, items);
+                sound('open');
                 wc.send('dcf:ctx:show', { x: p.x, y: p.y, items: items.map(({ run, ...rest }) => rest) });
             });
             wc.once('destroyed', () => { info.delete(wc.id); shown.delete(wc.id); });
