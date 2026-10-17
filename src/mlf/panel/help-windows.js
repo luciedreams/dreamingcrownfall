@@ -23,7 +23,7 @@
             { title: 'Shop and dailies', items: [
                 'A gold Quest tag in the shop marks an offer that would complete one of today\'s open shop quests; while one is in the rotation, the Shop sign on the Gold card has a gold dot.',
                 'Diamond prices show what they cost in euros, from the cheapest to the dearest diamond pack.',
-                'A gold dot on your account card means a daily reward is waiting: "Claim all dailies" at the top of the menu takes everything that is ready. Settings › Shop and dailies › Claim dailies by themselves does it without the click.',
+                'A gold dot on your account card means a daily reward is waiting: "Claim all dailies" at the top of the menu takes everything that is ready. Settings › Shop and dailies › Auto-claim dailies does it without the click.',
             ] },
             { title: 'Chat', items: [
                 'The chat folds into a slim rail with a counter for new messages, or pops out into a window of its own.',

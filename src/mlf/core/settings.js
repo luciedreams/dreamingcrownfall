@@ -237,8 +237,8 @@
             { key: 'shopEuro', label: 'Diamond prices in euros',
               hint: 'Beside every diamond price in the shop, what those diamonds cost: from the cheapest to the dearest diamond pack, at today\'s exchange rate.' },
             { key: 'dailyClaimAll', label: 'Claim all dailies',
-              hint: 'A gold dot on your account card while a quest reward or a daily item is waiting, and "Claim all dailies" at the top of its menu — one click claims everything that is ready.' },
-            { key: 'dailyAutoClaim', def: false, label: 'Claim dailies by themselves',
+              hint: 'While a quest reward or a daily item is waiting: in the game layout a gold number on the Dailies button at the top, and a click on it claims everything that is ready (J still opens the page); in the classic layout a gold dot on your account card and "Claim all dailies" at the top of its menu.' },
+            { key: 'dailyAutoClaim', def: false, label: 'Auto-claim dailies',
               hint: 'Opt-in. Finished quests and the free daily items are claimed as soon as they are ready, also right after the daily reset, with a short notice of what came in. You miss the reveal on the Dailies page that way.' },
         ]},
         { title: 'Inventory', blurb: 'A new inventory over the game\'s, and how the classic one opens its categories.', items: [

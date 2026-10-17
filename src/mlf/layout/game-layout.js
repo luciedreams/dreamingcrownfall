@@ -5,7 +5,7 @@
     // untouched. On:
     //   1. a resource bar at the top instead of the header cards (click a value: as before)
     //   2. a hotbar at the bottom instead of the footer and the tray under the King
-    //   3. keys for it: 1 / 5 / 0 bid, U unbid, B autobid, R rebellion, F attack, Q W E A S D drinks,
+    //   3. keys for it: 1 / 5 / 0 bid, M more bids, U unbid, B autobid, R rebellion, F attack, Q W E A S D drinks,
     //      I inventory, P profile, Y achievements, J dailies, O shop, L leaderboards (also as buttons
     //      in the resource bar)
     //   4. the chat floats in the bottom-left corner and fades while nothing happens
@@ -153,6 +153,25 @@
             .dcf-gl-bar button[data-tone="alert"] { border-color: #e07a7a; box-shadow: inset 0 0 0 2px rgba(0, 0, 0, .4), 0 0 12px rgba(224, 122, 122, .45); }
             .dcf-gl-bar button[hidden] { display: none; }
             .dcf-gl-bar button.has-n > span:first-child { margin-top: -10px; }
+            /* dots of the hidden header and footer (glBadges) */
+            .dcf-gl-res__nav button { position: relative; }
+            .dcf-gl-res__nav button[data-dcf-count]::after { content: attr(data-dcf-count); position: absolute; top: -5px; right: -5px; min-width: 15px; height: 15px; padding: 0 3px;
+                box-sizing: border-box; border-radius: 8px; background: #ffcf4d; color: #2a1c05; font: 900 10px/15px system-ui, sans-serif; text-align: center; box-shadow: 0 0 0 2px rgba(var(--gl-panel), 1); }
+            .dcf-gl-res__nav button[data-dcf-dot]::after, .dcf-gl-bar button[data-dcf-quest]::before { content: ''; position: absolute; width: 8px; height: 8px; border-radius: 50%;
+                background: #ffcf4d; box-shadow: 0 0 0 2px rgba(var(--gl-panel), 1), 0 0 8px #ffcf4d; }
+            .dcf-gl-res__nav button[data-dcf-dot]::after { top: -2px; right: -2px; }
+            .dcf-gl-bar button[data-dcf-quest]::before { top: 4px; right: 5px; }
+            /* More (M): the bigger chips */
+            .mcfo-menu--glmore { padding: 10px 12px 12px; }
+            .dcf-gl-more__head { font: 800 11px/1 system-ui, sans-serif; letter-spacing: .14em; text-transform: uppercase; opacity: .7; margin-bottom: 9px; }
+            .dcf-gl-more__grid { display: grid; grid-template-columns: repeat(4, 66px); gap: 6px; }
+            .mcfo-menu--glmore .dcf-gl-more__chip { display: grid; place-items: center; text-align: center; width: 66px; height: 44px; padding: 0; border-radius: 10px; border: 1px solid rgba(255, 255, 255, .5); cursor: pointer;
+                background: var(--gl-bidBg, radial-gradient(120% 95% at 50% 0%, #ffe08f, #c48a26 75%)); color: rgb(var(--gl-bidText, 29, 20, 5)); font: 800 15px/1 system-ui, sans-serif;
+                box-shadow: inset 0 0 0 2px rgba(0, 0, 0, .25), 0 3px 8px rgba(0, 0, 0, .35); transition: transform 80ms; }
+            .mcfo-menu--glmore .dcf-gl-more__chip:hover:not(:disabled) { transform: translateY(-1px); }
+            .mcfo-menu--glmore .dcf-gl-more__chip[data-hit] { transform: scale(.94); }
+            .mcfo-menu--glmore .dcf-gl-more__chip:disabled { opacity: .4; cursor: not-allowed; }
+            .dcf-gl-more__note { margin-top: 9px; max-width: 282px; font: 500 11.5px/1.35 system-ui, sans-serif; opacity: .7; }
 
             /* 4 chat: floating in the bottom-left corner, see-through, fades while quiet */
             ${GL_ON} [data-role="desktop-chat-pane"] { position: fixed !important; left: 14px !important; bottom: 12px !important; top: auto !important;
@@ -240,6 +259,7 @@
     // ---- pieces -----------------------------------------------------------------------------------
     const GL_ICON = {
         rebel: '<path d="M14.5 17.5 3 6V3h3l11.5 11.5"/><path d="M13 19l6-6M16 16l4 4M19 21l2-2"/>',
+        more: '<circle cx="12" cy="7" r="3.2"/><path d="M8.8 7v4c0 1.8 1.4 3.2 3.2 3.2s3.2-1.4 3.2-3.2V7"/><path d="M5 17h14M7 21h10"/>',
         unbid: '<path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/>',
         attack: '<path d="M14.5 17.5 3 6V3h3l11.5 11.5"/><path d="M13 19l6-6M16 16l4 4M19 21l2-2"/><path d="M9.5 6.5 21 18v3h-3"/>',
         auto: '<path d="M12 3v3M12 18v3M3 12h3M18 12h3"/><circle cx="12" cy="12" r="4"/>',
@@ -257,6 +277,8 @@
         { grp: 'bids', id: 'b1', key: '1', text: '×1', name: 'Bid 1', cls: 'bid', target: () => glQ('[data-role="bid-1"]') },
         { grp: 'bids', id: 'b5', key: '5', text: '×5', name: 'Bid 5', cls: 'bid', target: () => glQ('[data-role="bid-5"]') },
         { grp: 'bids', id: 'b10', key: '0', text: '×10', name: 'Bid 10', cls: 'bid', target: () => glQ('[data-role="bid-10"]') },
+        // Every chip beyond ×10 that is unlocked: the game's 25 … 1K and the app's 10K … 1B (0.8.1).
+        { grp: 'bids', id: 'more', key: 'M', name: 'More', icon: 'more', target: () => glQ('[data-role="bid-10"]'), open: b => glMoreMenu(b) },
         { grp: 'bids', id: 'unbid', key: 'U', name: 'Unbid', icon: 'unbid', target: () => glQ('.mcfo-unbid') },
         // Autobid opens its menu right at the hotbar; the button shows whether it runs and how much.
         { grp: 'bids', id: 'auto', key: 'B', name: 'Autobid', icon: 'auto', auto: true, target: () => glQ('.mcfo-autobid'), open: b => showAutobidMenu(b) },
@@ -278,6 +300,67 @@
         { key: 'O', page: 'shop-nav', name: 'Shop', icon: '<path d="M6 7h12l1 14H5L6 7Z"/><path d="M9 7a3 3 0 0 1 6 0"/>' },
         { key: 'L', page: 'leaderboards-nav', name: 'Leaderboards', icon: '<path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0Z"/><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/>' },
     ];
+    // ---- More (M): the bigger bid chips --------------------------------------------------------
+    // The game's 25 … 1K and the app's 10K … 1B (rail/extra-chips.js) sit in the hidden footer. A
+    // chip counts when it is unlocked — the game sets hidden on the ones that are not, the rail's
+    // folding only hides them by CSS. A click presses that chip itself, looked up afresh, with the
+    // game's locks (disabled); the menu stays open for the next bid.
+    function glChipAmount(c) {
+        if (c.hasAttribute('data-mcfo-bid')) return Number(c.getAttribute('data-mcfo-bid'));
+        return Number((/^bid-(\d+)$/.exec(c.getAttribute('data-role') || '') || [])[1]) || 0;
+    }
+    function glMoreChips() {
+        return [...document.querySelectorAll('[data-role="bid-area"] button')]
+            .filter(c => glChipAmount(c) > 10 && !c.hidden)
+            .sort((a, b) => glChipAmount(a) - glChipAmount(b));
+    }
+    function glChipByAmount(n) {
+        return glMoreChips().find(c => glChipAmount(c) === n) || null;
+    }
+    function glMoreMenu(anchor) {
+        const menu = showPanel(anchor, 'mcfo-menu--glmore', m => {
+            m.innerHTML = '<div class="dcf-gl-more__head">More bids</div><div class="dcf-gl-more__grid"></div><div class="dcf-gl-more__note"></div>';
+        }, { centre: true });
+        if (!menu) return;   // the second press closes it
+        const draw = () => {
+            if (!menu.isConnected) { clearInterval(timer); return; }
+            const chips = glMoreChips();
+            const grid = menu.querySelector('.dcf-gl-more__grid');
+            const key = chips.map(c => glChipAmount(c) + (c.disabled ? '-' : '')).join(',');
+            if (grid._k !== key) {
+                grid._k = key;
+                grid.textContent = '';
+                for (const c of chips) {
+                    const n = glChipAmount(c);
+                    const b = document.createElement('button');
+                    b.type = 'button';
+                    b.className = 'dcf-gl-more__chip';
+                    b.textContent = '\u00d7' + (c.textContent || '').trim();
+                    b.title = `Bid ${n.toLocaleString()} tickets`;
+                    b.disabled = c.disabled;
+                    b.addEventListener('click', e => {
+                        e.stopPropagation();
+                        const chip = glChipByAmount(n);
+                        if (!chip || chip.disabled) return;
+                        keepMenuOnce = true;
+                        setTimeout(() => { keepMenuOnce = false; }, 0);
+                        chip.click();
+                        b.setAttribute('data-hit', '');
+                        setTimeout(() => b.removeAttribute('data-hit'), 120);
+                    });
+                    grid.append(b);
+                }
+            }
+            const note = menu.querySelector('.dcf-gl-more__note');
+            const text = chips.length ? 'The menu stays open for the next bid. M or a click outside closes it.'
+                                      : 'Bigger chips unlock at ten times their amount in tickets.';
+            if (note.textContent !== text) note.textContent = text;
+        };
+        const timer = setInterval(draw, 500);
+        draw();
+        placePanel(anchor, menu);
+    }
+
     // The same key or button closes the page again, like a bag in a game.
     function glTogglePage(pageKey) {
         const p = PAGES[pageKey];
@@ -323,7 +406,12 @@
             b.type = 'button';
             b.title = `${pg.name} (${pg.key})`;
             b.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${pg.icon}</svg>`;
-            b.addEventListener('click', e => { e.stopPropagation(); glTogglePage(pg.page); });
+            b.addEventListener('click', e => {
+                e.stopPropagation();
+                // Rewards waiting: the Dailies button claims them all (Luce's choice); J opens the page.
+                if (pg.page === 'dailies-nav' && dailyWaiting()) { claimDailies(false); return; }
+                glTogglePage(pg.page);
+            });
             nav.append(b);
             pages.set(pg.page, b);
         }
@@ -424,6 +512,7 @@
             const w = PAGES[pageKey] && windows.get(PAGES[pageKey].path);
             b.toggleAttribute('data-on', !!(w && w.el && !w.min && w.el.isConnected));
         }
+        glBadges();
         for (const el of document.querySelectorAll('.mcfo-win[data-dcf-side]')) {
             if (!el.querySelector(':scope > .dcf-gl-grip')) glGrip(el);
             // The pages inside know they are a side panel (compact shop head, shop-dailies.js).
@@ -451,6 +540,41 @@
         const w = bar.offsetWidth, room = cr && cr.width ? cr.right + 14 : 0;
         const left = !toll && room > innerWidth / 2 - w / 2 ? Math.min(room + w / 2, innerWidth - w / 2 - 8) + 'px' : '';
         if (bar.style.left !== left) bar.style.left = left;
+    }
+
+    // What the hidden header and footer showed as dots (pages/shop-dailies.js), on the hotbar and the
+    // page buttons: rewards to claim on Dailies, a quest offer on Shop, quest dots on Rebellion,
+    // Royal Celebrations and the drinks. Season, episode and builds go into the tileset's tooltip.
+    function glBadges() {
+        const page = (k, attr, value, title) => {
+            const b = glBuilt.pages.get(k);
+            if (!b) return;
+            if ((b.getAttribute(attr) || '') !== value) { if (value) b.setAttribute(attr, value); else b.removeAttribute(attr); }
+            if (b.title !== title) b.title = title;
+        };
+        const n = dailyWaiting();
+        page('dailies-nav', 'data-dcf-count', n ? String(n) : '',
+             n ? `${n} daily reward${n === 1 ? '' : 's'} to claim — click claims all (J opens the dailies)` : 'Dailies (J)');
+        const hits = settings.shopQuestAlarm && !signedOut() ? shopHits() : [];
+        page('shop-nav', 'data-dcf-dot', hits.length ? '1' : '',
+             hits.length ? 'Shop (O) — in the shop now for your quest: ' + hits.map(h => h.o.displayName).join(', ') : 'Shop (O)');
+        const root = document.documentElement;
+        for (const s of GL_SLOTS) {
+            const b = glBuilt.buttons.get(s.id);
+            if (!b) continue;
+            let quest = false, src = null;
+            if (s.id === 'rebel') { quest = root.hasAttribute('data-mcfo-qreb'); src = glQ('.mcfo-rebellion'); }
+            else if (s.id === 'celeb') { quest = root.hasAttribute('data-mcfo-qcel'); src = glQ('.mcfo-rebellion'); }
+            else if (s.drink) { src = s.target(); quest = !!src && questMarkFor('bev', src.getAttribute('data-mcfo-drink')).length > 0; }
+            else continue;
+            if (b.hasAttribute('data-dcf-quest') !== quest) b.toggleAttribute('data-dcf-quest', quest);
+            const qline = quest && src ? ((src.getAttribute('data-mcfo-qfull') || '').split('\n').filter(l => l.startsWith('Quest:')).pop() || '') : '';
+            const title = `${s.name} (${s.key})` + (qline ? '\n' + qline : '');
+            if (b.title !== title && !b.matches(':hover')) b.title = title;
+        }
+        const meta = (glQ('.mcfo-footermeta')?.textContent || '').replace(/\s+/g, ' ').replace(/^\s*·\s*/, '').trim();
+        const evTitle = 'Upcoming tilesets' + (meta ? '\n' + meta : '');
+        if (glBuilt.ev.title !== evTitle) glBuilt.ev.title = evTitle;
     }
 
     // Panel width: dragged at the inner edge, kept per side (localStorage of this tab's account).
@@ -631,7 +755,7 @@
         startTour('', { steps: [
             { part, place: 'below', title: 'Your resources', text: 'Tickets, points, gold and diamonds in one bar. The green dot means you are earning tickets. Click a value for its shop, history or loadouts, the tileset for the next 12 hours — and the buttons on the right open your inventory, profile, achievements, dailies, shop and leaderboards.',
               at: [{ find: () => glBuilt && glBuilt.res }] },
-            { part, place: 'above', title: 'The hotbar', text: 'Every action of the footer, now with keys: 1, 5 and 0 bid, U takes your bids back, R starts a Rebellion. While you are King the toll field comes back here and the hotbar moves aside.',
+            { part, place: 'above', title: 'The hotbar', text: 'Every action of the footer, now with keys: 1, 5 and 0 bid, M opens the bigger chips, U takes your bids back, R starts a Rebellion. While you are King the toll field comes back here and the hotbar moves aside.',
               at: [{ find: () => glQ('.dcf-gl-bar__grp[data-grp="bids"]') }, { find: () => glBuilt && glBuilt.bar }] },
             { part, place: 'above', title: 'King actions', text: 'Attack when free on F, the drinks on Q W E and A S D — the same buttons that sat under the King tile.',
               at: [{ find: () => glQ('.dcf-gl-bar__grp[data-grp="king"]') }] },

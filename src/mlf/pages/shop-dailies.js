@@ -11,7 +11,7 @@
     //   Euro prices   Beside every diamond price, what those diamonds cost in euros.
     //   Claim all     Gold dot on the account card when a quest reward or a daily item is waiting,
     //                 "Claim all dailies" at the top of the account menu, and — opt-in — claiming
-    //                 by themselves.
+    //                 by themselves (Auto-claim dailies).
     //
     // Only reading, except for the claims. Claims are free and idempotent (a second claim answers
     // 200 with idempotentReplay and changes nothing), so a double click or two open tabs cannot
@@ -114,7 +114,7 @@
             const parts = [];
             if (nq > 0) parts.push(`${nq} quest${nq === 1 ? '' : 's'}${rewards.filter(Boolean).length ? ' (' + rewards.filter(Boolean).join(', ') + ')' : ''}`);
             parts.push(...got);
-            if (parts.length) notice(`${auto ? 'Dailies claimed by themselves' : 'Dailies claimed'}: ${parts.join(' · ')}`);
+            if (parts.length) notice(`${auto ? 'Dailies auto-claimed' : 'Dailies claimed'}: ${parts.join(' · ')}`);
             if (failed.length) notice(`Could not claim: ${escapeHtml(failed.join(' · '))}`, 'error');
         } finally {
             daily.busy = false;

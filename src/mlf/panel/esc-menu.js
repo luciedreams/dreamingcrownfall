@@ -9,5 +9,14 @@
             id = String(id || '');
             if (id.startsWith('page:')) { const p = PAGES[id.slice(5)]; if (p) openPage(p.path, p.title); }
             else if (id === 'patchnotes') showPatchNotes('changelog');
+            else if (id === 'gifts') showGifts();
+            // The note of the header: the player bar on and off — and the player itself on, if it was not.
+            else if (id === 'music') {
+                settings.musicBar = !settings.musicPlayer || !settings.musicBar;
+                settings.musicPlayer = true;
+                saveSettings();
+                buildMusicBar();
+                buildHeaderButtons();
+            }
         };
     } catch (e) {}

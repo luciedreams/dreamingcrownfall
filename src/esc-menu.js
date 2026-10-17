@@ -33,6 +33,8 @@ function PAGE() {
         refresh: '<path d="M21 12a9 9 0 1 1-2.6-6.4L21 8"/><path d="M21 3v5h-5"/>',
         power: '<path d="M12 3v9"/><path d="M6.3 6.3a8 8 0 1 0 11.4 0"/>',
         book: '<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5Z"/><path d="M4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5"/><path d="M9 7h7M9 11h5"/>',
+        gift: '<rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13M5 12v9h14v-9"/><path d="M12 8c-1.5-3-5-4-5-1.5S10 8 12 8Zm0 0c1.5-3 5-4 5-1.5S14 8 12 8Z"/>',
+        music: '<path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/>',
         keyboard: '<rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10"/>',
     };
     const CSS = `
@@ -289,6 +291,9 @@ module.exports = function createEscMenu(ctx) {
         const where = ctx.where(wc);
         const list = [{ id: 'resume', icon: 'play', label: 'Resume', cls: 'main' }];
         for (const [icon, label, key] of GAME_PAGES) list.push({ id: 'page:' + key, icon, label });
+        // Was das klassische Layout nur im Account-Menü bzw. im Header hat (im Spiel-Layout verborgen).
+        list.push({ id: 'gifts', icon: 'gift', label: 'Player gifts' });
+        list.push({ id: 'music', icon: 'music', label: 'Music player' });
         if (where !== 'wiki') list.push({ id: 'wiki', icon: 'book', label: 'Wiki' });
         list.push({ sep: true });
         if (where !== 'home' && ctx.homeOk()) list.push({ id: 'home', icon: 'home', label: 'Home' });
@@ -305,7 +310,7 @@ module.exports = function createEscMenu(ctx) {
     }
 
     async function act(wc, id) {
-        if (id.startsWith('page:') || id === 'patchnotes') return ctx.gameAct(id, GAME_PAGES.find((p) => 'page:' + p[2] === id)?.[1] || '');
+        if (id.startsWith('page:') || id === 'patchnotes' || id === 'gifts' || id === 'music') return ctx.gameAct(id, GAME_PAGES.find((p) => 'page:' + p[2] === id)?.[1] || '');
         if (id === 'home') return ctx.home();
         if (id === 'stats') return ctx.stats();
         if (id === 'hud') return ctx.hud();
@@ -342,7 +347,7 @@ module.exports = function createEscMenu(ctx) {
                 ['Reset zoom', ['Ctrl+0']],
             ] },
             ...(ctx.gameLayout() ? [{ title: 'Game layout', rows: [
-                ['Bid 1 / 5 / 10', ['1', '5', '0']],
+                ['Bid 1 / 5 / 10 · bigger bids', ['1', '5', '0', 'M']],
                 ['Unbid · Autobid · Rebellion', ['U', 'B', 'R']],
                 ['Attack when free · as King: Royal Celebrations', ['F']],
                 ['Water · Lava · Bomb', ['Q', 'W', 'E']],
