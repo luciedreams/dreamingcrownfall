@@ -16,6 +16,13 @@ const SCHEMA = {
     'ui.transitions': true,   // Überblenden beim Wechsel zwischen Accounts, Home und Stats (overlay.js)
     'ui.gameLayout': true,    // Spiel-Layout statt Website-Layout (mlf/layout/game-layout.js, seit 0.7.0)
     'app.layoutIntro': false, // „Welcome to the new design“ schon gezeigt
+    // Spiel-Layout (0.10.0, Wünsche von Ninkasi und CookingSum): Ort des Chats 0 schwebend links,
+    // 1 schwebend rechts, 2 angedockt rechts wie im klassischen Layout; Größe des schwebenden Chats
+    // (Höhe 0 = halbe Fensterhöhe); Seitenpanels wie WoW oder freie Fenster mit Minimieren.
+    'ui.chatPlace': 0,
+    'ui.chatW': 480,
+    'ui.chatH': 0,
+    'ui.sidePanels': true,
     'ui.sounds': true,        // leise Klänge der App-Menüs und beim Account-Wechsel (tabs.html, seit 0.7.0)
     'ui.soundVolume': 40,
     'stability.recover': true,
@@ -42,7 +49,7 @@ const SCHEMA = {
     'stats.enabled': false,
 };
 
-const RANGES = { 'notify.unattendedSeconds': [10, 60], 'ui.soundVolume': [0, 100] };
+const RANGES = { 'notify.unattendedSeconds': [10, 60], 'ui.soundVolume': [0, 100], 'ui.chatPlace': [0, 2], 'ui.chatW': [300, 1600], 'ui.chatH': [0, 1600] };
 // Gleicher Typ wie der Vorgabewert; Zahlen nur ganz und im Bereich.
 function valid(key, value) {
     if (!(key in SCHEMA) || typeof value !== typeof SCHEMA[key]) return false;

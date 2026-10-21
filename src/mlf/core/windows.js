@@ -135,7 +135,7 @@
         // Opening (DreamingCrownfall 0.7.0): grows in softly — only where it stays in the game.
         // As a side panel of the game layout it slides in from its edge instead.
         if (inGameWindows() && winMotion()) {
-            const side = appSetting('ui.gameLayout') !== false ? el.dataset.dcfSide : '';
+            const side = glPanels() ? el.dataset.dcfSide : '';
             const from = side ? `translateX(${side === 'left' ? -40 : 40}px)` : 'scale(.96)';
             el.animate([{ opacity: 0, transform: from }, { opacity: 1, transform: 'none' }],
                 { duration: side ? 220 : 170, easing: 'cubic-bezier(.2, .8, .2, 1)' });
@@ -253,7 +253,7 @@
             if (!w.min && !el.hidden && el.ownerDocument === document && inGameWindows() && winMotion()) {
                 if (w.anim) w.anim.cancel();
                 el.style.pointerEvents = 'none';
-                const side = appSetting('ui.gameLayout') !== false ? el.dataset.dcfSide : '';
+                const side = glPanels() ? el.dataset.dcfSide : '';
                 el.animate([{ opacity: 1, transform: 'none' }, { opacity: 0, transform: side ? `translateX(${side === 'left' ? -40 : 40}px)` : 'scale(.96)' }],
                     { duration: 150, easing: 'cubic-bezier(.4, 0, 1, 1)' }).finished.then(() => el.remove(), () => el.remove());
             } else el.remove();
@@ -579,7 +579,7 @@
         head.addEventListener('pointerdown', e => {
             if (e.button !== 0 || e.target.closest('.mcfo-win__btn')) return;
             // Side panels of the game layout stay where they are (and keep the free position for classic).
-            if (document.documentElement.hasAttribute('data-dcf-gl') && w.el.dataset.dcfSide) return;
+            if (glPanels() && w.el.dataset.dcfSide) return;
             const r = w.el.getBoundingClientRect();
             dx = e.clientX - r.left; dy = e.clientY - r.top;
             zieht = true; head.setPointerCapture(e.pointerId); e.preventDefault();

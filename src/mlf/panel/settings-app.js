@@ -63,8 +63,9 @@
 
     // Settings that belong to the app (window.dcfApp), with what the search finds them by.
     const DCF_APP_ITEMS = [
-        { page: 'general', part: 'windows', key: 'windows.popOut', label: 'Every window on its own', hint: 'Classic layout only (the game layout shows them as side panels). Inventory, leaderboards, shop and the other windows open as windows of their own, to move anywhere, also onto another screen. Off: they open inside the game as before, and ⧉ in a window\'s title bar takes that one out. The chat always opens inside the game.' },
-        { page: 'general', part: 'layout', key: 'ui.gameLayout', label: 'Game layout', hint: 'The board as a game: a resource bar at the top, a hotbar with keys at the bottom (1 / 5 / 0 bid, M bigger bids, U unbid, B autobid, R rebellion, F attack, Q W E A S D drinks, I inventory, P profile, Y achievements, J dailies, O shop, L leaderboards), the chat floating in the corner, lanes and King as one arena. Off: the classic layout of the website.' },
+        { page: 'general', part: 'windows', key: 'windows.popOut', label: 'Every window on its own', hint: 'Classic layout only (the game layout keeps them inside the game, as side panels or free windows). Inventory, leaderboards, shop and the other windows open as windows of their own, to move anywhere, also onto another screen. Off: they open inside the game as before, and ⧉ in a window\'s title bar takes that one out. The chat always opens inside the game.' },
+        { page: 'general', part: 'layout', key: 'ui.gameLayout', label: 'Game layout', hint: 'The board as a game: a resource bar at the top, a hotbar with keys at the bottom (1 / 5 / 0 bid, M bigger bids, U unbid, B autobid, R rebellion, F attack, Q W E A S D drinks, I inventory, P profile, Y achievements, J dailies, O shop, L leaderboards), the chat floating in a corner or docked on the right, lanes and King as one arena. Off: the classic layout of the website.' },
+        { page: 'general', part: 'layout', key: 'ui.sidePanels', label: 'Windows as side panels', hint: 'Inventory, profile and achievements open as a panel on the left, shop, dailies, leaderboards and the rest on the right, one per side, like the frames in an MMO. Off: free windows as before — move them, resize them and minimise them into the taskbar.', needs: 'ui.gameLayout' },
         { page: 'general', part: 'windows', key: 'ui.transitions', label: 'Smooth transitions', hint: 'Switching between accounts, Home, Stats and the wiki fades over instead of cutting hard. Windows inside the game open and close softly and fly into the taskbar when you minimise them.' },
         { page: 'general', part: 'windows', key: 'ui.sounds', label: 'Interface sounds', hint: 'Soft sounds when the game menu, the shortcuts card or the right-click menu open and close, when you pick an entry and when you switch accounts. Nothing plays on mouse-over.' },
         { page: 'general', part: 'stability', key: 'stability.recover', label: 'Recover on its own', hint: 'A tab that hangs for 30 seconds or crashes reloads itself; a page that does not load tries again. After sleep or a lost internet connection every tab reloads once, so chat and tickets do not sit on a dead connection.' },
@@ -275,6 +276,28 @@
         return sub;
     }
 
+    // Where the chat sits in the game layout (layout/game-layout.js); the button in the chat's header does the same.
+    function dcfChatPlace(api, state) {
+        const sub = dcfEl('div', 'mcfo-set__sub');
+        sub.appendChild(dcfEl('span', 'mcfo-set__sublabel', 'Chat'));
+        const seg = dcfEl('div', 'dcf-seg');
+        const now = Number(state['ui.chatPlace']) || 0;
+        [['Floating left', 0], ['Floating right', 1], ['Docked right', 2]].forEach(([label, v]) => {
+            const b = dcfEl('button', null, label);
+            b.type = 'button';
+            b.setAttribute('aria-pressed', String(v === now));
+            b.addEventListener('click', () => {
+                api.set('ui.chatPlace', v);
+                for (const x of seg.children) x.setAttribute('aria-pressed', String(x === b));
+            });
+            seg.appendChild(b);
+        });
+        sub.appendChild(seg);
+        sub.title = 'Floating: see-through in a corner, drag its top or side edge to resize (double click: standard size). Docked: its own column next to the board, as in the classic layout.';
+        sub.toggleAttribute('data-off', state['ui.gameLayout'] === false);
+        return sub;
+    }
+
     function dcfPart(title, blurb, resetKeys) {
         const part = dcfEl('div', 'dcf-set__part');
         const head = dcfEl('div', 'dcf-set__parthead');
@@ -302,6 +325,7 @@
                 const card = dcfEl('div', 'mcfo-set__card');
                 for (const i of items.filter(x => x.part === group)) card.appendChild(dcfAppSwitch(i, state));
                 if (group === 'windows') card.appendChild(dcfSoundVolume(api, state));
+                if (group === 'layout') card.appendChild(dcfChatPlace(api, state));
                 part.appendChild(card);
                 box.appendChild(part);
             }

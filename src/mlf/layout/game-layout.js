@@ -8,20 +8,36 @@
     //   3. keys for it: 1 / 5 / 0 bid, M more bids, U unbid, B autobid, R rebellion, F attack, Q W E A S D drinks,
     //      I inventory, P profile, Y achievements, J dailies, O shop, L leaderboards (also as buttons
     //      in the resource bar)
-    //   4. the chat floats in the bottom-left corner and fades while nothing happens
+    //   4. the chat floats in the bottom-left or bottom-right corner and fades while nothing happens,
+    //      sized by dragging its edges — or sits docked on the right as in the classic layout
+    //      (ui.chatPlace, ui.chatW/H; 0.10.0)
     //   5. lanes and King as one arena without the website's boxes
     // Nothing of the game is moved in the DOM: its parts are hidden by a stylesheet and ours
     // read their values from them and click their buttons. Colours come from the chosen theme;
     // without one, DreamingCrownfall's violet and gold.
+    // Windows are side panels like in an MMO, or (ui.sidePanels off) free windows as before: moved,
+    // resized and minimised into the taskbar.
     // While you are King the bid chips turn into the toll field — then the game's own footer comes
     // back and the hotbar keeps only its King half, at the side.
     const GL_CSS_ID = 'dcf-gl-css';
     const GL_ON = 'html[data-dcf-gl]:not(#dcf-gl-a#dcf-gl-b)';
+    // the chat floating in a corner (not docked) / windows as side panels (not free)
+    const GL_FLOAT = GL_ON + ':not([data-dcf-gl-chat="docked"])';
+    const GL_PANELS = GL_ON + ':not([data-dcf-gl-free])';
+    const GL_CHAT_PLACES = ['left', 'right', 'docked'];
     let glOn = false, glTimer = 0, glChatIdle = 0, glBuilt = null;
 
     const glQ = (s, r = document) => r.querySelector(s);
     const glApi = () => (typeof window.dcfApp === 'object' && window.dcfApp) || null;
     const glWanted = () => { const a = glApi(); try { return !!a && a.settings()['ui.gameLayout'] !== false; } catch (e) { return false; } };
+    // The app's settings as of the last change (glApply), so the half-second tick never asks the main process.
+    let glCfg = {};
+    // Side panels (default) or free windows; asked by core/windows.js as well.
+    function glPanels() {
+        if (!document.documentElement.hasAttribute('data-dcf-gl')) return false;
+        return glCfg['ui.sidePanels'] !== false;
+    }
+    const glChatPlace = () => GL_CHAT_PLACES[glCfg['ui.chatPlace']] || 'left';
 
     // ---- colours of the theme -------------------------------------------------------------------
     const glRgb = s => {
@@ -173,42 +189,66 @@
             .mcfo-menu--glmore .dcf-gl-more__chip:disabled { opacity: .4; cursor: not-allowed; }
             .dcf-gl-more__note { margin-top: 9px; max-width: 282px; font: 500 11.5px/1.35 system-ui, sans-serif; opacity: .7; }
 
-            /* 4 chat: floating in the bottom-left corner, see-through, fades while quiet */
-            ${GL_ON} [data-role="desktop-chat-pane"] { position: fixed !important; left: 14px !important; bottom: 12px !important; top: auto !important;
-                width: 480px !important; height: 360px !important; max-height: 360px !important; z-index: 40 !important; transition: opacity .6s ease; }
-            ${GL_ON} [data-role="desktop-chat-pane"][data-dcf-gl-idle]:not(:hover):not(:focus-within) { opacity: .28; }
-            ${GL_ON} [data-role="chat-pane"] { height: 100% !important; background: rgba(var(--gl-panel), .38) !important; backdrop-filter: blur(6px);
+            /* 4 chat: floating in a bottom corner, see-through, fades while quiet; size from dragging its edges
+               (--gl-chat-w/h), never higher than the room under the resource bar. Docked: the classic column. */
+            ${GL_FLOAT} [data-role="desktop-chat-pane"] { position: fixed !important; left: 14px !important; right: auto !important; bottom: 12px !important; top: auto !important;
+                width: min(var(--gl-chat-w, 480px), calc(100vw - 28px)) !important; height: min(var(--gl-chat-h, 50vh), calc(100vh - 68px)) !important;
+                max-height: calc(100vh - 68px) !important; margin: 0 !important; z-index: 40 !important; transition: opacity .6s ease; }
+            ${GL_FLOAT}[data-dcf-gl-chat="right"] [data-role="desktop-chat-pane"] { left: auto !important; right: 14px !important; }
+            ${GL_FLOAT} [data-role="desktop-chat-pane"][data-dcf-gl-idle]:not(:hover):not(:focus-within):not([data-dcf-gl-sizing]) { opacity: .28; }
+            ${GL_FLOAT} [data-role="chat-pane"] { height: 100% !important; background: rgba(var(--gl-panel), .38) !important; backdrop-filter: blur(6px);
                 border: 1px solid rgba(var(--gl-line), .22) !important; border-radius: 12px !important; box-shadow: 0 10px 30px rgba(0, 0, 0, .3) !important; }
-            ${GL_ON} [data-role="chat-pane"] .mcf-chat__header { background: transparent !important; border-color: rgba(var(--gl-line), .15) !important; box-shadow: none !important; }
+            ${GL_FLOAT} [data-role="chat-pane"] .mcf-chat__header { background: transparent !important; border-color: rgba(var(--gl-line), .15) !important; box-shadow: none !important; }
             ${GL_ON} [data-role="chat-status"] { display: none !important; }
-            /* Pop-out and folding make no sense for a chat that floats in its corner. */
-            ${GL_ON} [data-role="chat-pane"] :is([data-role="chat-collapse"], .mcfo-chatpop-btn) { display: none !important; }
-            ${GL_ON} [data-role="chat-messages"] { background: transparent !important; }
-            ${GL_ON} [data-role="lane-play-region"] { grid-template-columns: minmax(0, 1fr) !important; }
+            /* Folding makes no sense for a chat that floats in its corner; docked it folds as before. Pop-out: never in the game layout. */
+            ${GL_FLOAT} [data-role="chat-pane"] [data-role="chat-collapse"], ${GL_ON} [data-role="chat-pane"] .mcfo-chatpop-btn { display: none !important; }
+            ${GL_FLOAT} [data-role="chat-messages"] { background: transparent !important; }
+            ${GL_FLOAT} [data-role="lane-play-region"] { grid-template-columns: minmax(0, 1fr) !important; }
+            /* the edges of the floating chat: top, inner side and the inner top corner */
+            .dcf-gl-cgrip { display: none; }
+            ${GL_FLOAT} [data-role="desktop-chat-pane"] > .dcf-gl-cgrip { display: block; position: absolute; z-index: 6; }
+            ${GL_FLOAT} .dcf-gl-cgrip[data-e="n"] { top: 0; left: 12px; right: 12px; height: 8px; cursor: ns-resize; }
+            ${GL_FLOAT}:not([data-dcf-gl-chat="right"]) .dcf-gl-cgrip[data-e="x"] { right: 0; top: 12px; bottom: 12px; width: 8px; cursor: ew-resize; }
+            ${GL_FLOAT}[data-dcf-gl-chat="right"] .dcf-gl-cgrip[data-e="x"] { left: 0; top: 12px; bottom: 12px; width: 8px; cursor: ew-resize; }
+            ${GL_FLOAT}:not([data-dcf-gl-chat="right"]) .dcf-gl-cgrip[data-e="c"] { right: 0; top: 0; width: 14px; height: 14px; cursor: nesw-resize; }
+            ${GL_FLOAT}[data-dcf-gl-chat="right"] .dcf-gl-cgrip[data-e="c"] { left: 0; top: 0; width: 14px; height: 14px; cursor: nwse-resize; }
+            ${GL_FLOAT} [data-role="desktop-chat-pane"]:is(:hover, [data-dcf-gl-sizing]) > [data-role="chat-pane"] { border-color: rgba(var(--gl-line), .45) !important; }
+            /* where the chat sits: a button in its header, the same choice as in Settings › General › Layout */
+            .dcf-gl-chatplace { display: none; }
+            ${GL_ON} .mcf-chat:not([data-collapsed="true"]) .dcf-gl-chatplace { display: grid; width: 30px; height: 30px; padding: 0; box-sizing: border-box; place-items: center;
+                border: 1px solid rgba(var(--gl-line), .4); border-radius: 7px; background: rgba(var(--gl-panel), .7); color: rgb(var(--gl-text)); cursor: pointer; }
+            ${GL_ON} .dcf-gl-chatplace:hover { border-color: rgb(var(--gl-accent)); }
+            ${GL_ON} .dcf-gl-chatplace svg { width: 16px; height: 16px; }
+            ${GL_ON} .mcf-chat:not([data-collapsed="true"]) .mcf-chat__header { grid-template-columns: minmax(0, 1fr) !important; grid-auto-flow: column; grid-auto-columns: auto; }
 
             /* side panels instead of free windows (inline position and size from dragging are overruled) */
-            ${GL_ON} .mcfo-win[data-dcf-side] { position: fixed !important; top: 56px !important; bottom: 104px !important; height: auto !important;
+            ${GL_PANELS} .mcfo-win[data-dcf-side] { position: fixed !important; top: 56px !important; bottom: 104px !important; height: auto !important;
                 min-width: 0 !important; max-width: none !important; transform: none !important; z-index: 45 !important;
                 border-radius: 14px !important; box-shadow: 0 18px 50px rgba(0, 0, 0, .55), 0 0 0 1px rgba(var(--gl-line), .35) !important; }
-            ${GL_ON} .mcfo-win[data-dcf-side="left"] { left: 14px !important; right: auto !important; width: var(--gl-w-left, min(760px, 40vw)) !important; }
-            ${GL_ON} .mcfo-win[data-dcf-side="right"] { right: 14px !important; left: auto !important; width: var(--gl-w-right, min(760px, 40vw)) !important; }
+            ${GL_PANELS} .mcfo-win[data-dcf-side="left"] { left: 14px !important; right: auto !important; width: var(--gl-w-left, min(760px, 40vw)) !important; }
+            ${GL_PANELS} .mcfo-win[data-dcf-side="right"] { right: 14px !important; left: auto !important; width: var(--gl-w-right, min(760px, 40vw)) !important; }
             /* the inner edge of a panel: drag to make it wider or narrower (kept per side) */
             .dcf-gl-grip { display: none; }
-            ${GL_ON} .mcfo-win[data-dcf-side] > .dcf-gl-grip { display: block; position: absolute; top: 0; bottom: 0; width: 10px; z-index: 5; cursor: ew-resize; }
-            ${GL_ON} .mcfo-win[data-dcf-side="left"] > .dcf-gl-grip { right: 0; }
-            ${GL_ON} .mcfo-win[data-dcf-side="right"] > .dcf-gl-grip { left: 0; }
-            ${GL_ON} .mcfo-win[data-dcf-side] > .dcf-gl-grip:hover, ${GL_ON} .mcfo-win[data-dcf-side] > .dcf-gl-grip[data-drag] { background: linear-gradient(90deg, transparent 3px, rgba(var(--gl-accent), .6) 3px 7px, transparent 7px); }
-            ${GL_ON} .mcfo-win[data-dcf-side] > :is(.mcfo-win__grip, .mcfo-win__edge) { display: none !important; }
-            ${GL_ON} .mcfo-win[data-dcf-side] > .mcfo-win__head { cursor: default !important; }
-            ${GL_ON} .mcfo-win[data-dcf-side] [data-mcfo-win="min"] { display: none !important; }
-            ${GL_ON} .mcfo-taskbar { display: none !important; }
+            ${GL_PANELS} .mcfo-win[data-dcf-side] > .dcf-gl-grip { display: block; position: absolute; top: 0; bottom: 0; width: 10px; z-index: 5; cursor: ew-resize; }
+            ${GL_PANELS} .mcfo-win[data-dcf-side="left"] > .dcf-gl-grip { right: 0; }
+            ${GL_PANELS} .mcfo-win[data-dcf-side="right"] > .dcf-gl-grip { left: 0; }
+            ${GL_PANELS} .mcfo-win[data-dcf-side] > .dcf-gl-grip:hover, ${GL_PANELS} .mcfo-win[data-dcf-side] > .dcf-gl-grip[data-drag] { background: linear-gradient(90deg, transparent 3px, rgba(var(--gl-accent), .6) 3px 7px, transparent 7px); }
+            ${GL_PANELS} .mcfo-win[data-dcf-side] > :is(.mcfo-win__grip, .mcfo-win__edge) { display: none !important; }
+            ${GL_PANELS} .mcfo-win[data-dcf-side] > .mcfo-win__head { cursor: default !important; }
+            ${GL_PANELS} .mcfo-win[data-dcf-side] [data-mcfo-win="min"] { display: none !important; }
+            ${GL_PANELS} .mcfo-taskbar { display: none !important; }
             ${GL_ON} .mcfo-win [data-dcf="pop"] { display: none !important; }
+            /* free windows: the taskbar under the resource bar on the left, where neither chat nor hotbar is */
+            ${GL_ON}[data-dcf-gl-free] .mcfo-taskbar { top: 58px !important; bottom: auto !important; }
 
             /* 5 arena: one board, no website boxes */
             ${GL_ON} [data-role="main-region"] { gap: 0 !important; border-radius: 14px; outline: 1px solid rgba(var(--gl-line), .38);
                 box-shadow: 0 0 0 1px rgba(0, 0, 0, .4), 0 0 40px rgba(var(--gl-line), .16); overflow: hidden; }
             ${GL_ON} [data-role="lane-panel"], ${GL_ON} [data-role="king-pane"] { border: 0 !important; border-radius: 0 !important; box-shadow: none !important; margin: 0 !important; }
             ${GL_ON} [data-role="king-pane"] { border-left: 1px solid rgba(var(--gl-accent), .25) !important; border-right: 1px solid rgba(var(--gl-accent), .25) !important; }
+            /* While you are King and the chat floats into the middle: hotbar and toll field move aside together (glTick). */
+            ${GL_ON}[data-dcf-gl-toll] [data-role="bid-area"] { right: calc(50% + 6px - var(--gl-toll-dx, 0px)) !important; }
+            html[data-dcf-gl-toll] .dcf-gl-bar { left: calc(50% + 6px + var(--gl-toll-dx, 0px)); }
             @media (prefers-reduced-motion: reduce) { ${GL_ON} [data-role="desktop-chat-pane"] { transition: none; } }`;
         (document.head || document.documentElement).appendChild(s);
     }
@@ -222,7 +262,7 @@
     function glSideOf(path) { return GL_LEFT.includes(String(path).replace(/\/+$/, '')) ? 'left' : 'right'; }
     // A panel opened (or brought back): the other one on that side gives way.
     function glSideOpened(path) {
-        try { if (!glOn) return; } catch (e) { return; }
+        try { if (!glOn || !glPanels()) return; } catch (e) { return; }
         const side = glSideOf(path);
         for (const [p, w] of [...windows.entries()]) {
             if (p !== path && w.el && !w.min && w.el.dataset.dcfSide === side && p !== CHAT_WIN) closeWindow(p);
@@ -534,12 +574,33 @@
             const dx = Math.round((l.left + 16 + plaque.offsetWidth / 2) - (k.left + k.width / 2)) + 'px';
             if (document.documentElement.style.getPropertyValue('--gl-plaque-dx') !== dx) document.documentElement.style.setProperty('--gl-plaque-dx', dx);
         }
-        // The hotbar sits in the middle, unless the chat in the corner reaches into it.
+        glChatParts();
+        // The hotbar sits in the middle, unless the chat reaches into it: then it moves to the other
+        // side, as far as needed. As King the toll field moves along with it (--gl-toll-dx).
         const chat = glQ('[data-role="desktop-chat-pane"]'), bar = glBuilt.bar;
         const cr = chat && chat.getBoundingClientRect();
-        const w = bar.offsetWidth, room = cr && cr.width ? cr.right + 14 : 0;
-        const left = !toll && room > innerWidth / 2 - w / 2 ? Math.min(room + w / 2, innerWidth - w / 2 - 8) + 'px' : '';
+        const bottomFree = !cr || !cr.width || cr.bottom < innerHeight - bar.offsetHeight - 20;
+        const chatLeft = cr && cr.left + cr.width / 2 < innerWidth / 2;
+        let left = '', tollDx = '';
+        if (!bottomFree && !toll) {
+            const w = bar.offsetWidth, mid = innerWidth / 2;
+            if (chatLeft && cr.right + 14 > mid - w / 2) left = Math.min(cr.right + 14 + w / 2, innerWidth - w / 2 - 8) + 'px';
+            if (!chatLeft && cr.left - 14 < mid + w / 2) left = Math.max(cr.left - 14 - w / 2, w / 2 + 8) + 'px';
+        } else if (!bottomFree && toll) {
+            // Both blocks together, measured without the current shift.
+            const area = glQ('[data-role="bid-area"]');
+            const dx0 = parseFloat(document.documentElement.style.getPropertyValue('--gl-toll-dx')) || 0;
+            const a = area && area.getBoundingClientRect(), b = bar.getBoundingClientRect();
+            if (a && a.width) {
+                const l = Math.min(a.left, b.left) - dx0, r = Math.max(a.right, b.right) - dx0;
+                let dx = 0;
+                if (chatLeft && cr.right + 14 > l) dx = Math.min(cr.right + 14 - l, innerWidth - 8 - r);
+                if (!chatLeft && cr.left - 14 < r) dx = Math.max(cr.left - 14 - r, 8 - l);
+                if (dx) tollDx = Math.round(dx) + 'px';
+            }
+        }
         if (bar.style.left !== left) bar.style.left = left;
+        if (document.documentElement.style.getPropertyValue('--gl-toll-dx') !== tollDx) document.documentElement.style.setProperty('--gl-toll-dx', tollDx);
     }
 
     // What the hidden header and footer showed as dots (pages/shop-dailies.js), on the hotbar and the
@@ -633,6 +694,92 @@
         a.hidden = false;
     }
 
+    // 4 chat: where it sits (button in its header) and the edges to size it. The game never rebuilds
+    // the pane or its header, but they appear only once the board is up — hence from the tick.
+    const GL_PLACE_ICON = {
+        left: '<rect x="3" y="4" width="18" height="16" rx="2"/><rect x="5.5" y="11" width="6" height="6.5" rx="1" fill="currentColor" stroke="none"/>',
+        right: '<rect x="3" y="4" width="18" height="16" rx="2"/><rect x="12.5" y="11" width="6" height="6.5" rx="1" fill="currentColor" stroke="none"/>',
+        docked: '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M15 4v16"/><rect x="15.5" y="6" width="3.5" height="12" fill="currentColor" stroke="none"/>',
+    };
+    const GL_PLACE_NAME = { left: 'floating on the left', right: 'floating on the right', docked: 'docked on the right' };
+    function glChatParts() {
+        const pane = glQ('[data-role="desktop-chat-pane"]');
+        if (!pane) return;
+        if (!pane.querySelector(':scope > .dcf-gl-cgrip')) for (const e of ['n', 'x', 'c']) pane.appendChild(glChatGrip(pane, e));
+        const header = pane.querySelector('.mcf-chat__header');
+        if (!header) return;
+        let btn = header.querySelector('.dcf-gl-chatplace');
+        if (!btn) {
+            btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'dcf-gl-chatplace';
+            btn.addEventListener('click', e => {
+                e.preventDefault(); e.stopPropagation();
+                const a = glApi();
+                if (a) a.set('ui.chatPlace', (GL_CHAT_PLACES.indexOf(glChatPlace()) + 1) % GL_CHAT_PLACES.length);
+            });
+            const collapse = header.querySelector('[data-role="chat-collapse"]');
+            header.insertBefore(btn, collapse && collapse.parentNode === header ? collapse : null);
+        }
+        const place = glChatPlace();
+        if (btn.dataset.place !== place) {
+            btn.dataset.place = place;
+            const next = GL_CHAT_PLACES[(GL_CHAT_PLACES.indexOf(place) + 1) % GL_CHAT_PLACES.length];
+            btn.title = `Chat ${GL_PLACE_NAME[place]} — click: ${GL_PLACE_NAME[next]}`;
+            btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true">${GL_PLACE_ICON[place]}</svg>`;
+        }
+    }
+    // n = top edge (height), x = inner side (width), c = inner top corner (both). Shown live through
+    // --gl-chat-w/h, stored once on release (app settings: the same size on every account).
+    function glChatGrip(pane, edge) {
+        const g = document.createElement('div');
+        g.className = 'dcf-gl-cgrip';
+        g.dataset.e = edge;
+        g.title = 'Drag to resize the chat';
+        g.addEventListener('pointerdown', e => {
+            if (e.button !== 0) return;
+            e.preventDefault(); e.stopPropagation();
+            g.setPointerCapture(e.pointerId);
+            pane.setAttribute('data-dcf-gl-sizing', '');
+            const root = document.documentElement, right = glChatPlace() === 'right';
+            const move = ev => {
+                const r = pane.getBoundingClientRect();
+                if (edge !== 'x') root.style.setProperty('--gl-chat-h', Math.round(Math.max(200, Math.min(innerHeight - 68, r.bottom - ev.clientY))) + 'px');
+                if (edge !== 'n') root.style.setProperty('--gl-chat-w', Math.round(Math.max(300, Math.min(innerWidth - 28, right ? r.right - ev.clientX : ev.clientX - r.left))) + 'px');
+            };
+            const up = () => {
+                g.removeEventListener('pointermove', move);
+                pane.removeAttribute('data-dcf-gl-sizing');
+                const a = glApi();
+                if (!a) return;
+                const r = pane.getBoundingClientRect();
+                if (edge !== 'x') a.set('ui.chatH', Math.round(r.height));
+                if (edge !== 'n') a.set('ui.chatW', Math.round(r.width));
+            };
+            g.addEventListener('pointermove', move);
+            g.addEventListener('pointerup', up, { once: true });
+            g.addEventListener('pointercancel', up, { once: true });
+        });
+        // Double click: back to the standard size.
+        g.addEventListener('dblclick', () => {
+            const a = glApi();
+            if (!a) return;
+            if (edge !== 'x') a.set('ui.chatH', 0);
+            if (edge !== 'n') a.set('ui.chatW', 480);
+        });
+        return g;
+    }
+    // The choices on the root: chat place, chat size, panels or free windows.
+    function glPlaceAttrs() {
+        const root = document.documentElement;
+        try { const a = glApi(); glCfg = (a && a.settings()) || {}; } catch (e) { glCfg = {}; }
+        const set = (k, v) => { if (v === null) root.style.removeProperty(k); else if (root.style.getPropertyValue(k) !== v) root.style.setProperty(k, v); };
+        if (root.getAttribute('data-dcf-gl-chat') !== glChatPlace()) root.setAttribute('data-dcf-gl-chat', glChatPlace());
+        root.toggleAttribute('data-dcf-gl-free', glCfg['ui.sidePanels'] === false);
+        set('--gl-chat-w', glCfg['ui.chatW'] ? glCfg['ui.chatW'] + 'px' : null);
+        set('--gl-chat-h', glCfg['ui.chatH'] ? glCfg['ui.chatH'] + 'px' : null);
+    }
+
     // 4 chat: quiet after 8 s without a new line.
     function glChatWatch() {
         const pane = glQ('[data-role="desktop-chat-pane"]'), list = glQ('[data-role="chat-messages"]');
@@ -664,6 +811,13 @@
 
     function glApply() {
         const want = glWanted();
+        if (want) {
+            const before = document.documentElement.getAttribute('data-dcf-gl-chat') + document.documentElement.hasAttribute('data-dcf-gl-free');
+            glPlaceAttrs();
+            const after = document.documentElement.getAttribute('data-dcf-gl-chat') + document.documentElement.hasAttribute('data-dcf-gl-free');
+            // Chat docked or floating: the board gets or loses its column, the game measures again.
+            if (want === glOn && before !== after) dispatchEvent(new Event('resize'));
+        }
         if (want === glOn) return;
         glOn = want;
         const root = document.documentElement;
@@ -685,6 +839,8 @@
             clearTimeout(glChatIdle);
             root.removeAttribute('data-dcf-gl');
             root.removeAttribute('data-dcf-gl-toll');
+            root.removeAttribute('data-dcf-gl-chat');
+            root.removeAttribute('data-dcf-gl-free');
             glQ('[data-role="desktop-chat-pane"]')?.removeAttribute('data-dcf-gl-idle');
             for (const f of document.querySelectorAll('.mcfo-win iframe')) { try { f.contentDocument.documentElement.removeAttribute('data-dcf-gl-panel'); } catch (e) {} }
             if (glBuilt) { glBuilt.res.remove(); glBuilt.bar.remove(); glBuilt.atk.remove(); }
@@ -759,7 +915,7 @@
               at: [{ find: () => glQ('.dcf-gl-bar__grp[data-grp="bids"]') }, { find: () => glBuilt && glBuilt.bar }] },
             { part, place: 'above', title: 'King actions', text: 'Attack when free on F, the drinks on Q W E and A S D — the same buttons that sat under the King tile.',
               at: [{ find: () => glQ('.dcf-gl-bar__grp[data-grp="king"]') }] },
-            { part, place: 'right', title: 'The chat', text: 'Floats in the corner and fades while it is quiet. A new line, the mouse or a click brings it back.',
+            { part, place: 'right', title: 'The chat', text: 'Floats in the corner and fades while it is quiet. A new line, the mouse or a click brings it back. Drag its top or side edge to make it bigger; the button in its header moves it to the other corner or docks it on the right as before.',
               at: [{ find: () => glQ('[data-role="desktop-chat-pane"]') }] },
             { part, title: 'Menus and keys', text: 'Pages open as panels at the sides — drag their inner edge to make them wider. Keys: I inventory, P profile, Y achievements, J dailies, O shop, L leaderboards; the same key closes them. Esc brings up the game menu, F1 lists every shortcut.' },
             { part, title: 'Keep the new design?', text: 'You can switch any time in Settings › General › Layout.' },
