@@ -1,5 +1,11 @@
     // Newest first. The first entry is what What's new shows after a fresh install.
     const CHANGELOG = [
+        { v: '0.10.0', date: '2026-10-21', items: [
+            'Your chat, your place. The new design lets you choose where the chat sits: floating see-through in the bottom left, floating in the bottom right, or docked on the right in its own column like before (not see-through, and it folds away again). Switch with the new button in the chat\'s header or in Settings \u203a General \u203a Layout.',
+            'The floating chat is much taller now — half the window instead of a few lines. Drag its top or inner edge (or the corner between them) to make it as big as you like; double-click an edge for the standard size. The size is the same on all your accounts.',
+            'Free windows are back if you want them: switch off Windows as side panels (Settings \u203a General \u203a Layout) and inventory, shop, dailies and the rest open as windows again that you can move, resize and minimise. Minimised windows wait in a small taskbar under the bar at the top.',
+            'The hotbar moves aside when the chat would cover it, on either side.',
+        ] },
         { v: '0.9.1', date: '2026-10-18', items: [
             'Planned Rebellions now start on time when that account\'s tab is in the background. Before, the plan could wait until you switched to the tab — the browser slows hidden tabs down to once a minute. The app now lifts that for the tab from a minute before the slot until it ends.',
         ] },
