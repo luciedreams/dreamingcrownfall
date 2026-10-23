@@ -62,6 +62,7 @@ Every `.js` file in the `addons` folder of your profile is loaded when the app s
 | F2 | HUD |
 | 1 / 5 / 0, M, U, B, R, F, Q W E A S D | game layout: bid, bigger bids, unbid, Autobid, Rebellion, attack (King: Royal Celebrations), drinks |
 | I P Y J O L | game layout: inventory, profile, achievements, dailies, shop, leaderboards |
+| 1 … 8 in an open drink, Rebellion or Royal Celebration menu | pick an option (Rebellion and Royal Celebration: press twice to confirm) |
 | Ctrl+1 … 9 | switch to account tab |
 | Ctrl+Tab / Ctrl+Shift+Tab | next / previous tab |
 | F5, Ctrl+R | reload tab (Shift: without cache) |

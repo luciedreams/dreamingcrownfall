@@ -1,5 +1,10 @@
     // Newest first. The first entry is what What's new shows after a fresh install.
     const CHANGELOG = [
+        { v: '0.11.0', date: '2026-10-23', items: [
+            'Drinks, Rebellions and Royal Celebrations without the mouse: the hotbar key opens the menu as before, then a number key picks the option. In a drink menu 1\u20136 go through Small, Medium and Large in Gold and Diamonds; in the Rebellion and Royal Celebration menus 1\u20138 are the tiers. Each option shows its number in the corner.',
+            'The safety check stays: a Rebellion or Royal Celebration tier only starts on the second press of the same number within four seconds, just like the second click. Holding a key down does not count as pressing it twice.',
+            'While one of these menus is open, 1, 5 and 0 pick an option instead of bidding.',
+        ] },
         { v: '0.10.0', date: '2026-10-21', items: [
             'Your chat, your place. The new design lets you choose where the chat sits: floating see-through in the bottom left, floating in the bottom right, or docked on the right in its own column like before (not see-through, and it folds away again). Switch with the new button in the chat\'s header or in Settings \u203a General \u203a Layout.',
             'The floating chat is much taller now — half the window instead of a few lines. Drag its top or inner edge (or the corner between them) to make it as big as you like; double-click an edge for the standard size. The size is the same on all your accounts.',
