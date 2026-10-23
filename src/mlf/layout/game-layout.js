@@ -917,7 +917,7 @@
               at: [{ find: () => glQ('.dcf-gl-bar__grp[data-grp="king"]') }] },
             { part, place: 'right', title: 'The chat', text: 'Floats in the corner and fades while it is quiet. A new line, the mouse or a click brings it back. Drag its top or side edge to make it bigger; the button in its header moves it to the other corner or docks it on the right as before.',
               at: [{ find: () => glQ('[data-role="desktop-chat-pane"]') }] },
-            { part, title: 'Menus and keys', text: 'Pages open as panels at the sides — drag their inner edge to make them wider. Keys: I inventory, P profile, Y achievements, J dailies, O shop, L leaderboards; the same key closes them. Esc brings up the game menu, F1 lists every shortcut.' },
+            { part, title: 'Menus and keys', text: 'Pages open as panels at the sides — drag their inner edge to make them wider. Keys: I inventory, P profile, Y achievements, J dailies, O shop, L leaderboards; the same key closes them. In an open drink, Rebellion or Celebration menu the number keys pick an option. Esc brings up the game menu, F1 lists every shortcut.' },
             { part, title: 'Keep the new design?', text: 'You can switch any time in Settings › General › Layout.' },
         ], finish: [
             { label: 'Back to classic', run: () => { const a = glApi(); if (a) a.set('ui.gameLayout', false); } },

@@ -28,6 +28,7 @@
         const menu = document.createElement('div');
         menu.className = 'mcfo-menu' + (extraClass ? ' ' + extraClass : '');
         fill(menu);
+        numberChoices(menu);
         menu._mcfoPlace = place || {};
         menu.addEventListener('click', ev => ev.stopPropagation());
         document.body.appendChild(menu);
@@ -37,6 +38,28 @@
         openMenu = { anchor, menu };
         return menu;
     }
+
+    // Number keys in the beverage, Rebellion and Royal Celebration panels (Luce, 0.10.1): the
+    // drink key opens the panel, 1–6 / 1–8 then press an option, in reading order. A key is the
+    // same as a click on that button — Rebellion and Celebration still arm first and only spend
+    // on the second press of the same number, a beverage buys at once, as its click does.
+    // Listened for on window in the capture phase, so the open panel gets the digit before the
+    // hotbar's bid keys (1, 5, 0) and before the game.
+    const CHOICE_SEL = '.mcfo-bev__buy, .mcfo-reb__grid > .mcfo-reb__tier';
+    function numberChoices(menu) {
+        menu.querySelectorAll(CHOICE_SEL).forEach((b, i) => { if (i < 9) b.setAttribute('data-mcfo-key', String(i + 1)); });
+    }
+    addEventListener('keydown', e => {
+        if (!openMenu || e.ctrlKey || e.altKey || e.metaKey || !/^[1-9]$/.test(e.key)) return;
+        const t = e.target;
+        if (t && t.closest && t.closest('input, textarea, select, [contenteditable="true"]')) return;
+        const b = openMenu.menu.querySelector(`[data-mcfo-key="${e.key}"]`);
+        if (!b) return;
+        e.preventDefault();
+        e.stopPropagation();
+        // Held down, the key repeats: that must not be the confirming second press.
+        if (!e.repeat) b.click();
+    }, true);
 
     // Under the anchor, but never past the right edge of the window. Called again after the
     // events list has been filled in, because only then is its height known.

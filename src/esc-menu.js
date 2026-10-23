@@ -352,6 +352,7 @@ module.exports = function createEscMenu(ctx) {
                 ['Attack when free · as King: Royal Celebrations', ['F']],
                 ['Water · Lava · Bomb', ['Q', 'W', 'E']],
                 ['Milk · Acid · Mystery', ['A', 'S', 'D']],
+                ['In an open drink, Rebellion or Celebration menu: pick an option (Rebellion and Celebration: press twice)', ['1–8']],
                 ['Inventory · Profile · Achievements', ['I', 'P', 'Y']],
                 ['Dailies · Shop · Leaderboards', ['J', 'O', 'L']],
             ] }] : []),

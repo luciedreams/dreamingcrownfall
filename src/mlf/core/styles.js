@@ -800,6 +800,19 @@
             pointer-events: none; display: none;
         }
         .mcfo-menu--reb .mcfo-reb__tier[data-mcfo-quest] > .mcfo-reb__quest { display: block; }
+        /* The number key that presses this option (menus.js, numberChoices): a small keycap in
+           the top left corner, quiet enough not to compete with price and tier. */
+        .mcfo-menu--bev .mcfo-bev__buy { position: relative; }
+        .mcfo-menu--bev .mcfo-bev__buy[data-mcfo-key] { padding-left: 17px; padding-right: 17px; }
+        .mcfo-menu--bev .mcfo-bev__buy[data-mcfo-key]::before,
+        .mcfo-menu--reb .mcfo-reb__tier[data-mcfo-key]::before {
+            content: attr(data-mcfo-key); position: absolute; top: 50%; left: 4px; transform: translateY(-50%);
+            min-width: 11px; padding: 0 2px; border-radius: 3px; box-sizing: border-box;
+            background: rgba(0, 0, 0, 0.45); border: 1px solid rgba(255, 255, 255, 0.18); color: #c9d6de;
+            font: 700 8px/10px system-ui, sans-serif; text-align: center; text-decoration: none;
+            pointer-events: none;
+        }
+        .mcfo-menu--reb .mcfo-reb__tier[data-mcfo-key]::before { top: 4px; left: 4px; transform: none; font-size: 9px; line-height: 11px; min-width: 13px; }
         .mcfo-bev__quest {
             display: flex; align-items: center; gap: 6px; margin: -2px 0 8px;
             font-size: 11px; line-height: 1.3; color: #f2c14e;
