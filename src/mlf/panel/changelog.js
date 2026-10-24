@@ -1,5 +1,8 @@
     // Newest first. The first entry is what What's new shows after a fresh install.
     const CHANGELOG = [
+        { v: '0.11.2', date: '2026-10-24', items: [
+            'The account frames, the HUD and Home showed Not earning for every account in some layouts, even while the game said Active: Earning Tickets. They now read the game\'s own session line and show the real state.',
+        ] },
         { v: '0.11.1', date: '2026-10-24', items: [
             'The account frames in the tab bar now show each account\'s points (gold star) instead of its tickets. Hover a frame for the exact points; the tickets are listed there too, and the Earning bar stays as it was.',
         ] },
