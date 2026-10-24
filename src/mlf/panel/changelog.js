@@ -1,5 +1,8 @@
     // Newest first. The first entry is what What's new shows after a fresh install.
     const CHANGELOG = [
+        { v: '0.11.1', date: '2026-10-24', items: [
+            'The account frames in the tab bar now show each account\'s points (gold star) instead of its tickets. Hover a frame for the exact points; the tickets are listed there too, and the Earning bar stays as it was.',
+        ] },
         { v: '0.11.0', date: '2026-10-23', items: [
             'Drinks, Rebellions and Royal Celebrations without the mouse: the hotbar key opens the menu as before, then a number key picks the option. In a drink menu 1\u20136 go through Small, Medium and Large in Gold and Diamonds; in the Rebellion and Royal Celebration menus 1\u20138 are the tiers. Each option shows its number in the corner.',
             'The safety check stays: a Rebellion or Royal Celebration tier only starts on the second press of the same number within four seconds, just like the second click. Holding a key down does not count as pressing it twice.',
