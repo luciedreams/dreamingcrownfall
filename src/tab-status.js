@@ -1,9 +1,9 @@
-// Werte für die Account-Rahmen in der Tab-Leiste (Unit-Frames): je Spiel-Tab Tickets und ob sie
-// gerade verdient werden, Daily Quests (erledigt/gesamt), VIP-Stufe und Abholbares. Läuft immer,
+// Werte für die Account-Rahmen in der Tab-Leiste (Unit-Frames): je Spiel-Tab Punkte, Tickets und ob
+// sie gerade verdient werden, Daily Quests (erledigt/gesamt), VIP-Stufe und Abholbares. Läuft immer,
 // solange die App offen ist — die Leiste ist immer zu sehen:
 //   Kopfzeile des Spiels (Tickets + Status)     alle 10 s — kein Netzwerkabruf
 //   geplante Rebellion (localStorage mcfo_reb_plans, mlf/king/rebellion-plan.js) im selben Abruf
-//   /api/stats/me (VIP), /api/dailies (Quests)  alle 60 s
+//   /api/stats/me (Punkte, VIP), /api/dailies (Quests)  alle 60 s
 // Regeln für „abholbar“ wie in Home und HUD.
 
 const FAST_MS = 10 * 1000;
@@ -28,6 +28,7 @@ const API_JS = `(async () => {
     const quests = Array.isArray(daily?.quests?.quests) ? daily.quests.quests : [];
     const items = Array.isArray(daily?.dailyItems?.items) ? daily.dailyItems.items : [];
     return {
+        points: stats?.current?.currentPoints ?? null,
         vip: stats?.current?.vipPoints ?? null,
         questsDone: quests.filter((q) => q.complete === true).length,
         questsTotal: quests.length,
@@ -61,7 +62,7 @@ module.exports = function startTabStatus({ views, onChange }) {
             const h = header.get(v) || {}, a = api.get(v) || {};
             return {
                 tickets: h.tickets ?? null, earning: h.earning ?? null, plan: h.plan ?? null,
-                vip: a.vip ?? null, questsDone: a.questsDone ?? null, questsTotal: a.questsTotal ?? null, claim: a.claim ?? null,
+                points: a.points ?? null, vip: a.vip ?? null, questsDone: a.questsDone ?? null, questsTotal: a.questsTotal ?? null, claim: a.claim ?? null,
             };
         },
         // Neu eingeloggter oder neu geladener Tab: gleich lesen statt bis zu einer Minute zu warten.

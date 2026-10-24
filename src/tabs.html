@@ -6,7 +6,7 @@
 <title>Tabs</title>
 <style>
     /* Account-Rahmen wie Party-Rahmen in einem Rollenspiel (seit 0.7.0, Luces Wahl aus fünf Entwürfen):
-       Porträt mit VIP-Stufe als Level, Name, Tickets, Balken für Daily Quests und „verdient Tickets“. */
+       Porträt mit VIP-Stufe als Level, Name, Punkte, Balken für Daily Quests und „verdient Tickets“. */
     :root {
         --bg1: #1d1431; --bg2: #110c1b; --frame: rgba(10, 8, 18, 0.75); --line: rgba(180, 138, 232, 0.22);
         --text: #ece4f7; --muted: #a99cc0; --dim: #7d7194; --violet: #b48ae8; --gold: #ffd36e; --green: #7fd99a; --danger: #e07a7a;
@@ -48,7 +48,7 @@
     .name { flex: 1; min-width: 0; font-size: 12.5px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .uf.on .name { color: #fff; }
     .tix { flex: none; display: inline-flex; align-items: center; gap: 3px; color: var(--muted); font-size: 10.5px; font-weight: 600; font-variant-numeric: tabular-nums; }
-    .tix svg { width: 11px; height: 11px; color: #e07a9a; }
+    .tix svg { width: 11px; height: 11px; color: #e8c15a; }
     .bar { position: relative; height: 8px; margin-top: 4px; border-radius: 2px; background: rgba(255, 255, 255, 0.08); overflow: hidden; }
     .bar i { display: block; height: 100%; }
     .bar.q i { background: linear-gradient(90deg, #7b4fd6, var(--violet)); }
@@ -102,7 +102,7 @@
 </div>
 <script>
     const box = document.getElementById('frames');
-    const TICKET = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-2a2 2 0 0 0 0-4Z"/></svg>';
+    const STAR = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2.5l2.9 6.1 6.6.8-4.9 4.6 1.3 6.6L12 17.3l-5.9 3.3 1.3-6.6-4.9-4.6 6.6-.8Z"/></svg>';
     let confirmAt = -1, last = null;
 
     function el(tag, cls, text) {
@@ -149,10 +149,10 @@
         const inner = el('div', 'in');
         const top = el('div', 'top');
         top.append(el('span', 'name', (t.king ? '👑 ' : '') + (t.guest ? `${t.name}` : t.name)));
-        if (!t.guest && t.tickets != null) {
+        if (!t.guest && t.points != null) {
             const x = el('span', 'tix');
-            x.innerHTML = TICKET;
-            x.prepend(short(t.tickets) + ' ');
+            x.innerHTML = STAR;
+            x.prepend(short(t.points) + ' ');
             top.append(x);
         }
         inner.append(top);
@@ -172,6 +172,7 @@
         if (p && p.cost) tips.push(`Planned Rebellion: x${p.cost / 100} for ${setName(p.tileset)} at ${clock(p.start)}`);
         if (p && p.warn) tips.push('A planned Rebellion failed or was missed — see Rebellion › Schedule');
         if (t.king) tips.push('King right now');
+        if (t.points != null) tips.push(`${t.points.toLocaleString('en-US')} points`);
         if (t.tickets != null) tips.push(`${t.tickets.toLocaleString('en-US')} tickets${t.earning ? ', earning' : ''}`);
         if (t.vip != null) tips.push(`VIP ${t.vip}`);
         if (t.claim) tips.push(`${t.claim} to claim`);
