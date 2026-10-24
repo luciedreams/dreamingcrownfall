@@ -1,7 +1,7 @@
 // Werte für die Account-Rahmen in der Tab-Leiste (Unit-Frames): je Spiel-Tab Punkte, Tickets und ob
 // sie gerade verdient werden, Daily Quests (erledigt/gesamt), VIP-Stufe und Abholbares. Läuft immer,
 // solange die App offen ist — die Leiste ist immer zu sehen:
-//   Kopfzeile des Spiels (Tickets + Status)     alle 10 s — kein Netzwerkabruf
+//   Kopfzeile des Spiels (Tickets, Statuszeile) alle 10 s — kein Netzwerkabruf
 //   geplante Rebellion (localStorage mcfo_reb_plans, mlf/king/rebellion-plan.js) im selben Abruf
 //   /api/stats/me (Punkte, VIP), /api/dailies (Quests)  alle 60 s
 // Regeln für „abholbar“ wie in Home und HUD.
@@ -12,7 +12,10 @@ const SLOW_MS = 60 * 1000;
 const HEADER_JS = `(() => { const c = document.querySelector('[data-role="metric-cell"][data-metric-role="tickets"]');
     if (!c) return null;
     const n = Number(String(c.querySelector('[data-role="tickets"]')?.textContent || '').replace(/[^0-9]/g, ''));
-    const status = c.innerText.split('\\n').map((s) => s.trim()).filter(Boolean).slice(2).join(' ');
+    // Statuszeile des Spiels („Active: Earning Tickets“) direkt, nicht die Kopie in der Ticket-Karte:
+    // die fehlt bei ausgeschaltetem Current/Next, und innerText einer versteckten Kopfzeile hat keine Zeilen.
+    const s = document.querySelector('[data-role="session-cell"] [data-role="socket"]') || document.querySelector('[data-role="socket"]');
+    const status = String(s?.textContent || '').trim();
     let plan = null;
     try {
         const l = JSON.parse(localStorage.getItem('mcfo_reb_plans') || '[]');

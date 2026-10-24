@@ -20,7 +20,7 @@ const BACKGROUND_MS = 60 * 1000;
 const COLLECT_JS = `(async () => {
     const cell = (r) => document.querySelector('[data-role="metric-cell"][data-metric-role="' + r + '"]');
     const t = cell('tickets');
-    const lines = t ? t.innerText.split('\\n').map((s) => s.trim()).filter(Boolean) : [];
+    const s = document.querySelector('[data-role="session-cell"] [data-role="socket"]') || document.querySelector('[data-role="socket"]');
     const tickets = Number(String(t?.querySelector('[data-role="tickets"]')?.textContent || '').replace(/[^0-9]/g, '')) || null;
     const j = (p) => fetch(p, { credentials: 'same-origin', headers: { accept: 'application/json' } })
         .then((r) => (r.ok ? r.json() : null)).catch(() => null);
@@ -29,7 +29,7 @@ const COLLECT_JS = `(async () => {
     const items = Array.isArray(daily?.dailyItems?.items) ? daily.dailyItems.items : [];
     return {
         tickets,
-        ticketStatus: lines.slice(2).join(' · '),
+        ticketStatus: String(s?.textContent || '').trim(),
         points: stats?.current?.currentPoints ?? null,
         gold: stats?.current?.currentGold ?? null,
         vip: stats?.current?.vipPoints ?? null,

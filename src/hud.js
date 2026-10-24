@@ -22,7 +22,8 @@ const API_ITEMS = ['money', 'goldPer', 'diamondsPer', 'points', 'pointsPer', 'cl
 const HEADER_JS = `(() => { const c = document.querySelector('[data-role="metric-cell"][data-metric-role="tickets"]');
     if (!c) return null;
     const n = Number(String(c.querySelector('[data-role="tickets"]')?.textContent || '').replace(/[^0-9]/g, ''));
-    const status = c.innerText.split('\\n').map((s) => s.trim()).filter(Boolean).slice(2).join(' ');
+    const s = document.querySelector('[data-role="session-cell"] [data-role="socket"]') || document.querySelector('[data-role="socket"]');
+    const status = String(s?.textContent || '').trim();
     return { tickets: Number.isFinite(n) ? n : null, earning: /earning/i.test(status) && !/not earning/i.test(status) }; })()`;
 
 const API_JS = `(async () => {
