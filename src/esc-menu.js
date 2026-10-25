@@ -353,6 +353,7 @@ module.exports = function createEscMenu(ctx) {
                 ['Water · Lava · Bomb', ['Q', 'W', 'E']],
                 ['Milk · Acid · Mystery', ['A', 'S', 'D']],
                 ['In an open drink, Rebellion or Celebration menu: pick an option (Rebellion and Celebration: press twice)', ['1–8']],
+                ['Steer a tile you play in (Chicken Out, Spider Rush; Pinball as King)', ['←', '→']],
                 ['Inventory · Profile · Achievements', ['I', 'P', 'Y']],
                 ['Dailies · Shop · Leaderboards', ['J', 'O', 'L']],
             ] }] : []),

@@ -1,5 +1,12 @@
     // Newest first. The first entry is what What's new shows after a fresh install.
     const CHANGELOG = [
+        { v: '0.12.0', date: '2026-10-25', items: [
+            'The new tiles you play in yourself now work in the new design. In Chicken Out you choose Stay or Exit for your next respawn, in Spider Rush Left or Right, and as King you steer the flippers in Pinball Pursuit. The game puts these buttons into its own footer, which the new design hides, so you could not see them before.',
+            'The buttons now sit at the foot of the lane your marble plays in. For Pinball, when you are King, they sit at the foot of the King tile.',
+            'Your choice is easy to see: it lights up in your theme\'s colour with a tick, and the other option is dimmed. While the game is still confirming it, the button has a dashed edge.',
+            'Use the arrow keys to steer. A and D stay your drinks and no longer reach the tile.',
+            'The floating chat can be minimised to its input line: the new – button in its header. The arrow at the left of the input line brings the whole chat back. The app remembers this like the chat\'s place and size.',
+        ] },
         { v: '0.11.2', date: '2026-10-24', items: [
             'The account frames, the HUD and Home showed Not earning for every account in some layouts, even while the game said Active: Earning Tickets. They now read the game\'s own session line and show the real state.',
         ] },
