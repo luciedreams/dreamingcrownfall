@@ -133,6 +133,17 @@
                 border: 1px solid rgba(var(--gl-line), .45) !important; box-shadow: 0 10px 28px rgba(0, 0, 0, .5), inset 0 1px 0 rgba(255, 255, 255, .06) !important; }
             html[data-dcf-gl-toll] .dcf-gl-bar { left: calc(50% + 6px); right: auto; transform: none; }
             ${GL_ON}[data-dcf-gl-toll] [data-role="bid-area"] .mcfo-rebellion { display: none !important; }
+            /* Tile participation (MCF 0.11: Chicken Out, Spider Rush, Pinball Pursuit): the game puts its prompt and
+               choice buttons at the front of its ticket rail, which the hotbar hides. They stay visible, above the
+               hotbar; the game itself switches them on and off (inline display). A and D are drinks here, so the
+               buttons name the arrow keys (glKeys keeps A and D away from the game). */
+            ${GL_ON} [data-participation-controls] { visibility: visible !important; position: fixed !important; left: 50% !important; right: auto !important;
+                bottom: calc(var(--gl-bar-h, 84px) + 22px) !important; transform: translateX(-50%) !important; z-index: 51 !important; gap: 10px !important;
+                padding: 8px 14px !important; border-radius: 12px; background: linear-gradient(180deg, rgba(var(--gl-panel), .94), rgba(var(--gl-panel), .98));
+                border: 1px solid rgba(var(--gl-line), .45); box-shadow: 0 10px 28px rgba(0, 0, 0, .5), inset 0 1px 0 rgba(255, 255, 255, .06); }
+            ${GL_ON} [data-participation-controls] > [role="status"] { max-width: none !important; font: 700 13px/1.2 system-ui, sans-serif !important; color: rgb(var(--gl-text)) !important; }
+            ${GL_ON} [data-participation-option="left"]::before { content: '\\2190\\00a0'; }
+            ${GL_ON} [data-participation-option="right"]::after { content: '\\00a0\\2192'; }
             html:not([data-dcf-gl-toll]) .dcf-gl-bar button[data-king-only], html[data-dcf-gl-toll] .dcf-gl-bar button[data-not-king] { display: none; }
             html[data-dcf-gl-toll] .dcf-gl-bar__grp[data-grp="bids"], html[data-dcf-gl-toll] .dcf-gl-bar__div { display: none; }
             .dcf-gl-bar__grp { display: flex; flex-direction: column; gap: 4px; }
@@ -309,6 +320,7 @@
     const GL_DRINKS = ['Water', 'Lava', 'Bomb', 'Milk', 'Acid', 'Mystery'];
     const glDrink = n => glQ(`[data-role="king-action-tray"] .mcfo-drink[title^="${n}"]`);
     // key → what it does. Pages open like from the account menu (core/anchors.js PAGES).
+    const GL_DRINK_KEYS = 'QWEASD';
     const GL_SLOTS = [
         // Slots with a menu (open) open it at the hotbar button — the game's own buttons are hidden,
         // a menu anchored there would open in a corner.
@@ -328,7 +340,7 @@
           open: b => (settings.rebellionPanel ? showCelebrationPopup(b) : glQ('.mcfo-rebellion')?.click()) },
         { grp: 'king', id: 'attack', key: 'F', name: 'Attack', cls: 'warn', icon: 'attack', notKing: true,
           target: () => glQ('[data-role="king-action-tray"] .mcfo-attack') || glQ('[data-role="king-action-tray"] .mcf-king-attack-placeholder:not([hidden])') },
-        ...GL_DRINKS.map((n, i) => ({ grp: 'king', id: 'drink-' + n, key: 'QWEASD'[i], name: n, drink: n, target: () => glDrink(n),
+        ...GL_DRINKS.map((n, i) => ({ grp: 'king', id: 'drink-' + n, key: GL_DRINK_KEYS[i], name: n, drink: n, target: () => glDrink(n),
           open: b => { const bev = BEVERAGES.find(x => x.label === n); if (bev) showBeveragePanel(bev, b); } })),
     ];
     // Pages: buttons in the resource bar and keys (I and P asked for by Luce, the rest alike).
@@ -809,6 +821,16 @@
         if (s) { e.preventDefault(); glFire(s); }
     }
 
+    // During tile participation the game also steers with A and D (keydown and keyup on window, after us, held
+    // keys included). In the game layout they stay drinks, the tile is steered with the arrow keys alone.
+    function glKeepDrinkKeys(e) {
+        if (!glOn || e.ctrlKey || e.altKey || e.metaKey || e.key.length !== 1 || !GL_DRINK_KEYS.includes(e.key.toUpperCase())) return;
+        if (!document.body.hasAttribute('data-participation-active') && !document.body.hasAttribute('data-king-participation-active')) return;
+        const t = e.target;
+        if (t && t.closest && t.closest('input, textarea, select, [contenteditable="true"]')) return;
+        e.stopPropagation();
+    }
+
     function glApply() {
         const want = glWanted();
         if (want) {
@@ -852,6 +874,8 @@
     function startGameLayout() {
         if (window.top !== window.self) return;
         document.addEventListener('keydown', glKeys);
+        document.addEventListener('keydown', glKeepDrinkKeys);
+        document.addEventListener('keyup', glKeepDrinkKeys);
         glApply();
         const api = glApi();
         if (api && api.onChange) api.onChange(() => glApply());
