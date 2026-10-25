@@ -144,6 +144,15 @@
             ${GL_ON} [data-participation-controls] > [role="status"] { max-width: none !important; font: 700 13px/1.2 system-ui, sans-serif !important; color: rgb(var(--gl-text)) !important; }
             ${GL_ON} [data-participation-option="left"]::before { content: '\\2190\\00a0'; }
             ${GL_ON} [data-participation-option="right"]::after { content: '\\00a0\\2192'; }
+            /* The choice at a glance: the game marks it only in a dark green. Chosen = accent with a glow and a tick,
+               the other one dimmed; sent but not confirmed yet (data-pending) = dashed accent edge, nothing pulses. */
+            ${GL_ON} [data-participation-controls] button { transition: opacity .15s, box-shadow .15s; }
+            ${GL_ON} [data-participation-controls] button[aria-pressed="true"] { background: rgb(var(--gl-accent)) !important; border: 1px solid rgb(var(--gl-accent)) !important;
+                color: #160f24 !important; text-transform: uppercase; letter-spacing: .04em; box-shadow: 0 0 14px rgba(var(--gl-accent), .55); }
+            ${GL_ON} [data-participation-controls] button[aria-pressed="true"]::before { content: '\\2713\\00a0'; }
+            ${GL_ON} [data-participation-controls] button[aria-pressed="true"][data-participation-option="left"]::before { content: '\\2713\\00a0\\2190\\00a0'; }
+            ${GL_ON} [data-participation-controls] button[data-pending] { border: 1px dashed rgb(var(--gl-accent)) !important; }
+            ${GL_ON} [data-participation-controls]:has(button[aria-pressed="true"], button[data-pending]) button:not([aria-pressed="true"]):not([data-pending]) { opacity: .5; }
             html:not([data-dcf-gl-toll]) .dcf-gl-bar button[data-king-only], html[data-dcf-gl-toll] .dcf-gl-bar button[data-not-king] { display: none; }
             html[data-dcf-gl-toll] .dcf-gl-bar__grp[data-grp="bids"], html[data-dcf-gl-toll] .dcf-gl-bar__div { display: none; }
             .dcf-gl-bar__grp { display: flex; flex-direction: column; gap: 4px; }
