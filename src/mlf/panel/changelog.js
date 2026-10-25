@@ -1,5 +1,9 @@
     // Newest first. The first entry is what What's new shows after a fresh install.
     const CHANGELOG = [
+        { v: '0.12.2', date: '2026-10-25', items: [
+            'The minimised chat stays fully visible instead of fading out. It covers nothing down there anyway.',
+            'While the chat is minimised, its arrow counts the messages that come in and lights up, so you can see at a glance that something was written. Open the chat and the count goes away.',
+        ] },
         { v: '0.12.1', date: '2026-10-25', items: [
             'The Stay / Exit and Left / Right buttons now sit at the top of your lane, under the tile\'s name. At the bottom they covered the buckets, so in Chicken Out you could not see how many points each one gives. As King in Pinball they stay at the foot of the King tile.',
         ] },
