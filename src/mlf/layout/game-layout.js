@@ -134,11 +134,13 @@
             html[data-dcf-gl-toll] .dcf-gl-bar { left: calc(50% + 6px); right: auto; transform: none; }
             ${GL_ON}[data-dcf-gl-toll] [data-role="bid-area"] .mcfo-rebellion { display: none !important; }
             /* Tile participation (MCF 0.11: Chicken Out, Spider Rush, Pinball Pursuit): the game puts its prompt and
-               choice buttons at the front of its ticket rail, which the hotbar hides. They stay visible, above the
-               hotbar; the game itself switches them on and off (inline display). A and D are drinks here, so the
-               buttons name the arrow keys (glKeys keeps A and D away from the game). */
-            ${GL_ON} [data-participation-controls] { visibility: visible !important; position: fixed !important; left: 50% !important; right: auto !important;
-                bottom: calc(var(--gl-bar-h, 84px) + 22px) !important; transform: translateX(-50%) !important; z-index: 51 !important; gap: 10px !important;
+               choice buttons at the front of its ticket rail, which the hotbar hides. They stay visible, at the foot
+               of the tile they belong to (glPlaceParticipation: --gl-part-x/y is the bar's bottom centre), else above
+               the hotbar; the game itself switches them on and off (inline display). A and D are drinks here, so the
+               buttons name the arrow keys (glKeepDrinkKeys keeps A and D away from the game). */
+            ${GL_ON} [data-participation-controls] { visibility: visible !important; position: fixed !important; right: auto !important; bottom: auto !important;
+                left: var(--gl-part-x, 50%) !important; top: var(--gl-part-y, calc(100% - var(--gl-bar-h, 84px) - 32px)) !important;
+                transform: translate(-50%, -100%) !important; z-index: 51 !important; gap: 10px !important;
                 padding: 8px 14px !important; border-radius: 12px; background: linear-gradient(180deg, rgba(var(--gl-panel), .94), rgba(var(--gl-panel), .98));
                 border: 1px solid rgba(var(--gl-line), .45); box-shadow: 0 10px 28px rgba(0, 0, 0, .5), inset 0 1px 0 rgba(255, 255, 255, .06); }
             ${GL_ON} [data-participation-controls] > [role="status"] { max-width: none !important; font: 700 13px/1.2 system-ui, sans-serif !important; color: rgb(var(--gl-text)) !important; }
@@ -526,10 +528,54 @@
         if (t && !t.disabled) t.click();
     }
 
+    // ---- tile participation: the choice bar in the tile it belongs to ------------------------------
+    // The game builds one bar for all lanes and does not say which lane it serves. Its own module knows:
+    // a dynamic import of the same URL returns the same module instance, with the same rows. Players get
+    // the bar at the foot of their lane, the King steering a Pinball tile at the foot of the King tile.
+    // Without the module (renamed in an update) the bar stays above the hotbar.
+    let glPartMod = null, glPartModUrl = '';
+    function glPartModule() {
+        if (glPartMod || glPartModUrl) return glPartMod;
+        const res = performance.getEntriesByType('resource').find(r => /\/prodViewer\/participationLane\.js(\?|$)/.test(r.name));
+        const app = [...document.querySelectorAll('script[type="module"][src]')].find(s => /\/immutable-assets\/[^/]+\/app\.js(\?|$)/.test(s.src));
+        glPartModUrl = (res && res.name) || (app && app.src.replace(/app\.js(\?.*)?$/, 'prodViewer/participationLane.js')) || '';
+        if (glPartModUrl) import(glPartModUrl).then(m => { glPartMod = m; glPlaceParticipation(); }).catch(() => {});
+        return null;
+    }
+    function glParticipationRect() {
+        const m = glPartModule();
+        if (!m || typeof m.participationLanes !== 'function') return null;
+        const rows = m.participationLanes().filter(r => r && !r.retired && r.state && r.state.principal && r.base && r.base.payload && r.base.payload.redundant && r.base.payload.redundant.phase === 'RUNNING');
+        const row = rows.find(r => (r.state.mode === 'king' ? r.state.principal.participantId === (r.state.king && r.state.king.participantId) : !!r.controller));
+        if (!row) return null;
+        if (row.state.mode === 'king') { const k = glQ('[data-role="king-pane"]'); return k && k.getBoundingClientRect(); }
+        const key = row.base.laneKey || (row.scope && row.scope.laneKey);
+        const stage = [...document.querySelectorAll('[data-lane-stage-active-lane-key]')].find(s => s.getAttribute('data-lane-stage-active-lane-key') === key);
+        return stage ? (stage.closest('[data-role="lane-panel"]') || stage).getBoundingClientRect() : null;
+    }
+    function glPlaceParticipation() {
+        const bar = glQ('[data-participation-controls]');
+        if (!glOn || !bar) return;
+        // The game shows and hides it (inline display): follow that at once, not only on the next tick.
+        if (!bar.__dcfGlObs) { bar.__dcfGlObs = true; new MutationObserver(() => glPlaceParticipation()).observe(bar, { attributes: true, attributeFilter: ['style'] }); }
+        if (bar.style.display === 'none') return;
+        const r = glParticipationRect();
+        let x = innerWidth / 2, y = innerHeight - 22 - (parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--gl-bar-h')) || 84) - 10;
+        if (r && r.width) { x = r.left + r.width / 2; y = r.bottom - 28; }
+        // position: fixed counts from the nearest transformed ancestor (the game's bid-area is one), not the window.
+        let cb = bar.parentElement;
+        while (cb && cb !== document.body) { const cs = getComputedStyle(cb); if (cs.transform !== 'none' || cs.filter !== 'none' || /paint|layout|strict|content/.test(cs.contain)) break; cb = cb.parentElement; }
+        const o = cb && cb !== document.body ? cb.getBoundingClientRect() : { left: 0, top: 0 };
+        const px = Math.round(x - o.left) + 'px', py = Math.round(y - o.top) + 'px';
+        if (bar.style.getPropertyValue('--gl-part-x') !== px) bar.style.setProperty('--gl-part-x', px);
+        if (bar.style.getPropertyValue('--gl-part-y') !== py) bar.style.setProperty('--gl-part-y', py);
+    }
+
     // Values, states and the drinks' pictures follow the game every half second.
     function glTick() {
         if (!glOn || !glBuilt) return;
         glColours();
+        glPlaceParticipation();
         for (const ch of glBuilt.chips) {
             const val = glQ(`[data-role="${ch.roleName}"]`);
             ch.v.textContent = (val && val.textContent.trim()) || '–';
