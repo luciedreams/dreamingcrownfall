@@ -22,6 +22,7 @@ const SCHEMA = {
     'ui.chatPlace': 0,
     'ui.chatW': 480,
     'ui.chatH': 0,
+    'ui.chatMin': false,      // schwebender Chat auf die Eingabezeile zusammengeklappt (0.11.3, Luce)
     'ui.sidePanels': true,
     'ui.sounds': true,        // leise Klänge der App-Menüs und beim Account-Wechsel (tabs.html, seit 0.7.0)
     'ui.soundVolume': 40,

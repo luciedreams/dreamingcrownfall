@@ -242,6 +242,17 @@
             ${GL_ON} .dcf-gl-chatplace:hover { border-color: rgb(var(--gl-accent)); }
             ${GL_ON} .dcf-gl-chatplace svg { width: 16px; height: 16px; }
             ${GL_ON} .mcf-chat:not([data-collapsed="true"]) .mcf-chat__header { grid-template-columns: minmax(0, 1fr) !important; grid-auto-flow: column; grid-auto-columns: auto; }
+            /* minimised floating chat (ui.chatMin): only the input line, a button in it brings the rest back */
+            .dcf-gl-chatmin, .dcf-gl-chatmax { display: none; }
+            ${GL_FLOAT} .mcf-chat:not([data-collapsed="true"]) .dcf-gl-chatmin, ${GL_FLOAT}[data-dcf-gl-chatmin] .dcf-gl-chatmax { display: grid; width: 30px; height: 30px;
+                padding: 0; box-sizing: border-box; place-items: center; flex: 0 0 auto; align-self: center;
+                border: 1px solid rgba(var(--gl-line), .4); border-radius: 7px; background: rgba(var(--gl-panel), .7); color: rgb(var(--gl-text)); cursor: pointer; }
+            ${GL_ON} :is(.dcf-gl-chatmin, .dcf-gl-chatmax):hover { border-color: rgb(var(--gl-accent)); }
+            ${GL_ON} :is(.dcf-gl-chatmin, .dcf-gl-chatmax) svg { width: 16px; height: 16px; }
+            ${GL_FLOAT}[data-dcf-gl-chatmin] [data-role="desktop-chat-pane"] { height: auto !important; }
+            ${GL_FLOAT}[data-dcf-gl-chatmin] [data-role="chat-pane"] { height: auto !important; }
+            ${GL_FLOAT}[data-dcf-gl-chatmin] [data-role="chat-pane"] > :is(.mcf-chat__header, .mcf-chat__body),
+            ${GL_FLOAT}[data-dcf-gl-chatmin] [data-role="desktop-chat-pane"] > .dcf-gl-cgrip { display: none !important; }
 
             /* side panels instead of free windows (inline position and size from dragging are overruled) */
             ${GL_PANELS} .mcfo-win[data-dcf-side] { position: fixed !important; top: 56px !important; bottom: 104px !important; height: auto !important;
@@ -788,6 +799,27 @@
             const collapse = header.querySelector('[data-role="chat-collapse"]');
             header.insertBefore(btn, collapse && collapse.parentNode === header ? collapse : null);
         }
+        // Minimise: only the input line stays (0.11.3). Floating only — docked, the game's own folding remains.
+        const toggleMin = e => { e.preventDefault(); e.stopPropagation(); const a = glApi(); if (a) a.set('ui.chatMin', glCfg['ui.chatMin'] !== true); };
+        if (!header.querySelector('.dcf-gl-chatmin')) {
+            const min = document.createElement('button');
+            min.type = 'button';
+            min.className = 'dcf-gl-chatmin';
+            min.title = 'Minimise the chat to its input line';
+            min.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 17h12"/></svg>';
+            min.addEventListener('click', toggleMin);
+            header.insertBefore(min, btn);
+        }
+        const form = pane.querySelector('[data-role="chat-form"]');
+        if (form && !form.querySelector('.dcf-gl-chatmax')) {
+            const max = document.createElement('button');
+            max.type = 'button';
+            max.className = 'dcf-gl-chatmax';
+            max.title = 'Show the whole chat again';
+            max.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 15l6-6 6 6"/></svg>';
+            max.addEventListener('click', toggleMin);
+            form.prepend(max);
+        }
         const place = glChatPlace();
         if (btn.dataset.place !== place) {
             btn.dataset.place = place;
@@ -843,6 +875,7 @@
         const set = (k, v) => { if (v === null) root.style.removeProperty(k); else if (root.style.getPropertyValue(k) !== v) root.style.setProperty(k, v); };
         if (root.getAttribute('data-dcf-gl-chat') !== glChatPlace()) root.setAttribute('data-dcf-gl-chat', glChatPlace());
         root.toggleAttribute('data-dcf-gl-free', glCfg['ui.sidePanels'] === false);
+        root.toggleAttribute('data-dcf-gl-chatmin', glCfg['ui.chatMin'] === true && glChatPlace() !== 'docked');
         set('--gl-chat-w', glCfg['ui.chatW'] ? glCfg['ui.chatW'] + 'px' : null);
         set('--gl-chat-h', glCfg['ui.chatH'] ? glCfg['ui.chatH'] + 'px' : null);
     }
