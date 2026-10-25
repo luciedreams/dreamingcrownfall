@@ -135,7 +135,7 @@
             ${GL_ON}[data-dcf-gl-toll] [data-role="bid-area"] .mcfo-rebellion { display: none !important; }
             /* Tile participation (MCF 0.11: Chicken Out, Spider Rush, Pinball Pursuit): the game puts its prompt and
                choice buttons at the front of its ticket rail, which the hotbar hides. They stay visible, at the foot
-               of the tile they belong to (glPlaceParticipation: --gl-part-x/y is the bar's bottom centre), else above
+               of the tile they belong to (glPlaceParticipation: --gl-part-x/y is the bar's bottom centre, its top centre with data-dcf-part-top), else above
                the hotbar; the game itself switches them on and off (inline display). A and D are drinks here, so the
                buttons name the arrow keys (glKeepDrinkKeys keeps A and D away from the game). */
             ${GL_ON} [data-participation-controls] { visibility: visible !important; position: fixed !important; right: auto !important; bottom: auto !important;
@@ -143,6 +143,7 @@
                 transform: translate(-50%, -100%) !important; z-index: 51 !important; gap: 10px !important;
                 padding: 8px 14px !important; border-radius: 12px; background: linear-gradient(180deg, rgba(var(--gl-panel), .94), rgba(var(--gl-panel), .98));
                 border: 1px solid rgba(var(--gl-line), .45); box-shadow: 0 10px 28px rgba(0, 0, 0, .5), inset 0 1px 0 rgba(255, 255, 255, .06); }
+            ${GL_ON} [data-participation-controls][data-dcf-part-top] { transform: translate(-50%, 0) !important; }
             ${GL_ON} [data-participation-controls] > [role="status"] { max-width: none !important; font: 700 13px/1.2 system-ui, sans-serif !important; color: rgb(var(--gl-text)) !important; }
             ${GL_ON} [data-participation-option="left"]::before { content: '\\2190\\00a0'; }
             ${GL_ON} [data-participation-option="right"]::after { content: '\\00a0\\2192'; }
@@ -559,10 +560,10 @@
         const rows = m.participationLanes().filter(r => r && !r.retired && r.state && r.state.principal && r.base && r.base.payload && r.base.payload.redundant && r.base.payload.redundant.phase === 'RUNNING');
         const row = rows.find(r => (r.state.mode === 'king' ? r.state.principal.participantId === (r.state.king && r.state.king.participantId) : !!r.controller));
         if (!row) return null;
-        if (row.state.mode === 'king') { const k = glQ('[data-role="king-pane"]'); return k && k.getBoundingClientRect(); }
+        if (row.state.mode === 'king') { const k = glQ('[data-role="king-pane"]'); return k && { r: k.getBoundingClientRect(), king: true }; }
         const key = row.base.laneKey || (row.scope && row.scope.laneKey);
         const stage = [...document.querySelectorAll('[data-lane-stage-active-lane-key]')].find(s => s.getAttribute('data-lane-stage-active-lane-key') === key);
-        return stage ? (stage.closest('[data-role="lane-panel"]') || stage).getBoundingClientRect() : null;
+        return stage ? { r: (stage.closest('[data-role="lane-panel"]') || stage).getBoundingClientRect(), king: false } : null;
     }
     function glPlaceParticipation() {
         const bar = glQ('[data-participation-controls]');
@@ -570,9 +571,13 @@
         // The game shows and hides it (inline display): follow that at once, not only on the next tick.
         if (!bar.__dcfGlObs) { bar.__dcfGlObs = true; new MutationObserver(() => glPlaceParticipation()).observe(bar, { attributes: true, attributeFilter: ['style'] }); }
         if (bar.style.display === 'none') return;
-        const r = glParticipationRect();
+        const at = glParticipationRect(), r = at && at.r;
         let x = innerWidth / 2, y = innerHeight - 22 - (parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--gl-bar-h')) || 84) - 10;
-        if (r && r.width) { x = r.left + r.width / 2; y = r.bottom - 28; }
+        // Players: at the top of their lane, under the tile's name — at the foot it covered the buckets and their
+        // points (Luce, Chicken Out). The King steering Pinball: at the foot of the King tile, its top holds the reign.
+        const top = !!(r && r.width && !at.king);
+        if (r && r.width) { x = r.left + r.width / 2; y = at.king ? r.bottom - 28 : r.top + 84; }
+        bar.toggleAttribute('data-dcf-part-top', top);
         // position: fixed counts from the nearest transformed ancestor (the game's bid-area is one), not the window.
         let cb = bar.parentElement;
         while (cb && cb !== document.body) { const cs = getComputedStyle(cb); if (cs.transform !== 'none' || cs.filter !== 'none' || /paint|layout|strict|content/.test(cs.contain)) break; cb = cb.parentElement; }
