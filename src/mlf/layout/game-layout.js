@@ -218,7 +218,8 @@
                 width: min(var(--gl-chat-w, 480px), calc(100vw - 28px)) !important; height: min(var(--gl-chat-h, 50vh), calc(100vh - 68px)) !important;
                 max-height: calc(100vh - 68px) !important; margin: 0 !important; z-index: 40 !important; transition: opacity .6s ease; }
             ${GL_FLOAT}[data-dcf-gl-chat="right"] [data-role="desktop-chat-pane"] { left: auto !important; right: 14px !important; }
-            ${GL_FLOAT} [data-role="desktop-chat-pane"][data-dcf-gl-idle]:not(:hover):not(:focus-within):not([data-dcf-gl-sizing]) { opacity: .28; }
+            /* minimised it covers nothing, so it does not fade */
+            ${GL_FLOAT}:not([data-dcf-gl-chatmin]) [data-role="desktop-chat-pane"][data-dcf-gl-idle]:not(:hover):not(:focus-within):not([data-dcf-gl-sizing]) { opacity: .28; }
             ${GL_FLOAT} [data-role="chat-pane"] { height: 100% !important; background: rgba(var(--gl-panel), .38) !important; backdrop-filter: blur(6px);
                 border: 1px solid rgba(var(--gl-line), .22) !important; border-radius: 12px !important; box-shadow: 0 10px 30px rgba(0, 0, 0, .3) !important; }
             ${GL_FLOAT} [data-role="chat-pane"] .mcf-chat__header { background: transparent !important; border-color: rgba(var(--gl-line), .15) !important; box-shadow: none !important; }
@@ -249,6 +250,11 @@
                 padding: 0; box-sizing: border-box; place-items: center; flex: 0 0 auto; align-self: center;
                 border: 1px solid rgba(var(--gl-line), .4); border-radius: 7px; background: rgba(var(--gl-panel), .7); color: rgb(var(--gl-text)); cursor: pointer; }
             ${GL_ON} :is(.dcf-gl-chatmin, .dcf-gl-chatmax):hover { border-color: rgb(var(--gl-accent)); }
+            /* new lines while minimised: a count on the arrow, and the arrow lit */
+            ${GL_ON} .dcf-gl-chatmax { position: relative; }
+            ${GL_ON} .dcf-gl-chatmax[data-unread] { border-color: rgb(var(--gl-accent)); box-shadow: 0 0 10px rgba(var(--gl-accent), .5); }
+            ${GL_ON} .dcf-gl-chatmax[data-unread]::after { content: attr(data-unread); position: absolute; top: -7px; right: -7px; min-width: 16px; height: 16px; padding: 0 4px;
+                box-sizing: border-box; border-radius: 8px; background: rgb(var(--gl-accent)); color: #160f24; font: 800 10px/16px system-ui, sans-serif; text-align: center; }
             ${GL_ON} :is(.dcf-gl-chatmin, .dcf-gl-chatmax) svg { width: 16px; height: 16px; }
             ${GL_FLOAT}[data-dcf-gl-chatmin] [data-role="desktop-chat-pane"] { height: auto !important; }
             ${GL_FLOAT}[data-dcf-gl-chatmin] [data-role="chat-pane"] { height: auto !important; }
@@ -785,6 +791,27 @@
         docked: '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M15 4v16"/><rect x="15.5" y="6" width="3.5" height="12" fill="currentColor" stroke="none"/>',
     };
     const GL_PLACE_NAME = { left: 'floating on the left', right: 'floating on the right', docked: 'docked on the right' };
+    // Lines that arrive while the chat is minimised: counted on its arrow (0.12.2). A batch of more than 20 at once
+    // is the game rebuilding its list (room change, reconnect), not new messages.
+    function glUnreadWatch(pane) {
+        const list = pane.querySelector('[data-role="chat-messages"]'), max = pane.querySelector('.dcf-gl-chatmax');
+        if (!list || !max) return;
+        const min = document.documentElement.hasAttribute('data-dcf-gl-chatmin');
+        if (!min && max.hasAttribute('data-unread')) { max.removeAttribute('data-unread'); max.__dcfUnread = 0; max.title = 'Show the whole chat again'; }
+        if (list.__dcfUnreadObs) return;
+        list.__dcfUnreadObs = true;
+        new MutationObserver(recs => {
+            if (!document.documentElement.hasAttribute('data-dcf-gl-chatmin')) return;
+            let n = 0;
+            for (const r of recs) for (const node of r.addedNodes) if (node.nodeType === 1 && node.matches('.mcf-chat__message')) n++;
+            if (!n || n > 20) return;
+            const b = pane.querySelector('.dcf-gl-chatmax');
+            if (!b) return;
+            b.__dcfUnread = (b.__dcfUnread || 0) + n;
+            b.setAttribute('data-unread', b.__dcfUnread > 99 ? '99+' : String(b.__dcfUnread));
+            b.title = `${b.__dcfUnread} new message${b.__dcfUnread === 1 ? '' : 's'} — show the whole chat`;
+        }).observe(list, { childList: true });
+    }
     function glChatParts() {
         const pane = glQ('[data-role="desktop-chat-pane"]');
         if (!pane) return;
@@ -825,6 +852,7 @@
             max.addEventListener('click', toggleMin);
             form.prepend(max);
         }
+        glUnreadWatch(pane);
         const place = glChatPlace();
         if (btn.dataset.place !== place) {
             btn.dataset.place = place;
