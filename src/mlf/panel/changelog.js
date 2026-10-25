@@ -1,5 +1,8 @@
     // Newest first. The first entry is what What's new shows after a fresh install.
     const CHANGELOG = [
+        { v: '0.12.1', date: '2026-10-25', items: [
+            'The Stay / Exit and Left / Right buttons now sit at the top of your lane, under the tile\'s name. At the bottom they covered the buckets, so in Chicken Out you could not see how many points each one gives. As King in Pinball they stay at the foot of the King tile.',
+        ] },
         { v: '0.12.0', date: '2026-10-25', items: [
             'The new tiles you play in yourself now work in the new design. In Chicken Out you choose Stay or Exit for your next respawn, in Spider Rush Left or Right, and as King you steer the flippers in Pinball Pursuit. The game puts these buttons into its own footer, which the new design hides, so you could not see them before.',
             'The buttons now sit at the foot of the lane your marble plays in. For Pinball, when you are King, they sit at the foot of the King tile.',
