@@ -26,7 +26,10 @@
     function ticketFly(gain) {
         if (!settings.ticketFly || document.hidden || settings.perfLevel === 'maximum') return;
         try { if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return; } catch (e) {}
-        const num = document.querySelector('[data-role="metric-cell"][data-metric-role="tickets"] [data-role="tickets"]');
+        // In the game layout the game's card is only hidden by the stylesheet and keeps its old
+        // place — the flight starts from the tickets in the resource bar instead.
+        const gl = glOn && glBuilt && glBuilt.chips.find(c => c.roleName === 'tickets');
+        const num = gl ? gl.v : document.querySelector('[data-role="metric-cell"][data-metric-role="tickets"] [data-role="tickets"]');
         const r = num && num.getBoundingClientRect();
         if (!r || !r.width) return;
         const layer = document.createElement('div');
