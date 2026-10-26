@@ -1,5 +1,9 @@
     // Newest first. The first entry is what What's new shows after a fresh install.
     const CHANGELOG = [
+        { v: '0.12.3', date: '2026-10-26', items: [
+            'Plan in the upcoming tilesets list works again: it opens the Rebellion window on Schedule for that tileset. Before, the click only closed the list.',
+            'In the new design the flying tickets come out of the tickets in the top bar, where your balance is, instead of an empty spot where the old ticket card used to be.',
+        ] },
         { v: '0.12.2', date: '2026-10-25', items: [
             'The minimised chat stays fully visible instead of fading out. It covers nothing down there anyway.',
             'While the chat is minimised, its arrow counts the messages that come in and lights up, so you can see at a glance that something was written. Open the chat and the count goes away.',
