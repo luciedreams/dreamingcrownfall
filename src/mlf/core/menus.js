@@ -234,6 +234,9 @@
                             pb.addEventListener('click', e => {
                                 e.preventDefault();
                                 e.stopPropagation();
+                                // Close this list first: on the same anchor showPanel would take the popup
+                                // for a second click on the card and only close.
+                                closeMenus();
                                 showRebellionPopup(anchor, { mode: 'plan', slot: row.startsAtUtcMs });
                             });
                             li.appendChild(pb);
