@@ -1,5 +1,11 @@
     // Newest first. The first entry is what What's new shows after a fresh install.
     const CHANGELOG = [
+        { v: '0.13.0', date: '2026-10-26', items: [
+            'A new scoreboard at the end of a run. It covers the whole tile in your theme\'s colours and lists every player, not only the first eight: what each one bid, how and when their marble went out, the prize and the run score. Point at a row for more: the share of the pot, the prize per ticket bid and the points before and after.',
+            'Your own accounts are marked on it, every account signed in to the app.',
+            'Prefer the game\'s own scoreboard? Settings › Game screen › Scoreboard with everyone switches it back.',
+            'The numbers on the King\'s wall no longer drift off their blocks after the board is resized or refitted.',
+        ] },
         { v: '0.12.3', date: '2026-10-26', items: [
             'Plan in the upcoming tilesets list works again: it opens the Rebellion window on Schedule for that tileset. Before, the click only closed the list.',
             'In the new design the flying tickets come out of the tickets in the top bar, where your balance is, instead of an empty spot where the old ticket card used to be.',
