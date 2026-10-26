@@ -204,3 +204,24 @@
         }
     }
 
+
+    // ---- SVG numbers after a size change (DCF 0.13.0) ---------------------------------------------
+    // Chromium keeps the text of an SVG laid out at the size it had when it was drawn: when the tile grows
+    // or shrinks afterwards, the numbers (the King wall's HP, the zone values) are painted at the old scale
+    // and the rows drift off their blocks — while the DOM says they sit right in the middle. Changing a
+    // text property makes it lay them out again. The app did that after a window resize only (main.js
+    // resetKingText); the board refit, the chat column and the glide change the size as well (Luce,
+    // 26.10.2026: wall numbers off straight after loading). So every half second the drawn size of each
+    // tile's SVG, and a nudge on the first sighting and whenever it changed.
+    const svgTextSizes = new WeakMap();
+    function svgTextNudge() {
+        for (const st of document.querySelectorAll('[data-role="king-shared-renderer-stage"], [data-role="lane-stage"]')) {
+            const r = st.getBoundingClientRect();
+            if (!r.width) continue;
+            const key = Math.round(r.width) + 'x' + Math.round(r.height);
+            if (svgTextSizes.get(st) === key) continue;
+            svgTextSizes.set(st, key);
+            st.style.fontKerning = st.style.fontKerning === 'none' ? 'auto' : 'none';
+        }
+    }
+    setInterval(svgTextNudge, 500);
