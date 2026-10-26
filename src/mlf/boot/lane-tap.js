@@ -40,6 +40,31 @@
         if (!tile) return;
         laneCelebration.set(laneKey, { runId, tile, multiplier: Number(src.royalCelebration.multiplier) || 0, at: Date.now() });
     }
+    // The results of a run (layout/scoreboard.js): the simsync frames of the scoreboard phase carry all
+    // placements — 1-8 in scoreboard.placements, 9-16 in scoreboard.placementsBeyondTop8, everyone who ran in
+    // entrants.participantMarbleMap — while the game draws only the first eight. Kept per lane, last run only.
+    const laneScoreboard = new Map();   // laneKey -> { runId, at, scoreboard, entrants, tile, truth }
+    function noteScoreboard(msg) {
+        const sb = msg.scoreboard;
+        if (!sb || sb.resultState !== 'PLACEMENTS_READY' || !Array.isArray(sb.placements)) return;
+        const laneKey = String(msg.laneKey || ''), run = msg.run && typeof msg.run === 'object' ? msg.run : {};
+        const runId = String(run.runId || '');
+        const prev = laneScoreboard.get(laneKey);
+        // The same results come with every frame of the phase: only the time they were last seen changes.
+        if (prev && prev.runId === runId && prev.rows === sb.placements.length + (sb.placementsBeyondTop8 || []).length) { prev.at = Date.now(); return; }
+        laneScoreboard.set(laneKey, { runId, at: Date.now(), rows: sb.placements.length + (sb.placementsBeyondTop8 || []).length,
+            scoreboard: sb, entrants: msg.entrants || null, tile: run.tile || null, truth: msg.revealedTileTruth || null });
+    }
+    // The switch, read straight from storage like the cosmetics below: settings (section 1) lives inside
+    // main(), out of reach of this part. Asked again at most every 2 s.
+    let sbWantedAt = 0, sbWantedOn = true;
+    function sbWanted() {
+        if (Date.now() - sbWantedAt > 2000) {
+            sbWantedAt = Date.now();
+            try { sbWantedOn = (JSON.parse(localStorage.getItem('mcf_overhaul_settings')) || {}).fullScoreboard !== false; } catch (e) { sbWantedOn = true; }
+        }
+        return sbWantedOn;
+    }
     let tapInstalled = false;
 
     // One lane_state payload — from the socket, or from the reply to a bid (bidPreviewLaneState).
@@ -71,19 +96,21 @@
         if (msg.kind === 'lane_state.v1' && msg.laneKey && msg.payload && typeof msg.payload === 'object') {
             noteLane(String(msg.laneKey), msg.payload, 'socket');
         }
-        if (msg.kind === 'simsync_state.v1' && msg.laneKey) noteCelebration(msg);
+        if (msg.kind === 'simsync_state.v1' && msg.laneKey) { noteCelebration(msg); noteScoreboard(msg); }
     }
 
     function readFrame(data) {
         // Binary frames are physics, most text frames are event digests. Only a frame that
         // mentions lane_state is worth a JSON.parse.
-        // A simsync frame is parsed only when it carries a celebration mark (6.54): those frames
-        // are large, and outside a celebration none of them is needed.
+        // A simsync frame is parsed only when it carries a celebration mark (6.54) or the results of a
+        // run: those frames are large, and apart from that none of them is needed.
         if (typeof data !== 'string') return;
         const laneFrame = data.indexOf('lane_state.v1') !== -1;
-        const celebFrame = !laneFrame && data.indexOf('simsync_state.v1') !== -1 && data.indexOf('"royalCelebration"') !== -1
-                           && /"royalCelebration"\s*:\s*\{/.test(data);
-        if (!laneFrame && !celebFrame) return;
+        const simsync = !laneFrame && data.indexOf('simsync_state.v1') !== -1;
+        const celebFrame = simsync && data.indexOf('"royalCelebration"') !== -1 && /"royalCelebration"\s*:\s*\{/.test(data);
+        // The results: only frames of the scoreboard phase, and only when the full scoreboard is on.
+        const sbFrame = simsync && !celebFrame && data.indexOf('"PLACEMENTS_READY"') !== -1 && sbWanted();
+        if (!laneFrame && !celebFrame && !sbFrame) return;
         try { takeFrame(JSON.parse(data)); } catch (e) { /* a broken frame is skipped */ }
     }
 

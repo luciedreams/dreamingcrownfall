@@ -55,6 +55,7 @@ panel/settings-app.js
 panel/esc-menu.js
 panel/tour.js
 layout/game-layout.js
+layout/scoreboard.js
 panel/welcome.js
 panel/update-toast.js
 panel/sound.js

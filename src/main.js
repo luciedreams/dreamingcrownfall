@@ -543,6 +543,8 @@ ipcMain.on('tabs:settings', () => showSettingsPage(''));
 // Settings › Stats › „Open the Stats tab“ (Spiel-Ebene).
 ipcMain.on('dcf:stats:open', (_e, tab) => select(STATS, tab || undefined));
 ipcMain.handle('tabs:state', () => tabState());
+// Scoreboard (Spiel-Ebene): alle in dieser App angemeldeten Accounts werden dort hervorgehoben.
+ipcMain.handle('dcf:accounts:players', () => views.map(v => v.playerId).filter(Boolean));
 // Rechtsklick auf einen Account-Rahmen: Menü im sichtbaren Spiel-Tab direkt unter dem Rahmen.
 ipcMain.on('tabs:ctx', (_e, i, x) => {
     const v = views[i];

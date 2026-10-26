@@ -135,6 +135,10 @@
             { key: 'throneDrinks', def: false, redraw: true, label: 'Pour beverages',
               hint: 'Opt-in. The beverages picked below are poured as soon as the game unlocks them, 15 seconds into your reign, each through the game\'s own button. Its limits still apply: every beverage, size and currency once per reign, and only with enough gold or diamonds. Starts with your next reign, never in the middle of one.' },
         ]},
+        { title: 'Lanes', blurb: 'The results at the end of a run.', items: [
+            { key: 'fullScoreboard', label: 'Scoreboard with everyone',
+              hint: 'At the end of a run the results cover the whole tile and list every player, not only the first eight: bid, how and when each marble went out, prize and run score, more when you point at a row. The accounts signed in to this app are marked. Off: the game\'s own scoreboard.' },
+        ]},
         { title: 'Ticket rail', blurb: 'Rebellion, Unbid, folding and extra chips.', items: [
             { key: 'railGroup', label: 'Rebellion button and folding',
               hint: 'Rebellion sits beside the chips, the bigger amounts fold away behind an arrow. While you are King it becomes Royal Celebration, beside the toll.' },

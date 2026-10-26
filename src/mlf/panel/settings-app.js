@@ -46,7 +46,7 @@
         { group: 'Game', pages: [
             { id: 'appearance', title: 'Appearance', icon: 'palette', blurb: 'Theme, colours and how windows look over the board.', parts: ['Theme', 'Windows'] },
             { id: 'performance', title: 'Performance', icon: 'gauge', blurb: 'Lighter drawing for slower machines, and the game\'s own graphics.', parts: ['Performance'] },
-            { id: 'screen', title: 'Game screen', icon: 'layout', blurb: 'The header cards, the ticket rail and the footer.', parts: ['Header', 'Ticket rail', 'Footer'] },
+            { id: 'screen', title: 'Game screen', icon: 'layout', blurb: 'The header cards, the results at the end of a run, the ticket rail and the footer.', parts: ['Header', 'Lanes', 'Ticket rail', 'Footer'] },
             { id: 'king', title: 'King & throne', icon: 'crown', blurb: 'The king tile, and what happens while you sit on the throne.', parts: ['King tile', 'On the throne'] },
             { id: 'chat', title: 'Chat', icon: 'chat', blurb: 'Messages, emotes, buttons and the enhanced chat.', parts: ['Chat'] },
             { id: 'cosmetics', title: 'Cosmetics', icon: 'sparkle', blurb: 'Hide cosmetics of marbles, chat and King — only for you.', parts: ['Cosmetics'] },
