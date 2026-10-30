@@ -1,5 +1,9 @@
     // Newest first. The first entry is what What's new shows after a fresh install.
     const CHANGELOG = [
+        { v: '0.13.1', date: '2026-10-30', items: [
+            'Combo Breaker in the new design: the countdown to the automatic combo break now sits at the bottom of the tile, right above the left bucket, next to the values you watch before going right. The Left / Right buttons no longer cover it.',
+            'If another tile ever shows a status line where the Left / Right buttons sit, they move just below it.',
+        ] },
         { v: '0.13.0', date: '2026-10-26', items: [
             'A new scoreboard at the end of a run. It covers the whole tile in your theme\'s colours and lists every player, not only the first eight: what each one bid, how and when their marble went out, the prize and the run score. Point at a row for more: the share of the pot, the prize per ticket bid and the points before and after.',
             'Your own accounts are marked on it, every account signed in to the app.',
