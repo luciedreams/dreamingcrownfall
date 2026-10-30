@@ -156,6 +156,9 @@
             ${GL_ON} [data-participation-controls] button[aria-pressed="true"][data-participation-option="left"]::before { content: '\\2713\\00a0\\2190\\00a0'; }
             ${GL_ON} [data-participation-controls] button[data-pending] { border: 1px dashed rgb(var(--gl-accent)) !important; }
             ${GL_ON} [data-participation-controls]:has(button[aria-pressed="true"], button[data-pending]) button:not([aria-pressed="true"]):not([data-pending]) { opacity: .5; }
+            /* Combo Breaker's countdown (last minute of the clock): the game draws it at the top; down here it sits above
+               the left bucket, next to the two values that decide when to take the jackpot. */
+            ${GL_ON} g:has(> text[data-tile-family-id="Combo Breaker"]) > text[data-runtime-status] { transform: translateY(920px); }
             html:not([data-dcf-gl-toll]) .dcf-gl-bar button[data-king-only], html[data-dcf-gl-toll] .dcf-gl-bar button[data-not-king] { display: none; }
             html[data-dcf-gl-toll] .dcf-gl-bar__grp[data-grp="bids"], html[data-dcf-gl-toll] .dcf-gl-bar__div { display: none; }
             .dcf-gl-bar__grp { display: flex; flex-direction: column; gap: 4px; }
@@ -569,7 +572,18 @@
         if (row.state.mode === 'king') { const k = glQ('[data-role="king-pane"]'); return k && { r: k.getBoundingClientRect(), king: true }; }
         const key = row.base.laneKey || (row.scope && row.scope.laneKey);
         const stage = [...document.querySelectorAll('[data-lane-stage-active-lane-key]')].find(s => s.getAttribute('data-lane-stage-active-lane-key') === key);
-        return stage ? { r: (stage.closest('[data-role="lane-panel"]') || stage).getBoundingClientRect(), king: false } : null;
+        const panel = stage && (stage.closest('[data-role="lane-panel"]') || stage);
+        return panel ? { r: panel.getBoundingClientRect(), king: false, el: panel } : null;
+    }
+    // A tile's own status line (Combo Breaker's countdown): the game draws it in the middle of the tile, by default
+    // right where the bar sits. The bar moves just below it, only while the two would actually overlap.
+    function glPartBelowStatus(el, x, y, bar) {
+        const h = bar.offsetHeight, w = bar.offsetWidth;
+        for (const t of el.querySelectorAll('text[data-runtime-status]')) {
+            const s = t.getBoundingClientRect();
+            if (s.width && s.top < y + h && s.bottom > y && s.left < x + w / 2 && s.right > x - w / 2) return Math.ceil(s.bottom) + 6;
+        }
+        return y;
     }
     function glPlaceParticipation() {
         const bar = glQ('[data-participation-controls]');
@@ -582,7 +596,7 @@
         // Players: at the top of their lane, under the tile's name — at the foot it covered the buckets and their
         // points (Luce, Chicken Out). The King steering Pinball: at the foot of the King tile, its top holds the reign.
         const top = !!(r && r.width && !at.king);
-        if (r && r.width) { x = r.left + r.width / 2; y = at.king ? r.bottom - 28 : r.top + 84; }
+        if (r && r.width) { x = r.left + r.width / 2; y = at.king ? r.bottom - 28 : glPartBelowStatus(at.el, x, r.top + 84, bar); }
         bar.toggleAttribute('data-dcf-part-top', top);
         // position: fixed counts from the nearest transformed ancestor (the game's bid-area is one), not the window.
         let cb = bar.parentElement;
