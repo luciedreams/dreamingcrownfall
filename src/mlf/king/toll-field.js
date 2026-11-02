@@ -14,16 +14,20 @@
     // stops there. The game's three controls are only hidden, never removed; renderKingTollControls
     // sets their properties but never rebuilds them.
     //
-    // The upper end comes from the game: /api/king/toll-capability (toll.maxBaseToll), the same
-    // answer the game's own buttons are clamped to. The field asks for it while the toll controls
-    // are on screen and never offers more than that. 17 is the game's own fallback
-    // (KING_TOLL_MAX in app.js) until the answer is in.
+    // Both ends come from the game: /api/king/toll-capability (toll.minBaseToll, toll.maxBaseToll),
+    // the same answer the game's own buttons are clamped to. The field asks for it while the toll
+    // controls are on screen and never offers more than that. 0 and 17 are the game's own fallback
+    // (KING_TOLL_MIN, KING_TOLL_MAX in app.js) until the answer is in. A negative toll pays the
+    // players from the King's points.
+    const TOLL_FALLBACK_MIN = 0;
     const TOLL_FALLBACK_MAX = 17;
     const TOLL_CAP_EVERY_MS = 60000;   // the server caches the answer for 60 s (cacheTtlMs)
     const TOLL_OK_SHOW_MS = 2500;
-    const tollCap = { max: TOLL_FALLBACK_MAX, at: 0, busy: false };
+    const tollCap = { min: TOLL_FALLBACK_MIN, max: TOLL_FALLBACK_MAX, at: 0, busy: false };
 
     function tollMax() { return tollCap.max; }
+    function tollMin() { return tollCap.min; }
+    function outOfButtonReach(n) { return n > TOLL_FALLBACK_MAX || n < TOLL_FALLBACK_MIN; }
 
     // Above 17 (DreamingCrownfall, 17.10.): the game's own buttons step through a list it never
     // updates — 0 to 17 (allowedValues in app.js stays at its default, applyKingTollTruth only
@@ -81,19 +85,26 @@
                 const vals = Array.isArray(t.allowedValues) ? t.allowedValues.map(Number).filter(Number.isFinite) : [];
                 const max = Number.isFinite(Number(t.maxBaseToll)) ? Math.trunc(Number(t.maxBaseToll))
                           : vals.length ? Math.max(...vals) : null;
-                if (max !== null && max >= 0 && max !== tollCap.max) { tollCap.max = max; applyTollMax(box); }
+                const min = Number.isFinite(Number(t.minBaseToll)) ? Math.trunc(Number(t.minBaseToll))
+                          : vals.length ? Math.min(...vals) : null;
+                const newMax = max !== null && max >= 0 ? max : tollCap.max;
+                const newMin = min !== null && min <= 0 ? min : tollCap.min;
+                if (newMax !== tollCap.max || newMin !== tollCap.min) { tollCap.max = newMax; tollCap.min = newMin; applyTollBounds(box); }
             })
             .catch(() => {})
             .finally(() => { tollCap.busy = false; });
     }
 
-    function applyTollMax(box) {
+    function applyTollBounds(box) {
         if (!box || !box.isConnected) return;
-        const max = String(tollMax());
+        const max = String(tollMax()), min = String(tollMin());
         const input = box.querySelector('.mcfo-toll__input');
         const range = box.querySelector('.mcfo-toll__range');
+        input.min = min;
         input.max = max;
-        input.title = 'Type 0 to ' + max + ' and press Enter \u00b7 Esc cancels';
+        input.title = 'Type ' + min + ' to ' + max + ' and press Enter \u00b7 Esc cancels'
+                    + (tollMin() < 0 ? ' \u00b7 below 0 you pay the players' : '');
+        range.min = min;
         range.max = max;
         box.querySelector('.mcfo-toll__max').textContent = '/ ' + max;
     }
@@ -103,7 +114,7 @@
         const raw = (role('king-toll-value')?.textContent || '').trim();
         return {
             controls,
-            value: /^\d+$/.test(raw) ? Number(raw) : null,
+            value: /^-?\d+$/.test(raw) ? Number(raw) : null,
             canEdit: controls ? controls.getAttribute('data-king-toll-can-edit') === 'true' : false,
             // The game writes its message into the container's title; without one it reads
             // "Current toll: N".
@@ -126,11 +137,11 @@
         const input = box.querySelector('.mcfo-toll__input');
         let want = Math.round(Number(target));
         if (st.value === null || !Number.isFinite(want) || String(target).trim() === '') { syncTollField(box, true); return; }
-        want = Math.max(0, Math.min(tollMax(), want));
+        want = Math.max(tollMin(), Math.min(tollMax(), want));
         input.value = String(want);
         input.removeAttribute('data-mcfo-dirty');
-        // Out of the game buttons' reach (above 17, or the server already stands above it): ask the server.
-        if (want > TOLL_FALLBACK_MAX || shownToll(st) > TOLL_FALLBACK_MAX) { if (want !== shownToll(st)) postToll(box, want); else syncTollField(box, true); return; }
+        // Out of the game buttons' reach (above 17 or below 0, or the server already stands there): ask the server.
+        if (outOfButtonReach(want) || outOfButtonReach(shownToll(st))) { if (want !== shownToll(st)) postToll(box, want); else syncTollField(box, true); return; }
         stepTollTo(want);
         syncTollField(box, true);
     }
@@ -154,7 +165,7 @@
         }
 
         const status = box.querySelector('.mcfo-toll__status');
-        // Our own request (above 17) speaks for a few seconds, like the game's message would.
+        // Our own request (outside 0 to 17) speaks for a few seconds, like the game's message would.
         const own = tollServer.msg && Date.now() - tollServer.msgAt < TOLL_OK_SHOW_MS + 500 ? tollServer.msg : '';
         const msg = own ? (own === 'Updated' ? 'Toll updated.' : own === 'Syncing…' ? 'Syncing toll...' : own) : /^Current toll:/i.test(st.message) ? '' : st.message.trim();
         let text = '', tone = '';
@@ -202,7 +213,7 @@
             range.addEventListener('input', () => { input.value = range.value; });
             range.addEventListener('change', () => { box._mcfoDragging = false; commitToll(box, range.value); });
             controls.appendChild(box);
-            applyTollMax(box);
+            applyTollBounds(box);
 
             // The value and the game's message change between our 1.5 s passes; follow them
             // directly so "Syncing…" and the new number show at once.

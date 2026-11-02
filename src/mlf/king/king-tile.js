@@ -162,7 +162,7 @@
         if (name) kingState.name = name;
         if (toll !== undefined && toll !== null) {
             const n = Number(toll);
-            if (Number.isInteger(n) && n >= 0) kingState.toll = n;
+            if (Number.isInteger(n)) kingState.toll = n;   // negative: the King pays the players
         }
         kingState.at = Date.now();
         drawKingFields();

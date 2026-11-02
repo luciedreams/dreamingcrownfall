@@ -52,7 +52,7 @@
     // (checked: the only match on the page is our own field), so it cannot be read off the page.
     // At 60 s the wrong name stood there for minutes after a throne change.
     const KING_POLL_MS  = 20000;
-    const TOLL_PATTERN  = /\bchanged the Crown toll\b[^.]*\.\s*Current toll:\s*(\d+)/i;
+    const TOLL_PATTERN  = /\bchanged the Crown toll\b[^.]*\.\s*Current toll:\s*(-?\d+)/i;
     // "CROWN CLAIMED! DreamingLucie has captured the Crown from InfernalShock. Long live the
     // King!" — wording taken from recorded chat. This line is in the chat immediately, long
     // before the next poll is due, so it carries the new name straight away.

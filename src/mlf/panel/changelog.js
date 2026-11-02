@@ -1,5 +1,9 @@
     // Newest first. The first entry is what What's new shows after a fresh install.
     const CHANGELOG = [
+        { v: '0.13.2', date: '2026-11-02', items: [
+            'Negative tolls now show on the King tile. A King who pays the players no longer looks like a King without a toll.',
+            'On the throne the toll field accepts negative values, as far down as the game allows for your account.',
+        ] },
         { v: '0.13.1', date: '2026-10-30', items: [
             'Combo Breaker in the new design: the countdown to the automatic combo break now sits at the bottom of the tile, right above the left bucket, next to the values you watch before going right. The Left / Right buttons no longer cover it.',
             'If another tile ever shows a status line where the Left / Right buttons sit, they move just below it.',
