@@ -1,5 +1,8 @@
     // Newest first. The first entry is what What's new shows after a fresh install.
     const CHANGELOG = [
+        { v: '0.14.1', date: '2026-11-08', items: [
+            'The game\'s new Current Toll plaque on the King tile is gone: the toll the King has set already shows as a line in the top-right corner. Switch off Settings › King tile › Reign read-outs to get the game\'s plaque back.',
+        ] },
         { v: '0.14.0', date: '2026-11-08', items: [
             'Gemstones: the game\'s four new currencies (Rubies, Sapphires, Emeralds and Topaz) now sit in the top bar, right after your diamonds. Point at them for the exact numbers.',
             'Home shows each account\'s gemstones on its card, and the account frames in the tab bar list them when you point at them.',

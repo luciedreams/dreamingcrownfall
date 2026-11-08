@@ -68,6 +68,9 @@
         html[data-mcfo-kc~="tolls"]    [data-role="king-corner-tolls"],
         html[data-mcfo-kc~="thwarted"] [data-role="king-corner-thwarted"] { display: none !important; }
         html[data-mcfo-kc~="off"] .mcf-king-corner-labels { display: none !important; }
+        /* Game v1.0.0 added a "Current Toll" plaque under the read-outs. The set toll is already
+           our own line in the right column (.mcfo-kc-toll), so the plaque goes (Luce, 08.11.2026). */
+        html[data-mcfo-kc] [data-role="king-current-toll"] { display: none !important; }
         /* Our line inside the game's right column: same font, the value in the game's gold. */
         .mcfo-kc-toll b { font-weight: 700; color: #f4d28b; }
         .mcfo-kc-toll[data-mcfo-stale="1"] { opacity: 0.45; }
