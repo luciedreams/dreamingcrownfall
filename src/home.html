@@ -341,7 +341,7 @@
 
         const k = s.king, kb = $('king');
         kb.className = 'king' + (k && k.mine >= 0 ? ' mine' : '');
-        kb.textContent = k ? `👑 ${k.mine >= 0 ? 'Your ' + (s.accounts[k.mine]?.name || 'account') : k.name} is King · ${mins(Date.now() - k.since)}` : '👑 King: …';
+        kb.textContent = k && k.npc ? '👑 King: —' : k ? `👑 ${k.mine >= 0 ? 'Your ' + (s.accounts[k.mine]?.name || 'account') : k.name} is King · ${mins(Date.now() - k.since)}` : '👑 King: …';
 
         const reset = acc.map((a) => a.resetAtMs).find(Boolean);
         $('reset').textContent = reset ? `Dailies reset in ${mins(reset - Date.now())}` : '';

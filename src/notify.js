@@ -187,6 +187,12 @@ module.exports = function startNotifier({ views, icon, isWatching, isFocused, fo
         }
     }
 
+    // ---- NPCs (Spiel v1.0): mit Settings › General › Hide NPCs (game.hideNpcs) nennt die App sie nirgends.
+    // Namen aus King-Snapshot und Chat (playerId npc:…) — Rebellions-Zeilen tragen nur den Namen.
+    const npcNames = new Set();
+    const hideNpcs = () => setting('game.hideNpcs') === true;
+    const isNpc = (id) => String(id || '').startsWith('npc:');
+
     // ---- King-Snapshot: Thronwechsel + Royal Celebration ------------------------------------
 
     async function checkKing() {
@@ -195,15 +201,17 @@ module.exports = function startNotifier({ views, icon, isWatching, isFocused, fo
         const k = d?.king;
         if (k && k.playerId) {
             const prev = st.king, prevName = st.kingName;
+            if (isNpc(k.playerId) && k.displayName) npcNames.add(k.displayName);
             st.king = k.playerId; st.kingName = k.displayName || '';
             st.kingSince = Number(k.capturedAtMs) || (prev !== k.playerId ? Date.now() : st.kingSince || Date.now());
             if (prev === undefined) console.log(`[dcf] King-Snapshot ok: ${st.kingName}`);
             if (prev !== undefined && prev !== k.playerId) {
                 const neu = ownIndexById(k.playerId), alt = ownIndexById(prev);
+                const prevNpc = hideNpcs() && isNpc(prev), neuNpc = hideNpcs() && isNpc(k.playerId);
                 if (neu >= 0) notify({ kind: 'king', tab: neu, title: `👑 ${label(neu)} is King!`,
-                    body: prevName ? `Took the throne from ${prevName}` : 'Took the throne' });
+                    body: prevName && !prevNpc ? `Took the throne from ${prevName}` : 'Took the throne' });
                 else if (alt >= 0) notify({ kind: 'king', tab: alt, title: `💔 ${label(alt)} lost the throne`,
-                    body: `${k.displayName || 'Someone'} took the crown` });
+                    body: `${(!neuNpc && k.displayName) || 'Someone'} took the crown` });
             }
         }
         // Royal Celebration: je ID einmal; was beim ersten Abruf schon läuft, ist Wasserstand.
@@ -213,7 +221,7 @@ module.exports = function startNotifier({ views, icon, isWatching, isFocused, fo
             st.celebs.add(rc.id);
             if (st.kingSeen && ['pending', 'ready', 'active'].includes(String(rc.state))) {
                 const own = ownIndexById(rc.playerId);
-                const who = rc.playerId === k?.playerId ? (k.displayName || 'The King') : 'The King';
+                const who = rc.playerId === k?.playerId && !(hideNpcs() && isNpc(k.playerId)) ? (k.displayName || 'The King') : 'The King';
                 notify({ kind: 'celebration', global: own < 0, tab: own >= 0 ? own : null,
                     title: `🎉 Royal Celebration${rc.multiplier ? ` x${rc.multiplier}` : ''}`,
                     body: `${who} is celebrating` + (rc.tiles ? ` · ${rc.tiles} tiles` : '') });
@@ -231,8 +239,10 @@ module.exports = function startNotifier({ views, icon, isWatching, isFocused, fo
         const text = String(m?.body?.text || '');
         if (!text) return;
         const kind = m?.sender?.kind;
+        if (isNpc(m?.sender?.playerId)) { if (m.sender.displayName) npcNames.add(m.sender.displayName); if (hideNpcs()) return; }
         if (kind === 'system') {
             const reb = text.match(/^(.*?)\s+has started a x(\d+) Rebellion\b/i);
+            if (reb && hideNpcs() && npcNames.has(reb[1].trim())) return;
             if (reb) notify({ kind: 'rebellion', global: true, title: `⚡ Rebellion x${reb[2]}`, body: text });
             return;
         }
@@ -296,6 +306,7 @@ module.exports = function startNotifier({ views, icon, isWatching, isFocused, fo
 
     // Für Home: der aktuelle King, egal ob eigener Account.
     function kingNow() {
+        if (st.king && hideNpcs() && isNpc(st.king)) return { playerId: null, name: '—', npc: true, since: st.kingSince || Date.now(), rc: st.rc || null };
         return st.king ? { playerId: st.king, name: st.kingName, since: st.kingSince || Date.now(), rc: st.rc || null } : null;
     }
 

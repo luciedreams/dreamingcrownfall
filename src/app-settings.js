@@ -27,6 +27,9 @@ const SCHEMA = {
     'ui.sounds': true,        // leise Klänge der App-Menüs und beim Account-Wechsel (tabs.html, seit 0.7.0)
     'ui.soundVolume': 40,
     'stability.recover': true,
+    // NPCs ausblenden (0.15.0, Luce): Chat, Scoreboard, Bieter-Leiste, King-Anzeigen; Murmeln im Tile eigener Unterschalter.
+    'game.hideNpcs': false,
+    'game.hideNpcMarbles': true,
     'shortcuts.global': false,
     'autostart.hidden': true,   // Autostart im Tray (sonst mit sichtbarem Fenster)
     'notify.enabled': true,

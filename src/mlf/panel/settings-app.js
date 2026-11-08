@@ -68,6 +68,8 @@
         { page: 'general', part: 'layout', key: 'ui.sidePanels', label: 'Windows as side panels', hint: 'Inventory, profile and achievements open as a panel on the left, shop, dailies, leaderboards and the rest on the right, one per side, like the frames in an MMO. Off: free windows as before — move them, resize them and minimise them into the taskbar.', needs: 'ui.gameLayout' },
         { page: 'general', part: 'windows', key: 'ui.transitions', label: 'Smooth transitions', hint: 'Switching between accounts, Home, Stats and the wiki fades over instead of cutting hard. Windows inside the game open and close softly and fly into the taskbar when you minimise them.' },
         { page: 'general', part: 'windows', key: 'ui.sounds', label: 'Interface sounds', hint: 'Soft sounds when the game menu, the shortcuts card or the right-click menu open and close, when you pick an entry and when you switch accounts. Nothing plays on mouse-over.' },
+        { page: 'general', part: 'npcs', key: 'game.hideNpcs', label: 'Hide NPCs', hint: 'Since game v1.0 computer players (NPCs) take the throne, play tiles, start Rebellions and talk in chat. On: their chat lines and the system lines about them are gone, both scoreboards and the Rebellion rack leave them out, Home, the HUD and notifications do not name an NPC King, and the King tile drops the bounty plaque. Off by default: the game as it comes.' },
+        { page: 'general', part: 'npcs', key: 'game.hideNpcMarbles', label: 'Their marbles too', hint: 'NPC marbles disappear from the bidder rail and the running tile — it is the same marble walking from one into the other. They still take part: other marbles bounce off them, now off nothing you can see. Off: their marbles stay visible, only the rest is hidden.', needs: 'game.hideNpcs' },
         { page: 'general', part: 'stability', key: 'stability.recover', label: 'Recover on its own', hint: 'A tab that hangs for 30 seconds or crashes reloads itself; a page that does not load tries again. After sleep or a lost internet connection every tab reloads once, so chat and tickets do not sit on a dead connection.' },
         { page: 'general', part: 'shortcuts', key: 'shortcuts.global', label: 'Shortcuts outside the app', hint: 'Work while you are in another program too: Ctrl+Alt+M shows or hides the window, Ctrl+Alt+N goes to your next account, Ctrl+Alt+C puts the cursor in the chat. On Linux with Wayland the desktop asks once whether the app may have them. Inside the app, F2 opens and closes the HUD (built to your liking in Settings › HUD).' },
         { page: 'general', key: 'app.autostart', label: 'Start with your computer', hint: 'Starts when you log in, so notifications keep coming and your sessions stay fresh.' },
@@ -320,7 +322,7 @@
         const state = api.settings();
         const items = DCF_APP_ITEMS.filter(i => i.page === page.id);
         if (page.id === 'general') {
-            for (const [title, group] of [['Start', undefined], ['Layout', 'layout'], ['Windows', 'windows'], ['Shortcuts', 'shortcuts'], ['Stability', 'stability']]) {
+            for (const [title, group] of [['Start', undefined], ['Layout', 'layout'], ['NPCs', 'npcs'], ['Windows', 'windows'], ['Shortcuts', 'shortcuts'], ['Stability', 'stability']]) {
                 const part = dcfPart(title);
                 const card = dcfEl('div', 'mcfo-set__card');
                 for (const i of items.filter(x => x.part === group)) card.appendChild(dcfAppSwitch(i, state));

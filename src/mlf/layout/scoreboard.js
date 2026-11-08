@@ -116,7 +116,8 @@
 
     function sbBuild(board, data, tileH) {
         sbStyles();
-        const rows = sbRows(data);
+        // Hide NPCs (boot/lane-tap.js): their rows go, the places of everyone else stay the game's.
+        const rows = sbRows(data).filter(r => !(npcOn && /(^|:)npc:/.test(String(r.playerId || r.userId || r.marbleId || ''))));
         const own = sbOwnPlayers();
         const p = glPalette();
         const root = document.createElement('div');

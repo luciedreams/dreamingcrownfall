@@ -286,17 +286,112 @@
         return v;
     }
 
+    // --- Hide NPCs (DreamingCrownfall 0.15.0, app setting game.hideNpcs) ---
+    // Since game v1.0 computer players take the throne, play tiles, start Rebellions and talk in chat - as
+    // ordinary players (sender.kind 'player'); only their id tells them apart: npc:elian-thread, npc:regimequit.
+    // With the switch on:
+    //   chat     their lines, and system lines naming one (crown claimed, bounty, Rebellion), never reach the
+    //            chat pane (chat.room.message, chat.room.history); they leave the !tomato suggestions too
+    //   marbles  by stylesheet: the game names every marble marble:user:<playerId> (data-marble-id) - the same
+    //            elements walk from the bidder rail into the tile, so both go together, with
+    //            game.hideNpcMarbles. Rows of the game's own scoreboard carry user:<playerId>, the
+    //            Rebellion rack the player id itself: those go with the main switch.
+    //   King     the bounty plaque (only NPC kings carry one)
+    // The game's data is never changed for the marbles: the physics needs every one of them.
+    // Names are learned from every frame that carries an npc: id - the system lines only have the name.
+    const npcNames = new Set();
+    let npcOn = false, npcMarbles = true;
+    const NPC_CSS = 'html[data-dcf-npc] [data-role="king-bounty"],'
+        + ' html[data-dcf-npc] [data-rebellion-player-id^="npc:"], html[data-dcf-npc] [data-rebellion-rack-player-id^="npc:"],'
+        + ' html[data-dcf-npc] [data-marble-id^="user:npc:"],'
+        + ' html[data-dcf-npc-tile] [data-marble-id^="marble:user:npc:"] { display: none !important; }';
+    // This part runs before the page has an <html>: attribute and stylesheet wait for it.
+    function npcDom() {
+        const html = document.documentElement;
+        if (!html || !document.head) return false;
+        html.toggleAttribute('data-dcf-npc', npcOn);
+        html.toggleAttribute('data-dcf-npc-tile', npcOn && npcMarbles);
+        if (!document.getElementById('dcf-npc-css')) {
+            const css = document.createElement('style');
+            css.id = 'dcf-npc-css';
+            css.textContent = NPC_CSS;
+            document.head.appendChild(css);
+        }
+        return true;
+    }
+    function npcSettings(st) {
+        npcOn = !!(st && st['game.hideNpcs']);
+        npcMarbles = !st || st['game.hideNpcMarbles'] !== false;
+        npcDom();
+    }
+    try {
+        const app = pageWindow.dcfApp;
+        if (app && typeof app.settings === 'function') {
+            npcSettings(app.settings());
+            if (typeof app.onChange === 'function') app.onChange(npcSettings);
+        }
+        if (!npcDom()) document.addEventListener('DOMContentLoaded', npcDom, { once: true });
+    } catch (e) { /* without the bridge (the plain website) nothing is hidden */ }
+    // Whole words, and never an all-lowercase name: there is an NPC called "tomato".
+    function npcNamed(text) {
+        const t = String(text || '');
+        if (/\bawaits the next player to dethrone\b/i.test(t)) return true;
+        for (const n of npcNames) {
+            if (/^[a-z]+$/.test(n)) continue;
+            for (let i = t.indexOf(n); i >= 0; i = t.indexOf(n, i + 1)) {
+                const a = t[i - 1], b = t[i + n.length];
+                if (!(a && /\w/.test(a)) && !(b && /\w/.test(b))) return true;
+            }
+        }
+        return false;
+    }
+    const NPC_PAIR = /"playerId":"npc:[^"]*"[^{}]*?"displayName":"([^"]{3,40})"|"displayName":"([^"]{3,40})"[^{}]*?"playerId":"npc:[^"]*"/g;
+    function npcLearn(txt) {
+        if (txt.indexOf('"npc:') === -1) return;
+        NPC_PAIR.lastIndex = 0;
+        for (let m; (m = NPC_PAIR.exec(txt));) npcNames.add(m[1] || m[2]);
+    }
+    const npcMsg = m => !!m && !!m.sender && (String(m.sender.playerId || '').startsWith('npc:')
+        || (m.sender.kind !== 'player' && npcNamed(m.body && m.body.text)));
+    // A chat frame: null = drop it, a string = the frame without the NPCs, undefined = as it came.
+    function npcChat(txt) {
+        if (txt.indexOf('"chat.room.') === -1 && txt.indexOf('"chat.active_users"') === -1) return undefined;
+        let o;
+        try { o = JSON.parse(txt); } catch (e) { return undefined; }
+        if (o.type === 'chat.room.message') return npcMsg(o.message) ? null : undefined;
+        if (o.type === 'chat.room.history' && Array.isArray(o.messages)) {
+            const keep = o.messages.filter(m => !npcMsg(m));
+            return keep.length === o.messages.length ? undefined : JSON.stringify(Object.assign({}, o, { messages: keep }));
+        }
+        if (o.type === 'chat.active_users' && Array.isArray(o.users)) {
+            const keep = o.users.filter(u => !String((u && u.playerId) || '').startsWith('npc:'));
+            return keep.length === o.users.length ? undefined : JSON.stringify(Object.assign({}, o, { users: keep }));
+        }
+        return undefined;
+    }
+
     // Wraps a page message listener (gameplay, chat and king sockets). Frames that carry nothing
     // to hide - binary physics, digests, everything while all switches are off - go through as they came.
     const cosWrapped = new WeakMap();
     function cosmeticFilter(fn) {
         if (cosWrapped.has(fn)) return cosWrapped.get(fn);
         const w = function (e) {
-            if (cosConcerns(e.data)) {
-                let ev = null;
+            let data = e.data, changed = false;
+            if (npcOn && typeof data === 'string') {
                 try {
-                    ev = new pageWindow.MessageEvent('message', { data: JSON.stringify(JSON.parse(e.data, cosReviver)), origin: e.origin, lastEventId: e.lastEventId });
-                } catch (err) { /* a frame we cannot read goes through as it came */ }
+                    npcLearn(data);
+                    const r = npcChat(data);
+                    if (r === null) return undefined;            // an NPC's line: the chat never sees it
+                    if (typeof r === 'string') { data = r; changed = true; }
+                } catch (err) { /* never let the filter break the socket */ }
+            }
+            if (cosConcerns(data)) {
+                try { data = JSON.stringify(JSON.parse(data, cosReviver)); changed = true; }
+                catch (err) { /* a frame we cannot read goes through as it came */ }
+            }
+            if (changed) {
+                let ev = null;
+                try { ev = new pageWindow.MessageEvent('message', { data, origin: e.origin, lastEventId: e.lastEventId }); } catch (err) {}
                 if (ev) return fn.call(this, ev);
             }
             return fn.call(this, e);

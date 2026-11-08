@@ -1,5 +1,10 @@
     // Newest first. The first entry is what What's new shows after a fresh install.
     const CHANGELOG = [
+        { v: '0.15.0', date: '2026-11-08', items: [
+            'Hide NPCs: a new switch in Settings › General for anyone who finds the game\'s computer players more noise than fun. Their chat lines are gone, and so are the system lines about them (crown taken, bounty, their Rebellions). Both scoreboards and the Rebellion rack leave them out, and Home, the HUD and notifications no longer name an NPC King. The bounty plaque on the King tile goes as well.',
+            'With "Their marbles too" (on by default once Hide NPCs is on) NPC marbles also vanish from the bidder rail and the running tile. They still take part, so other marbles may bounce off something you cannot see; switch it off to keep their marbles in view.',
+            'Off by default: the game stays as it comes until you switch it on.',
+        ] },
         { v: '0.14.1', date: '2026-11-08', items: [
             'The game\'s new Current Toll plaque on the King tile is gone: the toll the King has set already shows as a line in the top-right corner. Switch off Settings › King tile › Reign read-outs to get the game\'s plaque back.',
         ] },

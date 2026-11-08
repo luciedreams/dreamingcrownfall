@@ -86,7 +86,7 @@ module.exports = function createHome({ win, views, label, stats, kingNow, onSele
     function snapshot() {
         const k = kingNow();
         return {
-            king: k ? { name: k.name, since: k.since, mine: views.findIndex((v) => v.playerId && v.playerId === k.playerId) } : null,
+            king: k ? { name: k.name, since: k.since, npc: !!k.npc, mine: k.npc ? -1 : views.findIndex((v) => v.playerId && v.playerId === k.playerId) } : null,
             stats: stats?.data() || null,
             accounts: views.map((v, i) => ({
                 index: i,
