@@ -460,6 +460,8 @@
             { name: dcfMyName() || 'You', tickets: 1240, earning: true, gold: 9310, diamonds: 320, points: 48200000 },
             { name: 'Alt', tickets: 980, earning: false, gold: 3493, diamonds: 135, points: 12700000 }];
         // Gold/diamonds/points only arrive while the HUD fetches them — examples until then.
+        // Gemstones: from the tabs once read (window.__dcfGems), examples until then.
+        per.forEach((a, i) => { if (a.gems == null) a.gems = [{ ruby: 15, sapphire: 60, emerald: 10, topaz: 2 }, { ruby: 3, sapphire: 45, emerald: 0, topaz: 1 }][i % 2]; });
         per.forEach((a, i) => { if (a.gold == null) a.gold = [9310, 3493][i % 2]; if (a.diamonds == null) a.diamonds = [320, 135][i % 2]; if (a.points == null) a.points = [48200000, 12700000][i % 2]; });
         return {
             king: d.king || { name: 'cookingsumEP', since: Date.now() - 14 * 60000, mine: false },
@@ -468,6 +470,7 @@
             perAccount: per,
             earning: d.earning && d.earning.total ? d.earning : { n: per.filter(a => a.earning).length, total: per.length },
             gold: d.gold != null ? d.gold : 12803, diamonds: d.diamonds != null ? d.diamonds : 455, claim: d.claim != null ? d.claim : 2,
+            gems: d.gems || per.reduce((t, a) => { for (const k of ['ruby', 'sapphire', 'emerald', 'topaz']) t[k] = (t[k] || 0) + ((a.gems && a.gems[k]) || 0); return t; }, {}),
             points: d.points != null ? d.points : per.reduce((n, a) => n + (a.points || 0), 0),
             // MarbleMind pieces: real values once loaded, examples until then (only drawn with Settings › Stats on).
             mm: d.mm && d.mm.today ? d.mm : (d.mm || dcfStatsOn()) ? {

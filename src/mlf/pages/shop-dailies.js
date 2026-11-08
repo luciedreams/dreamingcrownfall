@@ -78,7 +78,11 @@
     const rewardText = r => {
         const n = Number(r && r.amount);
         const cur = String(r && r.currency || '').replace(/s$/, '');   // gold, diamond, ticket
-        return n > 0 ? '+' + n.toLocaleString('en-US') + ' ' + cur + (cur === 'gold' || n === 1 ? '' : 's') : '';
+        const main = n > 0 ? '+' + n.toLocaleString('en-US') + ' ' + cur + (cur === 'gold' || n === 1 ? '' : 's') : '';
+        // Since game v1.0.1 quests pay gemstones as well (reward.gemstones, header/gemstones.js).
+        const gems = GEMS.filter(g => Number(r && r.gemstones && r.gemstones[g.key]) > 0)
+            .map(g => '+' + Number(r.gemstones[g.key]).toLocaleString('en-US') + ' ' + g.name);
+        return [main, ...gems].filter(Boolean).join(', ');
     };
 
     async function claimDailies(auto) {
@@ -119,6 +123,7 @@
         } finally {
             daily.busy = false;
             showDailyDot();
+            gemSoon();
         }
     }
 

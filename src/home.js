@@ -6,6 +6,7 @@
 //   Kopfzeile des Spiels  → Tickets und ihr Status („Earning …“ / „Inactive …“), live vom Socket
 //   /api/stats/me         → Punkte, Gold, VIP, Thron-Werte der Episode
 //   /api/king/beverages/me → Diamanten (balances.diamonds)
+//   window.__dcfGems      → Edelsteine (holt der Spiel-Tab selbst, mlf/header/gemstones.js)
 //   /api/dailies          → Quests (erledigt/abholbar, dazu jede einzeln mit Fortschritt für die
 //                           Quest-Tabelle) und Daily Items (abholbar), Regeln wie in der Spiel-Ebene
 // King: aus dem Snapshot des Notifiers (alle 15 s).
@@ -57,6 +58,8 @@ const COLLECT_JS = `(async () => {
             claimable: items.filter((i) => i.status !== 'claimed' && i.status !== 'locked').length,
         },
         resetAtMs: Number(daily?.questsResetAtMs) || null,
+        // Edelsteine (Spiel v1.0.1) holt der Tab selbst (mlf/header/gemstones.js) — nur ablesen.
+        gems: window.__dcfGems && window.__dcfGems.values ? window.__dcfGems.values : null,
     };
 })()`;
 

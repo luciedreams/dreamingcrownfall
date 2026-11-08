@@ -106,6 +106,11 @@
             .dcf-gl-res__nav button[data-on] { color: rgb(var(--gl-accent)); border-color: rgba(var(--gl-accent), .5); background: rgba(var(--gl-accent), .1); }
             .dcf-gl-res__nav button:focus:not(:focus-visible) { outline: none; }
             .dcf-gl-res__nav svg { width: 18px; height: 18px; }
+            /* Gemstones (game v1.0.1): one cell, the four of them side by side (header/gemstones.js) */
+            .dcf-gl-res__gems { gap: 10px; padding-right: 10px; cursor: default; }
+            .dcf-gl-res__gems[hidden] { display: none; }
+            .dcf-gl-res__gem { display: inline-flex; align-items: center; gap: 4px; }
+            .dcf-gl-res__gem img { width: 18px; height: 18px; flex: none; filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .45)); }
             .dcf-gl-res__fps { font-weight: 600; font-size: 11.5px; opacity: .65; padding: 0 8px 0 4px; white-space: nowrap; font-variant-numeric: tabular-nums; }
             ${GL_ON} .mcfo-fps { display: none !important; }
             /* Themes that put a plaque over the King tile (The Lost Bookshop's quote): the resource bar sits
@@ -472,6 +477,23 @@
             res.append(c);
             return { roleName: r.role, r, c, v, dot };
         });
+        // Gemstones: no card of the game behind it, values from window.__dcfGems (header/gemstones.js).
+        const gems = document.createElement('div');
+        gems.className = 'dcf-gl-res__c dcf-gl-res__gems';
+        gems.hidden = true;
+        const gemNums = new Map();
+        for (const g of GEMS) {
+            const x = document.createElement('span');
+            x.className = 'dcf-gl-res__gem';
+            const img = document.createElement('img');
+            img.src = gemIcon(g.key); img.alt = '';
+            const b = document.createElement('span');
+            b.textContent = '–';
+            x.append(img, b);
+            gems.append(x);
+            gemNums.set(g.key, b);
+        }
+        res.append(gems);
         const sep = document.createElement('i');
         sep.className = 'dcf-gl-res__sep';
         const ev = document.createElement('div');
@@ -537,7 +559,7 @@
         atk.hidden = true;
         atk.innerHTML = '<i></i><span></span><small>click to cancel</small>';
         atk.addEventListener('click', e => { e.stopPropagation(); const s = GL_SLOTS.find(x => x.id === 'attack'); if (s) glFire(s); });
-        glBuilt = { res, chips, ev, fps, bar, buttons, pages, atk };
+        glBuilt = { res, chips, gems, gemNums, ev, fps, bar, buttons, pages, atk };
         return glBuilt;
     }
 
@@ -622,6 +644,17 @@
                 const t = `Tickets · ${earning ? 'earning' : 'not earning'} · click: ${ch.r.hint}`;
                 if (ch.c.title !== t && !ch.c.matches(':hover')) ch.c.title = t;   // under the mouse the tooltip holds it
             }
+        }
+        const gd = window.__dcfGems;
+        glBuilt.gems.hidden = !gd;
+        if (gd) {
+            for (const g of GEMS) {
+                const txt = number(gd.values[g.key]);
+                const b = glBuilt.gemNums.get(g.key);
+                if (b.textContent !== txt) b.textContent = txt;
+            }
+            const gt = gemTitle(gd);
+            if (glBuilt.gems.title !== gt && !glBuilt.gems.matches(':hover')) glBuilt.gems.title = gt;
         }
         const t = (glQ('[data-role="session-cell"]')?.textContent || '').replace(/\s+/g, ' ');
         const set = (glQ('[data-role="current-tileset-name"]')?.textContent || '').trim() || (/Current:\s*(.+?)\s+Season/.exec(t) || [])[1] || '';

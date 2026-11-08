@@ -3,7 +3,7 @@
 // main.js/handleKeys), im Tray oder in den Settings. Ohne Rahmen, an sich selbst verschiebbar,
 // durchsichtig (Deckkraft), zeigt sich, ohne den Fokus zu nehmen, und passt seine Größe dem
 // Inhalt an. Abgerufen wird nur, was eingeschaltet ist, und nur solange es offen ist:
-//   Kopfzeile jedes Spiel-Tabs (Tickets + Status)  alle 10 s  — kein API-Aufruf
+//   Kopfzeile jedes Spiel-Tabs (Tickets + Status, Edelsteine aus window.__dcfGems)  alle 10 s  — kein API-Aufruf
 //   /api/stats/me, /api/king/beverages/me, /api/dailies  alle 60 s  — nur für Gold/Diamanten/Punkte/Abholbares
 // King und Royal Celebration kommen aus dem Snapshot des Notifiers.
 // MarbleMind-Bausteine (mm…) aus stats.js — dort abgerufen, solange das HUD offen ist und einer an ist.
@@ -17,6 +17,7 @@ const config = require('./hud-config.js');
 
 const FAST_MS = 10 * 1000;
 const SLOW_MS = 60 * 1000;
+const GEM_KEYS = ['ruby', 'sapphire', 'emerald', 'topaz'];
 const API_ITEMS = ['money', 'goldPer', 'diamondsPer', 'points', 'pointsPer', 'claim']; // brauchen API_JS
 
 const HEADER_JS = `(() => { const c = document.querySelector('[data-role="metric-cell"][data-metric-role="tickets"]');
@@ -24,7 +25,9 @@ const HEADER_JS = `(() => { const c = document.querySelector('[data-role="metric
     const n = Number(String(c.querySelector('[data-role="tickets"]')?.textContent || '').replace(/[^0-9]/g, ''));
     const s = document.querySelector('[data-role="session-cell"] [data-role="socket"]') || document.querySelector('[data-role="socket"]');
     const status = String(s?.textContent || '').trim();
-    return { tickets: Number.isFinite(n) ? n : null, earning: /earning/i.test(status) && !/not earning/i.test(status) }; })()`;
+    const g = window.__dcfGems;   // Edelsteine: holt der Spiel-Tab selbst (mlf/header/gemstones.js)
+    return { tickets: Number.isFinite(n) ? n : null, earning: /earning/i.test(status) && !/not earning/i.test(status),
+        gems: g && g.values ? g.values : null }; })()`;
 
 const API_JS = `(async () => {
     const j = (p) => fetch(p, { credentials: 'same-origin' }).then((r) => (r.ok ? r.json() : null)).catch(() => null);
@@ -81,7 +84,10 @@ module.exports = function createHud({ views, stats, kingNow, icon, onToggle, ope
             perAccount: acc.map((v) => ({
                 name: v.name || 'Account', tickets: header.get(v)?.tickets ?? null, earning: !!header.get(v)?.earning,
                 gold: api.get(v)?.gold ?? null, diamonds: api.get(v)?.diamonds ?? null, points: api.get(v)?.points ?? null,
+                gems: header.get(v)?.gems ?? null,
             })),
+            gems: GEM_KEYS.some((k) => acc.some((v) => header.get(v)?.gems?.[k] != null))
+                ? Object.fromEntries(GEM_KEYS.map((k) => [k, acc.reduce((n, v) => n + (Number(header.get(v)?.gems?.[k]) || 0), 0)])) : null,
             earning: { n: acc.filter((v) => header.get(v)?.earning).length, total: acc.length },
             gold: sum(api, 'gold'),
             diamonds: sum(api, 'diamonds'),
@@ -98,7 +104,7 @@ module.exports = function createHud({ views, stats, kingNow, icon, onToggle, ope
     // stats.js holt nur, solange das HUD offen ist und mindestens ein MarbleMind-Baustein an ist.
     const wantStats = () => stats?.want('hud', isOpen() && config.get().items.some((i) => i.on && i.id.startsWith('mm')));
     async function readHeaders() {
-        const on = config.get().items.some((i) => i.on && ['tickets', 'ticketsPer', 'earning'].includes(i.id));
+        const on = config.get().items.some((i) => i.on && ['tickets', 'ticketsPer', 'earning', 'gems', 'gemsPer'].includes(i.id));
         if (on) await Promise.all(views.filter(live).map(async (v) => {
             const d = await v.view.webContents.executeJavaScript(HEADER_JS).catch(() => null);
             if (d) header.set(v, d);

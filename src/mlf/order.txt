@@ -29,6 +29,7 @@ king/throne.js
 header/signposts.js
 header/tileset-card.js
 header/ticket-history.js
+header/gemstones.js
 rail/ticket-rail.js
 rail/autobid.js
 king/rebellion.js

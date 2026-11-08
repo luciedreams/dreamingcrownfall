@@ -16,6 +16,8 @@ const ITEMS = [
     { id: 'money', on: false },      // Gold und Diamanten aller Accounts
     { id: 'goldPer', on: false },    // Gold je Account
     { id: 'diamondsPer', on: false }, // Diamanten je Account
+    { id: 'gems', on: false },       // Edelsteine aller Accounts (Spiel v1.0.1)
+    { id: 'gemsPer', on: false },    // Edelsteine je Account
     { id: 'points', on: false },     // Punkte aller Accounts
     { id: 'pointsPer', on: false },  // Punkte je Account
     { id: 'claim', on: true },       // Abholbares (Quest-Belohnungen + Daily Items)

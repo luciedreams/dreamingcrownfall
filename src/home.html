@@ -57,6 +57,11 @@
     .stat { padding: 9px 11px; border-radius: 10px; background: rgba(0, 0, 0, 0.18); border: 1px solid rgba(255, 255, 255, 0.03); }
     .stat span { display: block; color: var(--dim); font-size: 10.5px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
     .stat b { font-size: 15px; font-variant-numeric: tabular-nums; }
+    .stat.gems { grid-column: 1 / -1; }
+    .stat.gems b { display: flex; gap: 16px; }
+    .stat.gems .gem { display: inline-flex; align-items: center; gap: 5px; text-transform: none; letter-spacing: 0; color: inherit; font-size: 15px; font-weight: 700; }
+    .stat.gems i { font-style: normal; font-size: 12px; text-shadow: 0 0 5px rgba(0, 0, 0, 0.6); }
+    .gem-ruby { color: #ff5c7a; } .gem-sapphire { color: #5aa8ff; } .gem-emerald { color: #46d68f; } .gem-topaz { color: #ffcc4d; }
     .stat.gold b { color: var(--gold); }
     .stat.dia b { color: #9fd3ff; }
     .daily { display: flex; flex-direction: column; gap: 7px; }
@@ -179,6 +184,19 @@
                 stat('Gold', fmt(a.gold), 'gold'),
                 stat('Diamonds', fmt(a.diamonds), 'dia'),
             );
+            // Edelsteine (Spiel v1.0.1) über die ganze Breite: vier Rauten in Steinfarbe.
+            if (a.gems) {
+                const g = el('div', 'stat gems');
+                const row = el('b');
+                for (const [k, n] of [['ruby', 'Rubies'], ['sapphire', 'Sapphires'], ['emerald', 'Emeralds'], ['topaz', 'Topaz']]) {
+                    const x = el('span', 'gem');
+                    x.title = n;
+                    x.append(el('i', 'gem-' + k, '◆'), document.createTextNode(fmt(a.gems[k] || 0)));
+                    row.append(x);
+                }
+                g.append(el('span', null, 'Gemstones'), row);
+                stats.append(g);
+            }
             c.append(stats);
 
             const q = a.quests || { total: 0, done: 0, claimable: 0 };

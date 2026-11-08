@@ -11,6 +11,8 @@ const HUD_ITEMS = {
     money: 'Gold and diamonds (all accounts)',
     goldPer: 'Gold per account',
     diamondsPer: 'Diamonds per account',
+    gems: 'Gemstones (all accounts)',
+    gemsPer: 'Gemstones per account',
     points: 'Points (all accounts)',
     pointsPer: 'Points per account',
     claim: 'Rewards to claim',
@@ -53,6 +55,12 @@ function hudCss() {
     .dcf-hud__gold { color: #ffd36e; }
     .dcf-hud__dia { color: #9fd3ff; }
     .dcf-hud__rc { color: #ffb7e3; }
+    /* Edelsteine (Spiel v1.0.1): Raute in der Farbe des Steins, Zahl daneben */
+    .dcf-hud__gems { display: inline-flex; gap: 0.7em; font-variant-numeric: tabular-nums; }
+    .dcf-hud__gems > span { display: inline-flex; align-items: center; gap: 0.25em; }
+    .dcf-hud__gem { font-size: 0.85em; text-shadow: 0 0 4px rgba(0, 0, 0, 0.6); }
+    .dcf-hud__gem--ruby { color: #ff5c7a; } .dcf-hud__gem--sapphire { color: #5aa8ff; }
+    .dcf-hud__gem--emerald { color: #46d68f; } .dcf-hud__gem--topaz { color: #ffcc4d; }
     .dcf-hud__dim { color: #8f84a6; font-weight: 500; }
     .dcf-hud__dot { width: 0.5em; height: 0.5em; border-radius: 50%; background: #7d7194; flex: none; }
     .dcf-hud__dot--on { background: #7fd99a; box-shadow: 0 0 5px #7fd99a; }
@@ -91,6 +99,18 @@ function renderHud(root, cfg, d, { onClose = null, onStats = null } = {}) {
     root.style.setProperty('--a', String(cfg.opacity / 100));
     root.replaceChildren();
     const seg = (...kids) => { const s = el('div', 'dcf-hud__seg'); s.append(...kids); root.append(s); return s; };
+    // Vier Edelsteine nebeneinander; ohne Werte (noch nicht gelesen) Striche.
+    const GEMS = [['ruby', 'Rubies'], ['sapphire', 'Sapphires'], ['emerald', 'Emeralds'], ['topaz', 'Topaz']];
+    const gemRow = (g, cls) => {
+        const row = el('span', 'dcf-hud__gems' + (cls ? ' ' + cls : ''));
+        for (const [k, n] of GEMS) {
+            const x = el('span');
+            x.title = n;
+            x.append(el('span', `dcf-hud__gem dcf-hud__gem--${k}`, '◆'), el('span', null, g ? fmt(g[k] || 0) : '–'));
+            row.append(x);
+        }
+        return row;
+    };
     // Ein Wert je Account: Symbol vorn, dann Name + Wert wie bei „Tickets per account“.
     const perSeg = (icon, cls, key, f) => {
         const list = d.perAccount || [];
@@ -133,6 +153,17 @@ function renderHud(root, cfg, d, { onClose = null, onStats = null } = {}) {
             perSeg('🪙', 'dcf-hud__gold', 'gold', fmt);
         } else if (id === 'diamondsPer') {
             perSeg('💎', 'dcf-hud__dia', 'diamonds', fmt);
+        } else if (id === 'gems') {
+            // Rubin, Saphir, Smaragd, Topas als farbige Rauten (die SVGs des Spiels gibt es hier nicht).
+            seg(gemRow(d.gems));
+        } else if (id === 'gemsPer') {
+            const box = el('span', 'dcf-hud__per');
+            for (const a of d.perAccount || []) {
+                const x = el('span', 'dcf-hud__acc');
+                x.append(el('span', 'dcf-hud__name', a.name), gemRow(a.gems, 'dcf-hud__sub'));
+                box.append(x);
+            }
+            if ((d.perAccount || []).length) seg(el('span', 'dcf-hud__gem dcf-hud__gem--sapphire', '◆'), box).classList.add('dcf-hud__seg--per');
         } else if (id === 'points') {
             const s = seg(el('span', null, '⭐'), el('span', 'dcf-hud__num', short(d.points)));
             if (d.points != null) s.title = fmt(d.points);

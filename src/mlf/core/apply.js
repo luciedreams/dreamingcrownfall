@@ -21,6 +21,7 @@
         buildCards();
         buildSessionLines();
         tixTick();
+        gemTick();
         watchTicketNumber();
         buildFooterMeta();
         showUpdate();

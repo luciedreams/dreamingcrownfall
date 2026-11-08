@@ -1,5 +1,12 @@
     // Newest first. The first entry is what What's new shows after a fresh install.
     const CHANGELOG = [
+        { v: '0.14.0', date: '2026-11-08', items: [
+            'Gemstones: the game\'s four new currencies (Rubies, Sapphires, Emeralds and Topaz) now sit in the top bar, right after your diamonds. Point at them for the exact numbers.',
+            'Home shows each account\'s gemstones on its card, and the account frames in the tab bar list them when you point at them.',
+            'Two new HUD pieces: gemstones in total and per account (Settings › HUD).',
+            'Claiming your dailies now also tells you which gemstones they paid out.',
+            'Until the game\'s own gemstone wallet goes live, the numbers are what each account has earned so far, read from the game\'s leaderboards. With nothing to spend them on yet, that is the same as what you hold.',
+        ] },
         { v: '0.13.2', date: '2026-11-02', items: [
             'Negative tolls now show on the King tile. A King who pays the players no longer looks like a King without a toll.',
             'On the throne the toll field accepts negative values, as far down as the game allows for your account.',

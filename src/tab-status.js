@@ -23,7 +23,10 @@ const HEADER_JS = `(() => { const c = document.querySelector('[data-role="metric
         const warn = l.some((x) => !x.seen && (x.state === 'failed' || x.state === 'missed'));
         if (p || warn) plan = { cost: p ? p.cost : null, start: p ? p.start : null, end: p ? p.end : null, tileset: p ? p.tilesetId : null, warn };
     } catch (e) {}
-    return { tickets: Number.isFinite(n) && n > 0 ? n : null, earning: /earning/i.test(status) && !/not earning/i.test(status), plan }; })()`;
+    // Edelsteine (Spiel v1.0.1): holt der Spiel-Tab selbst alle 2 min (mlf/header/gemstones.js), hier nur ablesen.
+    const g = window.__dcfGems;
+    return { tickets: Number.isFinite(n) && n > 0 ? n : null, earning: /earning/i.test(status) && !/not earning/i.test(status), plan,
+        gems: g && g.values ? g.values : null }; })()`;
 
 const API_JS = `(async () => {
     const j = (p) => fetch(p, { credentials: 'same-origin' }).then((r) => (r.ok ? r.json() : null)).catch(() => null);
@@ -64,7 +67,7 @@ module.exports = function startTabStatus({ views, onChange }) {
         of(v) {
             const h = header.get(v) || {}, a = api.get(v) || {};
             return {
-                tickets: h.tickets ?? null, earning: h.earning ?? null, plan: h.plan ?? null,
+                tickets: h.tickets ?? null, earning: h.earning ?? null, plan: h.plan ?? null, gems: h.gems ?? null,
                 points: a.points ?? null, vip: a.vip ?? null, questsDone: a.questsDone ?? null, questsTotal: a.questsTotal ?? null, claim: a.claim ?? null,
             };
         },
