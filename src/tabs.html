@@ -113,7 +113,8 @@
     }
     const short = (n) => {
         if (n == null) return '–';
-        for (const [v, s] of [[1e9, 'B'], [1e6, 'M'], [1e3, 'K']]) if (n >= v) return (n / v).toFixed(n >= v * 100 ? 0 : 2).replace(/\.?0+$/, '') + s;
+        // Trailing zeros only after a decimal point: 110B stays 110B (it read 11B before).
+        for (const [v, s] of [[1e9, 'B'], [1e6, 'M'], [1e3, 'K']]) if (n >= v) return (n / v).toFixed(n >= v * 100 ? 0 : 2).replace(/\.0+$|(\.\d*?)0+$/, '$1') + s;
         return String(n);
     };
     function bar(cls, share, label) {

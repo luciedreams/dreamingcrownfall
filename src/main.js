@@ -495,7 +495,10 @@ function watchReady(v) {
         const poll = async () => {
             if (mine !== run || wc.isDestroyed() || v.failed) return;
             let ok = false;
-            try { ok = await wc.executeJavaScript(READY_JS); } catch {}
+            // Über mainFrame: wc.executeJavaScript wartet, bis die Seite fertig geladen hat — kommt das load-Ereignis
+            // nie (hängende Spiel-API belegt alle sechs HTTP/1.1-Verbindungen, Bilder bleiben in der Schlange), hing
+            // diese Prüfung samt 20-s-Grenze für immer und der Ladebildschirm blieb stehen (14.11.).
+            try { ok = await wc.mainFrame.executeJavaScript(READY_JS); } catch {}
             if (mine !== run || v.failed) return;
             if (ok) await new Promise((r) => setTimeout(r, 700));   // Nachlauf: das Spiel zeichnet fertig
             if (mine !== run || v.failed) return;
@@ -805,7 +808,8 @@ function warmUp(v) {
     const poll = async () => {
         if (!v.warming || wc.isDestroyed()) return;
         let mode = null;
-        try { mode = await wc.executeJavaScript("document.querySelector('[data-role=shell]')?.dataset.layoutMode || null"); } catch {}
+        // mainFrame: antwortet auch, solange die Seite noch lädt (siehe watchReady).
+        try { mode = await wc.mainFrame.executeJavaScript("document.querySelector('[data-role=shell]')?.dataset.layoutMode || null"); } catch {}
         if (mode || Date.now() - started > 20000) done();
         else setTimeout(poll, 500);
     };

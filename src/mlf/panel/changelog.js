@@ -1,5 +1,9 @@
     // Newest first. The first entry is what What's new shows after a fresh install.
     const CHANGELOG = [
+        { v: '0.15.1', date: '2026-11-14', items: [
+            'The account frames in the tab bar showed round numbers without their last zero: 110B points read as 11B, 100B as 1B. They show the right amount again.',
+            'When the game server is slow to answer, the loading screen could stay up for good. It now steps aside after 20 seconds at the latest, as it was meant to, and shows the game as far as it has loaded.',
+        ] },
         { v: '0.15.0', date: '2026-11-08', items: [
             'Hide NPCs: a new switch in Settings › General for anyone who finds the game\'s computer players more noise than fun. Their chat lines are gone, and so are the system lines about them (crown taken, bounty, their Rebellions). Both scoreboards and the Rebellion rack leave them out, and Home, the HUD and notifications no longer name an NPC King. The bounty plaque on the King tile goes as well.',
             'With "Their marbles too" (on by default once Hide NPCs is on) NPC marbles also vanish from the bidder rail and the running tile. They still take part, so other marbles may bounce off something you cannot see; switch it off to keep their marbles in view.',
