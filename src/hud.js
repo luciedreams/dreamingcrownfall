@@ -14,6 +14,7 @@ const path = require('path');
 const { execFile } = require('child_process');
 const { app, BrowserWindow, ipcMain, webContents } = require('electron');
 const config = require('./hud-config.js');
+const { pageUp, runInPage, keepKnown } = require('./page-js');
 
 const FAST_MS = 10 * 1000;
 const SLOW_MS = 60 * 1000;
@@ -38,7 +39,7 @@ const API_JS = `(async () => {
         gold: stats?.current?.currentGold ?? null,
         points: stats?.current?.currentPoints ?? null,
         diamonds: bev?.balances?.diamonds ?? null,
-        claim: quests.filter((q) => q.complete === true && q.claimState !== 'claimed' && q.claimState !== 'pending').length
+        claim: !daily ? null : quests.filter((q) => q.complete === true && q.claimState !== 'claimed' && q.claimState !== 'pending').length
              + items.filter((i) => i.status !== 'claimed' && i.status !== 'locked').length,
     };
 })()`;
@@ -70,7 +71,7 @@ function kwinKeepAbove() {
 module.exports = function createHud({ views, stats, kingNow, icon, onToggle, openStats = () => {}, refocus = () => {} }) {
     let win = null, fast = null, slow = null;
     const header = new Map(), api = new Map(); // view-Eintrag → letzte Werte
-    const live = (v) => !v.guest && !v.view.webContents.isDestroyed() && !v.view.webContents.isLoading();
+    const live = (v) => !v.guest && pageUp(v.view.webContents);   // auch während die Seite noch „lädt“ (page-js.js)
 
     function data() {
         const k = kingNow();
@@ -106,7 +107,7 @@ module.exports = function createHud({ views, stats, kingNow, icon, onToggle, ope
     async function readHeaders() {
         const on = config.get().items.some((i) => i.on && ['tickets', 'ticketsPer', 'earning', 'gems', 'gemsPer'].includes(i.id));
         if (on) await Promise.all(views.filter(live).map(async (v) => {
-            const d = await v.view.webContents.executeJavaScript(HEADER_JS).catch(() => null);
+            const d = await runInPage(v.view.webContents, HEADER_JS);
             if (d) header.set(v, d);
         }));
         send();
@@ -114,8 +115,8 @@ module.exports = function createHud({ views, stats, kingNow, icon, onToggle, ope
     async function readApi() {
         if (!API_ITEMS.some(config.enabled)) return;
         await Promise.all(views.filter(live).map(async (v) => {
-            const d = await v.view.webContents.executeJavaScript(API_JS).catch(() => null);
-            if (d) api.set(v, d);
+            const d = await runInPage(v.view.webContents, API_JS);
+            if (d) api.set(v, keepKnown(api.get(v), d));
         }));
         send();
     }

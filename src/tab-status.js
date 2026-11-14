@@ -36,29 +36,34 @@ const API_JS = `(async () => {
     return {
         points: stats?.current?.currentPoints ?? null,
         vip: stats?.current?.vipPoints ?? null,
-        questsDone: quests.filter((q) => q.complete === true).length,
-        questsTotal: quests.length,
-        claim: quests.filter((q) => q.complete === true && q.claimState !== 'claimed' && q.claimState !== 'pending').length
+        // Abruf gescheitert (5xx): null = „nicht bekommen“, der Rahmen behält den letzten Stand (keepKnown).
+        questsDone: daily ? quests.filter((q) => q.complete === true).length : null,
+        questsTotal: daily ? quests.length : null,
+        claim: !daily ? null : quests.filter((q) => q.complete === true && q.claimState !== 'claimed' && q.claimState !== 'pending').length
              + items.filter((i) => i.status !== 'claimed' && i.status !== 'locked').length,
     };
 })()`;
 
+const { pageUp, runInPage, keepKnown } = require('./page-js');
+
 module.exports = function startTabStatus({ views, onChange }) {
     const header = new Map(), api = new Map(); // view-Eintrag → letzte Werte
-    const live = (v) => !v.guest && !v.view.webContents.isDestroyed() && !v.view.webContents.isLoading();
+    // Auch während die Seite noch „lädt“ (page-js.js): bei hängendem Spielserver kommt das load-Ereignis nie.
+    const live = (v) => !v.guest && pageUp(v.view.webContents);
 
-    async function read(map, js) {
+    async function read(map, js, merge) {
         let changed = false;
         await Promise.all(views.filter(live).map(async (v) => {
-            const d = await v.view.webContents.executeJavaScript(js).catch(() => null);
+            let d = await runInPage(v.view.webContents, js);
             if (!d) return;
+            if (merge) d = keepKnown(map.get(v), d);
             if (JSON.stringify(map.get(v)) !== JSON.stringify(d)) changed = true;
             map.set(v, d);
         }));
         if (changed) onChange();
     }
     const fast = () => read(header, HEADER_JS);
-    const slow = () => read(api, API_JS);
+    const slow = () => read(api, API_JS, true);
     setInterval(fast, FAST_MS);
     setInterval(slow, SLOW_MS);
 

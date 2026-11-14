@@ -35,6 +35,7 @@ const createServerWatch = require('./server-watch.js');
 const openLogin = require('./login.js');
 const createBadge = require('./badge.js');
 const createToasts = require('./toast.js');
+const { runInPage } = require('./page-js.js');
 const { pathToFileURL } = require('url');
 
 const START_URL = 'https://marblecrownfall.com/';
@@ -250,7 +251,7 @@ function tabState() {
         stats: !!stats?.enabled(),
         maximized: !!(win && !win.isDestroyed() && win.isMaximized()),
         tabs: views.map((v) => ({
-            name: label(v), guest: v.guest, avatar: v.avatar || '', loading: !v.view.webContents.isDestroyed() && v.view.webContents.isLoading(),
+            name: label(v), guest: v.guest, avatar: v.avatar || '', loading: !v.ready,   // bis watchReady den Tab freigibt — das load-Ereignis kann bei hängendem Server ausbleiben
             king: !!(king && v.playerId && v.playerId === king.playerId),
             ...(tabStatus && !v.guest ? tabStatus.of(v) : {}),
         })),
@@ -514,7 +515,11 @@ function watchReady(v) {
                     return;
                 }
             }
-            if (ok || late) { v.ready = true; v.everReady = true; v.reloadFront = false; if (views[active] === v) syncOverlay(); }
+            if (ok || late) {
+                v.ready = true; v.everReady = true; v.reloadFront = false; if (views[active] === v) syncOverlay();
+                // Kommt did-stop-loading nie (hängender Server), holen Identität und Rahmen-Werte sonst niemand.
+                if (wc.isLoading()) { refreshIdentity(v); tabStatus?.refresh(); }
+            }
             else setTimeout(poll, 250);
         };
         poll();
@@ -636,7 +641,8 @@ ipcMain.on('dcf:display:hz', (e) => {
 // Wer ist in diesem Tab eingeloggt? Fragt das Spiel selbst (Seitenkontext = Cookie der Partition).
 async function refreshIdentity(v) {
     try {
-        const me = await v.view.webContents.executeJavaScript(
+        // runInPage: auch während die Seite noch „lädt“ (page-js.js).
+        const me = await runInPage(v.view.webContents,
             "fetch('/api/auth/me', { credentials: 'same-origin' }).then((r) => r.json()).catch(() => null)");
         if (me) {
             const pid = me.isGuest ? null : (me.playerId || null);

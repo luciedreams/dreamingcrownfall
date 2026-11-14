@@ -12,6 +12,7 @@
 // hat UND genau dieser Account-Tab vorne ist; allgemeine Ereignisse schweigen bei Fensterfokus.
 
 const { Notification } = require('electron');
+const { pageUp, runInPage } = require('./page-js');
 
 const BASE = 'https://marblecrownfall.com';
 const KING_MS = 15_000;
@@ -60,7 +61,7 @@ module.exports = function startNotifier({ views, icon, isWatching, isFocused, fo
 
     function pageJson(i, path, { headUntil = null } = {}) {
         const wc = views[i]?.view.webContents;
-        if (!wc || wc.isDestroyed() || wc.isLoading()) return Promise.resolve(null);
+        if (!pageUp(wc)) return Promise.resolve(null);   // auch während die Seite noch „lädt“ (page-js.js)
         const js = `(async () => {
             try {
                 const r = await fetch(${JSON.stringify(path)}, { credentials: 'same-origin', headers: { accept: 'application/json' } });
@@ -84,7 +85,7 @@ module.exports = function startNotifier({ views, icon, isWatching, isFocused, fo
                 return null;
             } catch (e) { return null; }
         })()`;
-        return wc.executeJavaScript(js, false).catch(() => null);
+        return runInPage(wc, js);
     }
 
     const loggedIn = (i) => views[i] && views[i].playerId && !views[i].guest;

@@ -14,6 +14,7 @@
 
 const path = require('path');
 const { WebContentsView, ipcMain } = require('electron');
+const { pageUp, runInPage, keepKnown } = require('./page-js');
 
 const EVERY_MS = 30 * 1000;
 const BACKGROUND_MS = 60 * 1000;
@@ -37,7 +38,8 @@ const COLLECT_JS = `(async () => {
         kingMinutes: stats?.episode?.totalTimeAsKingMinutes ?? null,
         throneCaptures: stats?.episode?.throneCaptures ?? null,
         diamonds: bev?.balances?.diamonds ?? null,
-        quests: {
+        // Abruf gescheitert (5xx): null = „nicht bekommen“, Home behält den letzten Stand (keepKnown).
+        quests: !daily ? null : {
             total: quests.length,
             done: quests.filter((q) => q.complete === true).length,
             claimable: quests.filter((q) => q.complete === true && q.claimState !== 'claimed' && q.claimState !== 'pending').length,
@@ -53,7 +55,7 @@ const COLLECT_JS = `(async () => {
                 claimed: q.claimState === 'claimed',
             })),
         },
-        items: {
+        items: !daily ? null : {
             total: items.length,
             claimable: items.filter((i) => i.status !== 'claimed' && i.status !== 'locked').length,
         },
@@ -93,7 +95,7 @@ module.exports = function createHome({ win, views, label, stats, kingNow, onSele
                 name: label(v),
                 avatar: v.avatar || '',
                 guest: v.guest,
-                loading: v.view.webContents.isLoading(),
+                loading: !v.ready,   // bis main.js den Tab für bereit hält, nicht bis zum load-Ereignis
                 ...(data.get(v) || {}),
             })),
         };
@@ -105,9 +107,9 @@ module.exports = function createHome({ win, views, label, stats, kingNow, onSele
     async function collect() {
         await Promise.all(views.map(async (v) => {
             const wc = v.view.webContents;
-            if (v.guest || wc.isDestroyed() || wc.isLoading()) return;
-            const d = await wc.executeJavaScript(COLLECT_JS).catch(() => null);
-            if (d) data.set(v, { at: Date.now(), ...d });
+            if (v.guest || !pageUp(wc)) return;   // auch während die Seite noch „lädt“ (page-js.js)
+            const d = await runInPage(wc, COLLECT_JS);
+            if (d) data.set(v, { ...keepKnown(data.get(v), d), at: Date.now() });
         }));
         push();
     }

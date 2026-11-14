@@ -1,5 +1,10 @@
     // Newest first. The first entry is what What's new shows after a fresh install.
     const CHANGELOG = [
+        { v: '0.15.2', date: '2026-11-14', items: [
+            'The account frames in the tab bar no longer go blank every now and then. When the game server failed to answer, points and quests disappeared until the next check a minute later. They now keep the last known values.',
+            'A request the game server never answers is given up after 30 seconds, so one stuck account no longer holds up the frames, Home and the HUD for the others.',
+            'Frames, Home, the HUD and notifications keep working while a tab is still loading parts of the page, for example when a game window opens. Before, they paused and the frame faded out.',
+        ] },
         { v: '0.15.1', date: '2026-11-14', items: [
             'The account frames in the tab bar showed round numbers without their last zero: 110B points read as 11B, 100B as 1B. They show the right amount again.',
             'When the game server is slow to answer, the loading screen could stay up for good. It now steps aside after 20 seconds at the latest, as it was meant to, and shows the game as far as it has loaded.',
