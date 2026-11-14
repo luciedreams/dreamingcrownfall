@@ -1,5 +1,8 @@
     // Newest first. The first entry is what What's new shows after a fresh install.
     const CHANGELOG = [
+        { v: '0.15.3', date: '2026-11-14', items: [
+            'Hide NPCs on its own no longer touches any marble: NPC marbles stay in the bidder rail, and their Rebellion auras stay in the tile. Only "Their marbles too" takes them away, together with the marbles in the tile.',
+        ] },
         { v: '0.15.2', date: '2026-11-14', items: [
             'The account frames in the tab bar no longer go blank every now and then. When the game server failed to answer, points and quests disappeared until the next check a minute later. They now keep the last known values.',
             'A request the game server never answers is given up after 30 seconds, so one stuck account no longer holds up the frames, Home and the HUD for the others.',

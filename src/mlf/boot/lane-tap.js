@@ -292,19 +292,21 @@
     // With the switch on:
     //   chat     their lines, and system lines naming one (crown claimed, bounty, Rebellion), never reach the
     //            chat pane (chat.room.message, chat.room.history); they leave the !tomato suggestions too
-    //   marbles  by stylesheet: the game names every marble marble:user:<playerId> (data-marble-id) - the same
-    //            elements walk from the bidder rail into the tile, so both go together, with
-    //            game.hideNpcMarbles. Rows of the game's own scoreboard carry user:<playerId>, the
-    //            Rebellion rack the player id itself: those go with the main switch.
+    //   marbles  by stylesheet, only with game.hideNpcMarbles: the tile names every marble marble:user:<playerId>,
+    //            the bidder rail user:<playerId> (data-marble-id, renderRailsStatic.js), the Rebellion aura
+    //            around a marble in the tile data-rebellion-player-id. All of it is a marble on screen, so the
+    //            main switch alone leaves it alone (Luce, 14.11.: before, it took the rail and the auras too).
+    //            The Rebellion rack (data-rebellion-rack-player-id) is a list of names: main switch.
     //   King     the bounty plaque (only NPC kings carry one)
     // The game's data is never changed for the marbles: the physics needs every one of them.
     // Names are learned from every frame that carries an npc: id - the system lines only have the name.
     const npcNames = new Set();
     let npcOn = false, npcMarbles = true;
     const NPC_CSS = 'html[data-dcf-npc] [data-role="king-bounty"],'
-        + ' html[data-dcf-npc] [data-rebellion-player-id^="npc:"], html[data-dcf-npc] [data-rebellion-rack-player-id^="npc:"],'
-        + ' html[data-dcf-npc] [data-marble-id^="user:npc:"],'
-        + ' html[data-dcf-npc-tile] [data-marble-id^="marble:user:npc:"] { display: none !important; }';
+        + ' html[data-dcf-npc] [data-rebellion-rack-player-id^="npc:"],'
+        + ' html[data-dcf-npc-tile] [data-marble-id^="user:npc:"],'
+        + ' html[data-dcf-npc-tile] [data-marble-id^="marble:user:npc:"],'
+        + ' html[data-dcf-npc-tile] [data-rebellion-player-id^="npc:"] { display: none !important; }';
     // This part runs before the page has an <html>: attribute and stylesheet wait for it.
     function npcDom() {
         const html = document.documentElement;
