@@ -1,5 +1,8 @@
     // Newest first. The first entry is what What's new shows after a fresh install.
     const CHANGELOG = [
+        { v: '0.16.1', date: '2026-11-15', items: [
+            'Tile credits now move clear of the whole toll booth, not only its coin. On Pachinko they still overlapped the edge of the booth.',
+        ] },
         { v: '0.16.0', date: '2026-11-15', items: [
             'Tile credits: the upper corner opposite a tile\'s name now says who designed it ("Design by:" and the name), in the same lettering as the game\'s own tile name. The names come from the game\'s Credits page, so tiles credited there later show up by themselves. Where a toll booth sits in that corner, the credits move beside or below it. Switch it off in Settings › Game screen › Tile credits.',
             'Scoreboard with everyone: places 1 to 3 now carry the game\'s ruby next to their picture, as on the game\'s own scoreboard, so you can see who won a ruby.',

@@ -132,7 +132,18 @@
     // when the booth really covers the credits do they move — beside it, towards the middle of the tile,
     // or below it if there is no room beside it. The bidding bubbles of the rail do not count (Luce).
     const TC_GAP = 8;
-    const TC_TOLL = '[data-has-toll="true"], [data-toll-glyph], [data-toll-text]';
+    // The booth is drawn as a shape (Pachinko: an 80 x 80 square in the corner) with the toll coin in its middle.
+    // Only the coin is marked as a toll outside the game's debug mode (data-has-toll comes with its debug
+    // attributes); it names its booth in data-toll-shape-id, which the booth's own elements carry as data-shape-id.
+    const TC_TOLL = '[data-has-toll="true"], [data-toll-glyph], [data-toll-text], [data-shape-id^="tollbooth:"]';
+    function tcTollEls(svg) {
+        const els = new Set(svg.querySelectorAll(TC_TOLL));
+        for (const coin of svg.querySelectorAll('[data-toll-shape-id]')) {
+            const id = coin.getAttribute('data-toll-shape-id');
+            if (id) for (const e of svg.querySelectorAll(`[data-shape-id="${CSS.escape(id)}"]`)) els.add(e);
+        }
+        return els;
+    }
     function tcBoxes(svg, els) {
         const ctm = svg.getScreenCTM();
         if (!ctm) return [];
@@ -148,7 +159,7 @@
     const tcHit = (a, b) => a.l < b.r && a.r > b.l && a.t < b.b && a.b > b.t;
     function tcDodge(svg, label, pair, at) {
         if (pair[0].getAttribute('display') === 'none') return;
-        const tolls = tcBoxes(svg, svg.querySelectorAll(TC_TOLL)).map(o => ({ l: o.l - TC_GAP, t: o.t - TC_GAP, r: o.r + TC_GAP, b: o.b + TC_GAP }));
+        const tolls = tcBoxes(svg, tcTollEls(svg)).map(o => ({ l: o.l - TC_GAP, t: o.t - TC_GAP, r: o.r + TC_GAP, b: o.b + TC_GAP }));
         if (!tolls.length) return;
         const own = tcBoxes(svg, pair);
         if (own.length < 2) return;
