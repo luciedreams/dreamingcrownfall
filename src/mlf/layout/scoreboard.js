@@ -15,6 +15,7 @@
     // (sbPlace), so all sizes below are in the tile's own units (640 x 1080).
     const SB_TICKS_PER_S = 60;
     const SB_PANEL_TRAVEL = 650;   // the game slides its panel in from 620 + 30 below (renderLaneFrame.js)
+    const SB_RUBY = '/assets/widgets/metric-icons/ruby.svg', SB_RUBY_TIP = '+1 Ruby · Top three finish';   // the game's icon and words
     const SB_REASONS = {
         marble_popped:          ['\u{1F4A5}', 'Popped'],
         deathball_contact:      ['⚫', 'Deathball'],
@@ -110,6 +111,7 @@
             const d = sbDelta(row);
             lines.push(`Points: ${sbNum(row.runStartScore)} → ${sbNum(row.postPrizeScore)}${d != null ? ` (${d > 0 ? '+' : ''}${sbNum(d)})` : ''}`);
         }
+        if (row.placement && row.placement <= 3) lines.push(SB_RUBY_TIP);
         if (!row.placement) lines.push('Ran, without a place in the results.');
         return lines.join('\n');
     }
@@ -147,7 +149,11 @@
             el.title = sbTip(row, rows.length);
             const why = SB_REASONS[row.eliminationReason];
             const bid = Number(row.totalBid ?? row.effectiveBidTickets ?? row.spendTickets);
-            el.innerHTML = '<span class="dcf-sb__place"></span><img class="dcf-sb__av" alt="" draggable="false">'
+            // Places 1-3 win a ruby: the game pins its icon to the lower right of the picture (renderLaneFrame.js,
+            // data-scoreboard-ruby), and so does this board, at the same size relative to the picture.
+            const ruby = row.placement && row.placement <= 3
+                ? `<img class="dcf-sb__ruby" src="${SB_RUBY}" alt="" draggable="false" title="${SB_RUBY_TIP}">` : '';
+            el.innerHTML = `<span class="dcf-sb__place"></span><span class="dcf-sb__avw"><img class="dcf-sb__av" alt="" draggable="false">${ruby}</span>`
                 + '<span class="dcf-sb__name"></span><span class="dcf-sb__bid"></span><span class="dcf-sb__out"><i></i><small></small></span>'
                 + '<span class="dcf-sb__prize"></span><span class="dcf-sb__run"></span>';
             const c = el.children;
@@ -162,7 +168,7 @@
             root.appendChild(el);
             const payout = Math.max(0, Number(row.payout) || 0);
             if (!payout) c[5].setAttribute('data-zero', '');
-            return { el, img: c[1], row, prize: c[5], run: c[6], payout, delta };
+            return { el, img: c[1].firstChild, row, prize: c[5], run: c[6], payout, delta };
         });
         board.el.replaceChildren(root);
         board.root = root;
@@ -318,6 +324,9 @@
             .dcf-sb__row[data-noplace] { opacity: .6; }
             .dcf-sb__place { text-align: center; font-weight: 800; opacity: .75; }
             .dcf-sb__row[data-top] .dcf-sb__place { opacity: 1; color: rgb(var(--sb-accent)); }
+            .dcf-sb__avw { position: relative; justify-self: center; display: grid; place-items: center; }
+            .dcf-sb__ruby { position: absolute; left: 50%; top: 50%; width: 50%; height: auto; aspect-ratio: 1; margin: 16% 0 0 25%;
+                filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .7)); pointer-events: auto; }
             .dcf-sb__av { width: min(40px, calc(var(--sb-row) - 10px)); height: min(40px, calc(var(--sb-row) - 10px)); border-radius: 50%; object-fit: cover;
                 justify-self: center; background: rgba(var(--sb-text), .1); box-shadow: 0 0 0 2px rgba(var(--sb-line), .45); }
             .dcf-sb__name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 700; }
