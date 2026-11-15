@@ -1,5 +1,8 @@
     // Newest first. The first entry is what What's new shows after a fresh install.
     const CHANGELOG = [
+        { v: '0.16.2', date: '2026-11-15', items: [
+            'Fixed a rare Spider Rush freeze.',
+        ] },
         { v: '0.16.1', date: '2026-11-15', items: [
             'Tile credits now move clear of the whole toll booth, not only its coin. On Pachinko they still overlapped the edge of the booth.',
         ] },
