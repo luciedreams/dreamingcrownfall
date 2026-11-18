@@ -33,6 +33,7 @@ const createEscMenu = require('./esc-menu.js');
 const tooltip = require('./tooltip.js');
 const createServerWatch = require('./server-watch.js');
 const openLogin = require('./login.js');
+const startAccountSettings = require('./account-settings.js');
 const createBadge = require('./badge.js');
 const createToasts = require('./toast.js');
 const { runInPage } = require('./page-js.js');
@@ -163,7 +164,7 @@ const STATS = -2;     // active === STATS: die öffentliche MarbleMind-Seite (st
 const WIKI = -3;      // active === WIKI: das Wiki der Community (wiki.js)
 // active < 0 = kein Spiel-Tab vorn (Home, Stats oder Wiki) — wer ein Spiel braucht, nimmt lastGame.
 let lastGame = 0;     // zuletzt gewählter Spiel-Tab (für Discord, Settings aus dem Tray)
-let home = null, hud = null, stats = null, wiki = null, tabStatus = null, overlay = null;
+let home = null, hud = null, stats = null, wiki = null, tabStatus = null, overlay = null, accountSettings = null;
 const contextMenu = startContextMenu({
     toggleHud: () => hud?.toggle(), hudOpen: () => !!hud?.isOpen(), openSettings: () => showSettingsPage(''),
     sound: (kind) => uiSound(kind),
@@ -564,6 +565,9 @@ ipcMain.on('tabs:ctx', (_e, i, x) => {
         items: [
             ...(i !== active ? [{ label: 'Switch to this account', hint: i < 9 ? `Ctrl+${i + 1}` : '', run: () => select(i) }] : []),
             { label: 'Reload', hint: 'middle click', run: () => v.view.webContents.reload() },
+            // Neu anmelden im selben Tab (z. B. damit das Spiel ein neues Twitch-Bild holt): Sitzung und
+            // Einstellungen bleiben, Abbrechen ändert nichts.
+            ...(!v.guest && v.identityKnown ? [{ label: 'Sign in again', run: () => signIn(v) }] : []),
             ...(views.length > 1 ? [{ type: 'sep' }, { label: 'Sign out and remove …', run: () => tabBar.webContents.send('tabs:confirm-remove', i) }] : []),
         ],
     });
@@ -653,6 +657,7 @@ async function refreshIdentity(v) {
             v.name = me.isGuest ? null : me.displayName;
             v.avatar = me.isGuest ? '' : (me.profileImageUrl || me.avatarUrl || '');
             addons?.identityChanged(v);
+            accountSettings?.identity(v);
         }
     } catch {}
     pushTabs();
@@ -826,6 +831,10 @@ function warmUp(v) {
 async function removeAccount(i) {
     const v = views[i];
     if (!v || views.length < 2) return;
+    // Einstellungen sichern, bevor die Sitzung gelöscht wird; ein neuer Tab desselben Accounts bekommt sie zurück.
+    await accountSettings?.beforeRemove(v);
+    if (views[i] !== v) return;
+    accountSettings?.forget(v);
     views.splice(i, 1);
     notifier?.resetAccount(v);
     home?.forget(v);
@@ -894,6 +903,7 @@ function createWindow() {
     // Stats ein-/ausgeschaltet: Tab-Leiste nachziehen; wer gerade auf Stats steht, geht zurück ins Spiel.
     appSettings.onChange(() => { if (active === STATS && !stats.enabled()) select(lastGame); else pushTabs(); });
     tabStatus = startTabStatus({ views, onChange: pushTabs });
+    accountSettings = startAccountSettings({ views });
     startPlanWatch();
     let shownKing = null;
     setInterval(() => { const k = notifier?.kingNow()?.playerId || null; if (k !== shownKing) { shownKing = k; pushTabs(); } }, 5000);

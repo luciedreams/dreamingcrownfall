@@ -1,5 +1,9 @@
     // Newest first. The first entry is what What's new shows after a fresh install.
     const CHANGELOG = [
+        { v: '0.17.2', date: '2026-11-18', items: [
+            'Signing in again no longer costs you your settings. Right-click an account frame and pick "Sign in again" to log in anew in the same tab, for example so the game picks up a new Twitch picture. Your settings stay as they are, and cancelling changes nothing.',
+            'If you remove an account and add it back, its settings now come back with it. The app keeps a copy of each account\'s settings and puts them into the new tab once you are signed in there; the tab reloads once to apply them.',
+        ] },
         { v: '0.17.1', date: '2026-11-18', items: [
             'Inventory › Achievements: the NPC filter now also shows the rewards for dethroning certain NPCs, such as the Royal Titles "President" or "Steward" and the Default Tolls from the Toll Progression rulers. Each card says which NPC it came from.',
         ] },
