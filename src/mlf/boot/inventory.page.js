@@ -712,7 +712,8 @@
 
         // ---- achievements: every cosmetic an achievement unlocked (DCF) ------------------------------
         // The items stay on their own pages; this one gathers them. Which achievement it was comes with
-        // the item (Royal Titles: unlock.title; Default Tolls: metadata.rewardSource). Animal and NPC come
+        // the item (Royal Titles: unlock.title; Default Tolls: metadata.rewardSource); rewards for dethroning
+        // an NPC carry the NPC's name and always count as NPC. Animal and NPC achievements come
         // from the game's achievement list: the animal gatherings carry an iconKey "secret:animal:...",
         // the NPC achievements belong to the families "mcf.npc.*".
         const ACH_CATS = [['', 'All'], ['animal', 'Animal'], ['npc', 'NPC'], ['other', 'Other']];
@@ -741,12 +742,17 @@
         function achSource(i) {
             const u = i.unlock, md = i.metadata || {}, src = md.source;
             if (u && u.kind === 'achievement') return { title: String(u.title || ''), text: String(u.description || '') };
+            // Dethroning certain NPCs pays out too: Royal Titles (unlock.kind "npc_dethronement") and, from the
+            // Toll Progression rulers, Default Tolls (metadata.source "npc_toll_progression"). Both name the NPC.
+            if ((u && u.kind === 'npc_dethronement') || md.sourceKind === 'npc_dethronement' || md.defeatedNpcId || src === 'npc_toll_progression')
+                return { title: '', text: String(md.unlockDescription || (u && u.description) || ''), npc: String(md.defeatedNpcName || md.defeatedNpcId || 'npc') };
             if (md.rewardSource) return { title: '', text: String(md.unlockDescription || ''), reward: String(md.rewardSource) };
             if (md.sourceKind === 'achievement' || (i.provenance && i.provenance.kind === 'achievement_reward')
                 || (src && typeof src === 'object' && /achievement/i.test(String(src.sourceKind || '')))) return { title: '', text: String(md.unlockDescription || '') };
             return null;
         }
         function achCatOf(a) {
+            if (a.npc) return 'npc';
             const hit = achCats && a.title ? achCats.get(a.title) : '';
             if (hit) return hit;
             const text = `${a.title} ${a.text} ${a.reward || ''}`;
@@ -768,7 +774,8 @@
                     if (isSystem(m, i)) continue;
                     const a = achSource(i);
                     if (!a) continue;
-                    const key = p.id + '|' + (p.kind === 'toll' ? '#' + i.displayName : itemId(i));
+                    // Same value from another source (thronebreaker vs. an NPC) stays a card of its own.
+                    const key = p.id + '|' + (p.kind === 'toll' ? '#' + i.displayName + '#' + (a.reward || a.npc || '') : itemId(i));
                     let e = byKey.get(key);
                     if (!e) {
                         e = { key, page: p.id, m, i, a, ids: [], isNew: false, cat: achCatOf(a),
@@ -813,7 +820,7 @@
         function drawAchHead() {
             const f = filterOf('achievements'), all = achAll();
             const n = c => c ? all.filter(e => e.cat === c).length : all.length;
-            $head.innerHTML = `<div class="mi-title"><span class="mi-title__icon">${icon('achievements')}</span><h1>Achievement rewards</h1><span class="mi-count">${all.length} unlocked by achievements</span>
+            $head.innerHTML = `<div class="mi-title"><span class="mi-title__icon">${icon('achievements')}</span><h1>Achievement rewards</h1><span class="mi-count">${all.length} from achievements and dethroned NPCs</span>
                     <div class="mi-ctl">${seenBtn(all.filter(e => e.isNew).length)}${RELOAD}</div></div>
                 <div class="mi-filters">
                     <input type="search" class="mi-search" data-f="q" placeholder="Search rewards" value="${esc(f.q)}">
@@ -831,7 +838,7 @@
             const want = st.focus.get('achievements');
             const fid = (want && list.some(e => e.key === want)) ? want : (list[0] && list[0].key);
             if (!list.length) {
-                $body.innerHTML = `<div class="mi-status"><span>${f.cat === 'npc' && !f.q ? 'No NPC achievement has unlocked a cosmetic for you yet.' : 'Nothing matches these filters.'}</span></div>`;
+                $body.innerHTML = `<div class="mi-status"><span>${f.cat === 'npc' && !f.q ? 'Neither an NPC achievement nor a dethroned NPC has unlocked a cosmetic for you yet.' : 'Nothing matches these filters.'}</span></div>`;
                 return;
             }
             $body.innerHTML = `<div class="mi-grid mi-grid--text mi-grid--ach">${list.map(e => achCard(e, fid)).join('')}</div>`;
@@ -869,7 +876,7 @@
             const when = e.i.createdAt ? safe(() => new Date(e.i.createdAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }), '') : '';
             const by = e.a.title ? `<p class="mi-note"><b>${esc(e.a.title)}</b>${e.a.text ? ' – ' + esc(e.a.text) : ''}</p>` : '';
             return `<div class="mi-ach">
-                ${p.kind === 'title' ? (e.a.text ? `<p class="mi-note">${esc(e.a.text)}</p>` : '') : by}
+                ${p.kind === 'title' ? (e.a.title && e.a.text ? `<p class="mi-note">${esc(e.a.text)}</p>` : '') : by}
                 <div class="mi-ach__row">${e.cat !== 'other' ? `<span class="mi-badge" data-tone="${e.cat}">${ACH_NAME[e.cat]}</span>` : ''}<span>${esc(p.singular)}${e.ids.length > 1 ? ` ×${e.ids.length}` : ''}</span>${when ? `<span>Unlocked ${esc(when)}</span>` : ''}</div>
                 <button type="button" class="mi-link" data-act="goto">Show in ${esc(p.label)}</button></div>`;
         }
