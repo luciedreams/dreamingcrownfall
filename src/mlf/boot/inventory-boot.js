@@ -225,12 +225,34 @@
         .mi .mi-card .mi-badge[data-tone=pool] { border-color: #5ca7d8; color: #a6d3f2; }
         .mi-thumb--text { color: var(--gold-soft, #ffe4a4); }
         .mi .mcfo-lob button.mcfo-lob__pick { color: #cfe2f2; }   /* .mi button inherits the card's ink - dark on pale cards */
+        /* DCF: New marks - on the card, and how many per page in the sidebar and on the overview tiles */
+        .mi .mi-card > .mi-new { position: absolute; top: -7px; left: -7px; z-index: 3; pointer-events: none; padding: 2px 7px; border-radius: 999px;
+            font: 900 10px/1.3 system-ui, sans-serif; letter-spacing: .08em; text-transform: uppercase; color: #1d1405;
+            background: linear-gradient(180deg, #ffe4a4, var(--gold, #d6aa48)); border: 1px solid #fff3d0; box-shadow: 0 2px 8px rgba(0, 0, 0, .55), 0 0 10px color-mix(in srgb, var(--gold, #d6aa48) 55%, transparent); }
+        .mi-newn { font-style: normal; flex: none; min-width: 17px; padding: 1px 5px; box-sizing: border-box; border-radius: 999px; text-align: center;
+            font-size: 10.5px; font-weight: 900; line-height: 1.35; color: #1d1405; background: var(--gold, #d6aa48); }
+        .mi-slot__label .mi-newn { margin-left: auto; letter-spacing: 0; }
+        .mi-side .mi-nav.inventorySubcategoryButton { position: relative; }
+        /* Achievements page */
+        .mi-grid--ach { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
+        .mi-card--ach .mi-thumb--text { font-size: 15px; }
+        .mi-card--ach .mi-card__foot { justify-content: space-between; }
+        .mi-ach__kind { font-size: 10.5px; opacity: .85; }
+        .mi-ach__by { font-size: 11px; line-height: 1.3; color: color-mix(in srgb, var(--mi-ink, #f4f6f9) 80%, transparent);
+            display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        .mi .mi-badge[data-tone=animal] { border-color: #d9a35b; color: #f6cf91; }
+        .mi .mi-badge[data-tone=npc] { border-color: #b58ce0; color: #dcc3f7; }
+        .mi-ach { display: grid; gap: 7px; padding-top: 8px; border-top: 1px solid color-mix(in srgb, var(--line, #2f3f4e) 80%, transparent); }
+        .mi-ach .mi-note b { color: var(--ink, #fff); }
+        .mi-ach__row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; font-size: 12px; color: var(--muted, #95a9ba); }
+        .mi-ach .mi-link { justify-self: start; }
         /* narrower windows */
         @media (max-width: 1180px) {
             .mi { grid-template-columns: 58px minmax(0, 1fr) minmax(260px, 310px); }
             .mi[data-overview] { grid-template-columns: 58px minmax(0, 1fr); }
             .mi-group h2, .mi-side .mi-nav span, .mi-side .mi-nav i, .mi-side__foot { display: none; }
             .mi-side .mi-nav.inventorySubcategoryButton { justify-content: center; padding: 9px 0; }
+            .mi-side .mi-nav .mi-newn { position: absolute; top: 1px; right: 1px; min-width: 15px; padding: 0 4px; font-size: 9.5px; }
         }
         @media (max-width: 820px) {
             html[data-mcfo-newinv] body { overflow: auto; }

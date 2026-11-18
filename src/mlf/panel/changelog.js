@@ -1,5 +1,9 @@
     // Newest first. The first entry is what What's new shows after a fresh install.
     const CHANGELOG = [
+        { v: '0.17.0', date: '2026-11-18', items: [
+            'Inventory: new items now wear a gold "New" mark until you click them. The sidebar and the Overview tiles show how many new items each category holds, and "Mark all seen" clears a whole category at once. The first time you open the inventory, everything you already own counts as seen.',
+            'Inventory › Achievements: a new page right under Overview with every cosmetic an achievement unlocked for you, so far Royal Titles and Default Tolls. Filter by Animal (the animal gatherings), NPC or Other, see which achievement it came from and when, and equip it right there.',
+        ] },
         { v: '0.16.2', date: '2026-11-15', items: [
             'Fixed a rare Spider Rush freeze.',
         ] },

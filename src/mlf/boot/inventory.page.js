@@ -32,6 +32,7 @@
         const NO_CROWN = 'system_no_crown', NO_CHAT = 'system_no_chat_treatment:';
         const ICON = {
             overview: '<path d="M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z"/>',
+            achievements: '<circle cx="12" cy="9" r="5.5"/><path d="M8.6 13.3 7 21l5-2.6 5 2.6-1.6-7.7"/><path d="M12 6.5l.8 1.6 1.7.2-1.2 1.2.3 1.7-1.6-.8-1.6.8.3-1.7-1.2-1.2 1.7-.2z"/>',
             crowns: '<path d="M3 18h18l-1.5-10-4.5 4-3-7-3 7-4.5-4z"/>',
             royal_title: '<path d="M5 5h14v4H5zM8 9v10M16 9v10M6 19h12"/>',
             default_toll: '<circle cx="12" cy="12" r="8"/><path d="M12 8v8M9.5 10.5c0-1.4 5-1.4 5 0s-5 1.6-5 3 5 1.4 5 0"/>',
@@ -55,6 +56,8 @@
             ({ id, label, group: 'Marble', kind: 'marble', url: '/api/inventory/' + endpoint, endpoint, metaKey, mod, fn, singular, plural, defaultName, ...extra });
         const PAGES = [
             { id: 'overview', label: 'Overview', group: '', kind: 'overview' },
+            // DCF: every cosmetic an achievement unlocked, from all the pages below, in one place.
+            { id: 'achievements', label: 'Achievements', group: '', kind: 'achievements', singular: 'Reward', plural: 'Achievement rewards' },
             { id: 'crowns', label: 'Crowns', group: 'King', kind: 'crown', url: '/api/inventory/crowns', singular: 'Crown', plural: 'Crowns' },
             { id: 'royal_title', label: 'Royal Title', group: 'King', kind: 'title', url: '/api/inventory/royal-titles', endpoint: 'royal-titles', singular: 'Title', plural: 'Royal Titles' },
             { id: 'default_toll', label: 'Default Toll', group: 'King', kind: 'toll', url: '/api/inventory/default-tolls', endpoint: 'default-tolls', singular: 'Toll', plural: 'Default Tolls' },
@@ -106,11 +109,59 @@
             if (!p || !p.url) return Promise.resolve(null);
             if (!again && st.data.has(id)) return Promise.resolve(st.data.get(id));
             if (!again && st.loading.has(id)) return st.loading.get(id);
-            const pr = api(p.url).then(d => { st.data.set(id, d); st.loading.delete(id); return d; },
+            const pr = api(p.url).then(d => { st.data.set(id, d); st.loading.delete(id); noteLoaded(id, d); return d; },
                 e => { st.loading.delete(id); throw e; });
             st.loading.set(id, pr);
             return pr;
         }
+        // Every page with a list, four at a time: the sidebar counts and the Achievements page need them all.
+        async function loadAll() {
+            const ids = PAGES.filter(p => p.url).map(p => p.id);
+            let next = 0;
+            const worker = async () => { while (next < ids.length) { const id = ids[next++]; try { await load(id); } catch (e) {} } };
+            await Promise.all([worker(), worker(), worker(), worker()]);
+        }
+
+        // ---- new items (DCF) -------------------------------------------------------------------------
+        // The game keeps no "seen" mark, so the app does: per player, per page, the ids already seen,
+        // in this frame's localStorage. A page met for the first time takes all it holds as seen, so
+        // only what arrives afterwards wears "New". Clicking the card (or "Mark all seen") takes it off.
+        const SEEN_KEY = 'dcf_inv_seen_v1';
+        const seenStore = (() => { try { const v = JSON.parse(localStorage.getItem(SEEN_KEY) || '{}'); return v && typeof v === 'object' ? v : {}; } catch (e) { return {}; } })();
+        const seen = new Map();   // page -> Set of item ids (current player)
+        let seenPid = '';
+        function noteLoaded(id, d) {
+            if (!seenPid) seenPid = String((d && d.viewer && d.viewer.playerId) || (d && d.playerId) || 'me');
+            if (seenSet(id)) return;
+            const m = model(id);
+            if (!m) return;
+            seen.set(id, new Set(m.items.map(itemId)));
+            saveSeen();
+        }
+        function seenSet(id) {
+            if (!seen.has(id)) { const a = (seenStore[seenPid] || {})[id]; if (!Array.isArray(a)) return null; seen.set(id, new Set(a)); }
+            return seen.get(id);
+        }
+        function saveSeen() {
+            const me = seenStore[seenPid] || (seenStore[seenPid] = {});
+            for (const [p, s] of seen) me[p] = [...s];
+            try { localStorage.setItem(SEEN_KEY, JSON.stringify(seenStore)); } catch (e) {}
+        }
+        function isNew(pageId, i) { const s = seenSet(pageId); return !!s && !isSystem(null, i) && !s.has(itemId(i)); }
+        function markSeen(pageId, ids) {
+            const s = seenSet(pageId);
+            if (!s) return false;
+            let changed = false;
+            for (const id of ids) if (id && !s.has(id)) { s.add(id); changed = true; }
+            if (changed) saveSeen();
+            return changed;
+        }
+        function newCount(pageId) {
+            if (pageId === 'achievements') return st.data.has('royal_title') ? achAll().filter(e => e.isNew).length : 0;
+            const m = PAGE[pageId].url && st.data.has(pageId) ? model(pageId) : null;
+            return m ? m.items.filter(i => isNew(pageId, i)).length : 0;
+        }
+        const newTag = n => n ? `<em class="mi-newn" title="${n} new">${n}</em>` : '';
 
         // ---- what a page holds, in one shape ---------------------------------------------------
         function model(id) {
@@ -298,9 +349,9 @@
             for (const p of PAGES) {
                 if (p.group !== group) { if (group !== null) html += '</div>'; group = p.group; html += `<div class="mi-group">${group ? `<h2>${esc(group)}</h2>` : ''}`; }
                 const m = p.url && st.data.has(p.id) ? model(p.id) : null;
-                const n = m ? m.items.filter(i => !isSystem(m, i)).length : '';
+                const n = m ? m.items.filter(i => !isSystem(m, i)).length : p.kind === 'achievements' && st.data.has('royal_title') ? achAll().length : '';
                 html += `<button type="button" class="inventorySubcategoryButton mi-nav" data-subpage="${p.id}" data-page="${p.id}" aria-current="${st.page === p.id ? 'page' : 'false'}">
-                    ${icon(p.id)}<span>${esc(p.label)}</span><i>${n}</i></button>`;
+                    ${icon(p.id)}<span>${esc(p.label)}</span>${newTag(newCount(p.id))}<i>${n}</i></button>`;
             }
             html += '</div><div class="mi-side__foot"><button type="button" class="mi-link" data-mi="classic">Classic inventory</button></div>';
             $side.innerHTML = html;
@@ -329,6 +380,7 @@
             $mi.dataset.page = p.id;
             $mi.toggleAttribute('data-overview', p.kind === 'overview');
             if (p.kind === 'overview') return renderOverview(gen);
+            if (p.kind === 'achievements') return renderAch(gen);
             $head.innerHTML = ''; $detail.innerHTML = '';
             $body.innerHTML = '<div class="mi-status">Loading ' + esc(p.label) + ' …</div>';
             try {
@@ -338,6 +390,8 @@
             if (gen !== renderGen) return;
             drawSide();
             drawHead(); drawGrid(); drawDetail();
+            // The other pages in the background, for their counts and "New" marks in the sidebar.
+            loadAll().then(() => { if (gen === renderGen) drawSide(); });
         }
         function errorBox(e) {
             const signedOut = e && (e.status === 401 || e.status === 403);
@@ -357,6 +411,7 @@
 
         // Header: title, counts, the page-wide controls (random, pool, default), then the filters.
         function drawHead() {
+            if (st.page === 'achievements') return drawAchHead();
             const m = cur(), p = m.p, f = filterOf(p.id);
             const owned = m.items.filter(i => !isSystem(m, i)).length;
             const groups = new Map();
@@ -383,7 +438,7 @@
             const sorts = p.kind === 'toll' ? '' : `<label class="mi-sel">Sort <select data-f="sort">
                 ${[['rarity', 'Rarest first'], ['rarity-asc', 'Commonest first'], ['name', 'Name']].map(([v, l]) => `<option value="${v}" ${f.sort === v ? 'selected' : ''}>${l}</option>`).join('')}</select></label>`;
             $head.innerHTML = `<div class="mi-title"><span class="mi-title__icon">${icon(p.id)}</span><h1>${esc(p.plural || p.label)}</h1><span class="mi-count">${owned} owned</span>
-                    <div class="mi-ctl">${ctl}${RELOAD}</div></div>
+                    <div class="mi-ctl">${ctl}${seenBtn(newCount(p.id))}${RELOAD}</div></div>
                 <div class="mi-filters">
                     <input type="search" class="mi-search" data-f="q" placeholder="Search ${esc((p.plural || p.label).toLowerCase())}" value="${esc(f.q)}">
                     ${rars.length ? `<div class="mi-rars"><button type="button" class="mi-rar" data-rar="" aria-pressed="${!f.rarity}">All <i>${m.items.length}</i></button>${rars.map(r =>
@@ -407,7 +462,9 @@
             const b = e.target.closest('button');
             if (!b) return;
             if (b.dataset.mi === 'reload') { st.data.clear(); render(); return; }
+            if (b.dataset.mi === 'seen') { seenAllOnPage(); return; }
             const f = filterOf(st.page);
+            if (b.hasAttribute('data-cat')) { f.cat = b.dataset.cat; drawHead(); drawGrid(); return; }
             if (b.hasAttribute('data-rar')) { f.rarity = b.dataset.rar; drawHead(); drawGrid(); return; }
             if (b.dataset.f === 'eq' || b.dataset.f === 'pool') { f[b.dataset.f] = !f[b.dataset.f]; drawHead(); drawGrid(); return; }
             if (b.dataset.act) act(b.dataset.act);
@@ -415,6 +472,7 @@
 
         // The cards. Pictures are drawn when a card scrolls into view.
         function drawGrid() {
+            if (st.page === 'achievements') return drawAchGrid();
             const m = cur(), p = m.p;
             for (const h of thumbs.values()) { safe(() => h && h.destroy && h.destroy()); handles.delete(h); }
             thumbs.clear();
@@ -444,6 +502,25 @@
             if (m.pool.has(id)) out.push(['pool', 'Pool']);
             return out.map(([t, l]) => `<span class="mi-badge" data-tone="${t}">${esc(l)}</span>`).join('');
         }
+        const NEW_CARD = '<span class="mi-new">New</span>';
+        const seenBtn = n => n ? `<button type="button" class="mi-btn mi-btn--quiet" data-mi="seen" title="Take the New mark off all ${n}">Mark all seen</button>` : '';
+        // A card clicked: its New mark goes, and the counts with it.
+        function seenCard(c) {
+            const tag = c.querySelector(':scope > .mi-new');
+            if (!tag) return;
+            const e = st.page === 'achievements' ? achAll().find(x => x.key === c.dataset.id) : null;
+            if (e) markSeen(e.page, e.ids); else markSeen(st.page, [c.dataset.id]);
+            tag.remove();
+            drawSide();
+            const btn = $head.querySelector('[data-mi=seen]');
+            if (btn && !newCount(st.page)) btn.remove();
+        }
+        function seenAllOnPage() {
+            if (st.page === 'achievements') { for (const e of achAll()) if (e.isNew) markSeen(e.page, e.ids); }
+            else { const m = cur(); markSeen(st.page, m.items.map(itemId)); }
+            $body.querySelectorAll('.mi-card > .mi-new').forEach(t => t.remove());
+            drawSide(); drawHead();
+        }
         function card(m, i, fid, textOnly) {
             const id = itemId(i), r = rar(i);
             if (textOnly) {
@@ -451,12 +528,12 @@
                 const ctx = m.contexts.filter(c => String(c.selectedInventoryItemId) === id)
                     .map(c => `<span class="mi-badge" data-tone="eq">${esc(String(c.label).replace(/\s+default$/i, ''))}</span>`).join('');
                 return `<article class="inventoryCard mi-card mi-card--text" data-id="${esc(id)}" data-rarity="${esc(r)}" style="${look(r)}" aria-selected="${id === fid}" tabindex="0">
-                    <div class="mi-thumb mi-thumb--text">${esc(i.displayName)}</div><h3>${esc(i.displayName || id)}</h3>
+                    ${isNew(m.p.id, i) ? NEW_CARD : ''}<div class="mi-thumb mi-thumb--text">${esc(i.displayName)}</div><h3>${esc(i.displayName || id)}</h3>
                     <div class="mi-card__foot"><span class="mi-card__rar">${r === 'default' ? '' : esc(rarName(r))}</span></div>
                     <div class="mi-ctx">${ctx}</div></article>`;
             }
             return `<article class="inventoryCard mi-card" data-id="${esc(id)}" data-rarity="${esc(r)}" style="${look(r)}" aria-selected="${id === fid}" tabindex="0">
-                <div class="mi-thumb" data-thumb="${esc(id)}"></div>
+                ${isNew(m.p.id, i) ? NEW_CARD : ''}<div class="mi-thumb" data-thumb="${esc(id)}"></div>
                 <h3>${esc(i.displayName || id)}</h3>
                 <div class="mi-card__foot"><span class="mi-dot"></span><span class="mi-card__rar">${r === 'default' ? '' : esc(rarName(r))}</span><span class="mi-badges">${badges(m, i)}</span></div>
             </article>`;
@@ -469,6 +546,7 @@
             st.focus.set(st.page, c.dataset.id);
             $body.querySelectorAll('.mi-card[aria-selected=true]').forEach(x => x.setAttribute('aria-selected', 'false'));
             c.setAttribute('aria-selected', 'true');
+            seenCard(c);
             drawDetail();
         });
         $body.addEventListener('dblclick', e => {
@@ -487,7 +565,7 @@
         function drawDetail() {
             for (const h of detailHandles) { safe(() => h.destroy()); handles.delete(h); }
             detailHandles = [];
-            const m = cur(), p = m.p, i = focusItem(m);
+            const t = detailTarget(), m = t.m, p = m && m.p, i = t.i;
             if (!i) { $detail.innerHTML = '<div class="mi-status"><span>No item selected.</span></div>'; return; }
             const id = itemId(i), r = rar(i);
             const comp = safe(() => p.kind === 'crown' ? mods.renderCrownComponents(i)
@@ -523,6 +601,7 @@
                 <h2>${esc(i.displayName || id)}</h2>
                 ${r !== 'default' ? `<span class="mi-pill">${esc(rarName(r))}</span>` : ''}
                 ${actions}
+                ${t.e ? achInfo(t.e) : ''}
                 <div class="mi-meta">${prov}${comp}</div>
             </div>`;
             if (!textOnly) {
@@ -536,16 +615,26 @@
             const b = e.target.closest('button[data-act]');
             if (!b) return;
             if (b.dataset.act === 'tile') { st.fullTile = b.dataset.v === '1'; drawDetail(); return; }
-            const m = cur(), i = focusItem(m);
-            act(b.dataset.act, itemId(i), b.dataset.slot);
+            const t = detailTarget();
+            if (!t.i) return;
+            if (b.dataset.act === 'goto') { go(t.m.p.id, itemId(t.i)); return; }
+            act(b.dataset.act, t.e ? t.e.key : itemId(t.i), b.dataset.slot);
         });
 
         // ---- actions: the same requests as the game's inventory -------------------------------------
         async function act(kind, id, extra) {
             if (st.busy) return;
-            const m = cur(), p = m.p, d = m.d;
+            // On the Achievements page a card stands for an item of another page: act there.
+            let m;
+            if (st.page === 'achievements') {
+                const e = achAll().find(x => x.key === id);
+                if (!e) return;
+                m = model(e.page); id = itemId(e.i);
+            } else m = cur();
+            const p = m && m.p, d = m && m.d;
             if (kind === 'clear' && st.arm !== 'clear') { st.arm = 'clear'; drawHead(); setTimeout(() => { if (st.arm === 'clear') { st.arm = ''; drawHead(); } }, 4000); return; }
             st.arm = '';
+            if (!m) return;
             const item = id ? m.byId.get(id) : null;
             const post = (path, body, method = 'POST') => api(path, { method, body: JSON.stringify(body || {}) });
             st.busy = true; $mi.setAttribute('data-busy', '');
@@ -594,11 +683,12 @@
             } finally {
                 st.busy = false; $mi.removeAttribute('data-busy');
             }
-            if (st.page !== p.id) return;
+            if (st.page !== p.id && st.page !== 'achievements') return;
             drawHead(); refreshCards(); drawDetail(); drawSide();
         }
         // After an action only the badges and the selection change - the cards and their pictures stay.
         function refreshCards() {
+            if (st.page === 'achievements') return drawAchGrid();
             const m = cur();
             const f = filterOf(m.p.id);
             if (f.eq || f.pool) { drawGrid(); return; }
@@ -618,6 +708,170 @@
                 }
                 c.setAttribute('aria-selected', String(c.dataset.id === fid));
             });
+        }
+
+        // ---- achievements: every cosmetic an achievement unlocked (DCF) ------------------------------
+        // The items stay on their own pages; this one gathers them. Which achievement it was comes with
+        // the item (Royal Titles: unlock.title; Default Tolls: metadata.rewardSource). Animal and NPC come
+        // from the game's achievement list: the animal gatherings carry an iconKey "secret:animal:...",
+        // the NPC achievements belong to the families "mcf.npc.*".
+        const ACH_CATS = [['', 'All'], ['animal', 'Animal'], ['npc', 'NPC'], ['other', 'Other']];
+        const ACH_NAME = { animal: 'Animal', npc: 'NPC', other: 'Other' };
+        let achCats = null, achCatsLoading = null;   // achievement title -> 'animal' | 'npc'
+        function loadAchCats() {
+            if (achCats) return Promise.resolve(achCats);
+            if (!achCatsLoading) achCatsLoading = api('/api/achievements').then(d => {
+                const map = new Map();
+                const walk = o => {
+                    if (Array.isArray(o)) { o.forEach(walk); return; }
+                    if (!o || typeof o !== 'object') return;
+                    if (typeof o.title === 'string' && (o.id || o.familyId)) {
+                        const key = String(o.iconKey || ''), fam = String(o.familyId || o.id || '');
+                        const c = key.startsWith('secret:animal:') ? 'animal' : (fam.startsWith('mcf.npc.') || /(^|[:_])npc([:_]|$)/.test(key)) ? 'npc' : '';
+                        if (c) map.set(o.title, c);
+                    }
+                    for (const k in o) if (o[k] && typeof o[k] === 'object') walk(o[k]);
+                };
+                walk(d.families); walk(d.oneOffs);
+                return map;
+            }, () => null).then(map => { achCats = map || new Map(); achCatsLoading = null; return achCats; });
+            return achCatsLoading;
+        }
+        // What unlocked an item, if an achievement did.
+        function achSource(i) {
+            const u = i.unlock, md = i.metadata || {}, src = md.source;
+            if (u && u.kind === 'achievement') return { title: String(u.title || ''), text: String(u.description || '') };
+            if (md.rewardSource) return { title: '', text: String(md.unlockDescription || ''), reward: String(md.rewardSource) };
+            if (md.sourceKind === 'achievement' || (i.provenance && i.provenance.kind === 'achievement_reward')
+                || (src && typeof src === 'object' && /achievement/i.test(String(src.sourceKind || '')))) return { title: '', text: String(md.unlockDescription || '') };
+            return null;
+        }
+        function achCatOf(a) {
+            const hit = achCats && a.title ? achCats.get(a.title) : '';
+            if (hit) return hit;
+            const text = `${a.title} ${a.text} ${a.reward || ''}`;
+            if (/\bnpcs?\b/i.test(text)) return 'npc';
+            // Without the game's list: the gatherings are the "Take part in ..." achievements.
+            if (achCats && !achCats.size && /^Take part in /i.test(a.text)) return 'animal';
+            return 'other';
+        }
+        // One entry per reward. Tolls of the same value (a repeating achievement pays out several)
+        // are one card; the one in use stands for them.
+        function achAll() {
+            const out = [], byKey = new Map();
+            for (const p of PAGES) {
+                if (!p.url || !st.data.has(p.id)) continue;
+                const m = model(p.id);
+                if (!m) continue;
+                const used = new Set(m.contexts.map(c => String(c.selectedInventoryItemId || '')));
+                for (const i of m.items) {
+                    if (isSystem(m, i)) continue;
+                    const a = achSource(i);
+                    if (!a) continue;
+                    const key = p.id + '|' + (p.kind === 'toll' ? '#' + i.displayName : itemId(i));
+                    let e = byKey.get(key);
+                    if (!e) {
+                        e = { key, page: p.id, m, i, a, ids: [], isNew: false, cat: achCatOf(a),
+                            name: p.kind === 'toll' ? 'Toll ' + String(i.displayName).replace(/^-/, '−') : String(i.displayName || itemId(i)) };
+                        byKey.set(key, e); out.push(e);
+                    } else if (used.has(itemId(i)) && !used.has(itemId(e.i))) e.i = i;
+                    e.ids.push(itemId(i));
+                    if (isNew(p.id, i)) e.isNew = true;
+                }
+            }
+            return out;
+        }
+        function achVisible() {
+            const f = filterOf('achievements'), q = f.q.trim().toLowerCase();
+            const name = (a, b) => a.name.localeCompare(b.name, undefined, { numeric: true });
+            return achAll().filter(e => (!f.cat || e.cat === f.cat) && (!q || `${e.name} ${e.a.title} ${e.a.text}`.toLowerCase().includes(q)))
+                .sort((a, b) => f.sort === 'name' ? name(a, b)
+                    : f.sort === 'rarity-asc' ? (RANK[rar(b.i)] ?? 9) - (RANK[rar(a.i)] ?? 9) || name(a, b)
+                    : (RANK[rar(a.i)] ?? 9) - (RANK[rar(b.i)] ?? 9) || name(a, b));
+        }
+        // What the detail column shows: the focused card of this page, or of the Achievements page.
+        function detailTarget() {
+            if (st.page !== 'achievements') { const m = cur(); return { m, i: focusItem(m) }; }
+            const want = st.focus.get('achievements');
+            const e = (want && achAll().find(x => x.key === want)) || achVisible()[0];
+            if (!e) return { m: null, i: null };
+            const m = model(e.page);
+            m.comp = m.p.kind === 'marble' ? safe(() => companionsSync(m.p), {}) : {};
+            return { m, i: e.i, e };
+        }
+        async function renderAch(gen) {
+            $head.innerHTML = ''; $detail.innerHTML = '';
+            $body.innerHTML = '<div class="mi-status">Loading your achievement rewards …</div>';
+            await Promise.all([loadAll(), loadAchCats()]);
+            if (gen !== renderGen) return;
+            if (!st.data.has('royal_title')) {
+                try { await load('royal_title'); } catch (e) { if (gen === renderGen) $body.innerHTML = errorBox(e); return; }
+                if (gen !== renderGen) return;
+            }
+            drawSide(); drawAchHead(); drawAchGrid(); drawDetail();
+        }
+        function drawAchHead() {
+            const f = filterOf('achievements'), all = achAll();
+            const n = c => c ? all.filter(e => e.cat === c).length : all.length;
+            $head.innerHTML = `<div class="mi-title"><span class="mi-title__icon">${icon('achievements')}</span><h1>Achievement rewards</h1><span class="mi-count">${all.length} unlocked by achievements</span>
+                    <div class="mi-ctl">${seenBtn(all.filter(e => e.isNew).length)}${RELOAD}</div></div>
+                <div class="mi-filters">
+                    <input type="search" class="mi-search" data-f="q" placeholder="Search rewards" value="${esc(f.q)}">
+                    <div class="mi-rars">${ACH_CATS.map(([c, l]) => `<button type="button" class="mi-rar" data-cat="${c}" aria-pressed="${(f.cat || '') === c}">${l} <i>${n(c)}</i></button>`).join('')}</div>
+                    <label class="mi-sel">Sort <select data-f="sort">
+                        ${[['rarity', 'Rarest first'], ['rarity-asc', 'Commonest first'], ['name', 'Name']].map(([v, l]) => `<option value="${v}" ${f.sort === v ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
+                </div>
+                ${st.msg ? `<div class="mi-msg" data-tone="${st.msgTone}">${esc(st.msg)}</div>` : ''}`;
+        }
+        function drawAchGrid() {
+            for (const h of thumbs.values()) { safe(() => h && h.destroy && h.destroy()); handles.delete(h); }
+            thumbs.clear();
+            if (io) io.disconnect();
+            const list = achVisible(), f = filterOf('achievements');
+            const want = st.focus.get('achievements');
+            const fid = (want && list.some(e => e.key === want)) ? want : (list[0] && list[0].key);
+            if (!list.length) {
+                $body.innerHTML = `<div class="mi-status"><span>${f.cat === 'npc' && !f.q ? 'No NPC achievement has unlocked a cosmetic for you yet.' : 'Nothing matches these filters.'}</span></div>`;
+                return;
+            }
+            $body.innerHTML = `<div class="mi-grid mi-grid--text mi-grid--ach">${list.map(e => achCard(e, fid)).join('')}</div>`;
+            const byKey = new Map(list.map(e => [e.key, e]));
+            io = new IntersectionObserver(entries => {
+                for (const en of entries) {
+                    if (!en.isIntersecting) continue;
+                    const host = en.target, e = byKey.get(host.dataset.thumb);
+                    io.unobserve(host);
+                    if (!e) continue;
+                    const m = model(e.page);
+                    m.comp = m.p.kind === 'marble' ? safe(() => companionsSync(m.p), {}) : {};
+                    draw(host, m, e.i, false);
+                    thumbs.set(host, null);
+                }
+            }, { rootMargin: '300px' });
+            $body.querySelectorAll('[data-thumb]').forEach(h => io.observe(h));
+        }
+        function achCard(e, fid) {
+            const { m, i, a } = e, p = m.p, r = rar(i);
+            const text = p.kind === 'title' || p.kind === 'toll';
+            const ctx = m.contexts.filter(c => e.ids.includes(String(c.selectedInventoryItemId)))
+                .map(c => `<span class="mi-badge" data-tone="eq">${esc(String(c.label).replace(/\s+default$/i, ''))}</span>`).join('')
+                || (!m.contexts.length && e.ids.some(id => m.sel.has(id)) ? '<span class="mi-badge" data-tone="eq">Equipped</span>' : '');
+            const count = e.ids.length > 1 ? ` ×${e.ids.length}` : '';
+            return `<article class="inventoryCard mi-card mi-card--text mi-card--ach" data-id="${esc(e.key)}" data-rarity="${esc(r)}" style="${look(r)}" aria-selected="${e.key === fid}" tabindex="0">
+                ${e.isNew ? NEW_CARD : ''}${text ? `<div class="mi-thumb mi-thumb--text">${esc(e.name)}</div>` : `<div class="mi-thumb" data-thumb="${esc(e.key)}"></div>`}<h3>${esc(e.name)}</h3>
+                <div class="mi-card__foot"><span class="mi-card__rar">${r === 'default' ? '' : esc(rarName(r))}</span><span class="mi-ach__kind">${esc(p.singular)}${count}</span></div>
+                <div class="mi-ach__by">${esc(a.title || a.text || 'Achievement reward')}</div>
+                <div class="mi-ctx">${e.cat !== 'other' ? `<span class="mi-badge" data-tone="${e.cat}">${ACH_NAME[e.cat]}</span>` : ''}${ctx}</div></article>`;
+        }
+        // Under the actions in the detail column: the achievement, its group, when it came, the way to its page.
+        function achInfo(e) {
+            const p = PAGE[e.page];
+            const when = e.i.createdAt ? safe(() => new Date(e.i.createdAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }), '') : '';
+            const by = e.a.title ? `<p class="mi-note"><b>${esc(e.a.title)}</b>${e.a.text ? ' – ' + esc(e.a.text) : ''}</p>` : '';
+            return `<div class="mi-ach">
+                ${p.kind === 'title' ? (e.a.text ? `<p class="mi-note">${esc(e.a.text)}</p>` : '') : by}
+                <div class="mi-ach__row">${e.cat !== 'other' ? `<span class="mi-badge" data-tone="${e.cat}">${ACH_NAME[e.cat]}</span>` : ''}<span>${esc(p.singular)}${e.ids.length > 1 ? ` ×${e.ids.length}` : ''}</span>${when ? `<span>Unlocked ${esc(when)}</span>` : ''}</div>
+                <button type="button" class="mi-link" data-act="goto">Show in ${esc(p.label)}</button></div>`;
         }
 
         // ---- overview: everything you wear, one tile per slot --------------------------------------
@@ -641,6 +895,9 @@
                 const m = model(id);
                 if (!m) { tile.querySelector('.mi-slot__pic').innerHTML = '<div class="mi-none">Unavailable</div>'; return; }
                 if (m.p.kind === 'marble') m.comp = companionsSync(m.p);
+                const label = tile.querySelector('.mi-slot__label');
+                label.querySelector('.mi-newn')?.remove();
+                label.insertAdjacentHTML('beforeend', newTag(newCount(id)));
                 const name = tile.querySelector('.mi-slot__name'), sub = tile.querySelector('.mi-slot__sub'), pic = tile.querySelector('.mi-slot__pic');
                 let item = null, text = '', note = '';
                 if (m.contexts.length) {
