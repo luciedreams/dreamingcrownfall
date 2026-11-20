@@ -16,6 +16,14 @@
         .arenaHelpButton { display: none !important; }
         .arenaHelpMetric { cursor: inherit !important; }
 
+        /* === PROFILE AND LEADERBOARDS HEADER: NO PROMO PICTURE ===
+           playerPages.css lays the game's social-media card (marble-crownfall-social-card) behind
+           the "Your Profile" and Leaderboards header (.player-page-hero:before). Only the picture
+           goes; the game's dark gradient stays, so the header keeps its colour. */
+        .player-page-hero::before {
+            background: linear-gradient(90deg, #0c2133 10%, #0c2133ed 42%, #0c213365) !important;
+        }
+
         /* === KING TILE: NAME AND GOLD LEFT, TOLL RIGHT ===
            Deliberately without backdrop-filter. It forced the whole stack underneath onto its
            own texture, which is not rasterised at the resolution of the board — the king tile
