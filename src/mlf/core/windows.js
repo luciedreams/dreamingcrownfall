@@ -748,8 +748,11 @@
         // Profile and Leaderboards (trackb.css) wrap the page in .trackb-shell with a background
         // of its own, full height — it covered the body, and with it the glass, the theme's
         // pattern and a Deluxe skin's ground (6.38.4). Cleared, like the other pages' grounds.
+        // Profile: playerPages.css lays the game's social-media card behind the "Your Profile" header
+        // (.player-page-hero::before). Only the picture goes, the game's gradient stays (0.17.3).
         style.textContent = `.mcfPageHeader, .mcfPageFooter, nav.mcfPageNav { display: none !important; }
                              .trackb-shell { background: transparent !important; }
+                             .player-page-hero::before { background: linear-gradient(90deg, #0c2133 10%, #0c2133ed 42%, #0c213365) !important; }
                              .mcfPageContent { padding-top: 12px !important; }
                              html.mcfo-glass { color-scheme: dark; background: transparent !important; }
                              html.mcfo-glass body { background: rgba(var(--mcfo-glass-rgb, 11, 18, 26), var(--mcfo-glass-a, 0.78)) !important; }`;

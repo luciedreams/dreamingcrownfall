@@ -16,10 +16,11 @@
         .arenaHelpButton { display: none !important; }
         .arenaHelpMetric { cursor: inherit !important; }
 
-        /* === PROFILE AND LEADERBOARDS HEADER: NO PROMO PICTURE ===
+        /* === PROFILE HEADER: NO PROMO PICTURE ===
            playerPages.css lays the game's social-media card (marble-crownfall-social-card) behind
-           the "Your Profile" and Leaderboards header (.player-page-hero:before). Only the picture
-           goes; the game's dark gradient stays, so the header keeps its colour. */
+           the "Your Profile" header (.player-page-hero:before). Only the picture goes; the game's
+           dark gradient stays. This covers /profile opened as a page of its own; in a window the
+           frame gets the same rule from framePanelMode (core/windows.js). */
         .player-page-hero::before {
             background: linear-gradient(90deg, #0c2133 10%, #0c2133ed 42%, #0c213365) !important;
         }
