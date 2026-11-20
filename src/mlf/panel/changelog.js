@@ -1,7 +1,7 @@
     // Newest first. The first entry is what What's new shows after a fresh install.
     const CHANGELOG = [
         { v: '0.17.3', date: '2026-11-21', items: [
-            'The header of Your Profile no longer shows the game\'s promo picture behind it, just its dark background.',
+            'The header of Your Profile no longer shows the game\'s promo picture behind it, just its dark background, and the Leaderboards header goes without the crown emblem.',
         ] },
         { v: '0.17.2', date: '2026-11-18', items: [
             'Signing in again no longer costs you your settings. Right-click an account frame and pick "Sign in again" to log in anew in the same tab, for example so the game picks up a new Twitch picture. Your settings stay as they are, and cancelling changes nothing.',

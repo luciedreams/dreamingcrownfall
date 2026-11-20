@@ -16,14 +16,20 @@
         .arenaHelpButton { display: none !important; }
         .arenaHelpMetric { cursor: inherit !important; }
 
-        /* === PROFILE HEADER: NO PROMO PICTURE ===
+        /* === PROFILE AND LEADERBOARDS HEADER: NO PROMO PICTURE, NO CROWN EMBLEM ===
            playerPages.css lays the game's social-media card (marble-crownfall-social-card) behind
            the "Your Profile" header (.player-page-hero:before). Only the picture goes; the game's
            dark gradient stays. This covers /profile opened as a page of its own; in a window the
-           frame gets the same rule from framePanelMode (core/windows.js). */
+           frame gets the same rules from framePanelMode (core/windows.js).
+           Leaderboards: its own ground stays (it has no picture, but the rule above would cover it),
+           and the crown emblem with "Marble Crownfall Leaderboards" under it goes as a whole. */
         .player-page-hero::before {
             background: linear-gradient(90deg, #0c2133 10%, #0c2133ed 42%, #0c213365) !important;
         }
+        .leaderboard-hero::before {
+            background: radial-gradient(ellipse at 85% 40%, #31506a66, transparent 65%), linear-gradient(120deg, #0c2133, #152b3e) !important;
+        }
+        .player-hero-seal { display: none !important; }
 
         /* === KING TILE: NAME AND GOLD LEFT, TOLL RIGHT ===
            Deliberately without backdrop-filter. It forced the whole stack underneath onto its

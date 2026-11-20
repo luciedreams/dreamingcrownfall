@@ -750,9 +750,12 @@
         // pattern and a Deluxe skin's ground (6.38.4). Cleared, like the other pages' grounds.
         // Profile: playerPages.css lays the game's social-media card behind the "Your Profile" header
         // (.player-page-hero::before). Only the picture goes, the game's gradient stays (0.17.3).
+        // Leaderboards: the crown emblem with "Marble Crownfall Leaderboards" under it goes as a whole.
         style.textContent = `.mcfPageHeader, .mcfPageFooter, nav.mcfPageNav { display: none !important; }
                              .trackb-shell { background: transparent !important; }
                              .player-page-hero::before { background: linear-gradient(90deg, #0c2133 10%, #0c2133ed 42%, #0c213365) !important; }
+                             .leaderboard-hero::before { background: radial-gradient(ellipse at 85% 40%, #31506a66, transparent 65%), linear-gradient(120deg, #0c2133, #152b3e) !important; }
+                             .player-hero-seal { display: none !important; }
                              .mcfPageContent { padding-top: 12px !important; }
                              html.mcfo-glass { color-scheme: dark; background: transparent !important; }
                              html.mcfo-glass body { background: rgba(var(--mcfo-glass-rgb, 11, 18, 26), var(--mcfo-glass-a, 0.78)) !important; }`;
