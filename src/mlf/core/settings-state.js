@@ -106,6 +106,7 @@
         COS_COVER[COS_GROUP_KEYS[g]] = ['hideCosAll'];
         for (const p of parts) COS_COVER[COS_KEYS[p]] = ['hideCosAll', COS_GROUP_KEYS[g]];
     }
+    COS_COVER.hideFonts = ['hideCosAll'];   // fonts (6.63): a group of one switch, covered by the main one
     const cosCovered = key => (COS_COVER[key] || []).some(k => settings[k]);
     // The game's own chat cosmetics control (chat header) does "all chat cosmetics" better than any
     // filter: already drawn lines turn plain too. Since MCF v1.0.4 it is a <select> with three modes,

@@ -146,6 +146,13 @@
     //   king     snapshot.kingCosmetics.wreath and .crest (king socket /king/ws and /api/king/snapshot;
     //            without a crest recipe the game keeps its plain celebration shield); the crown
     //            is the 3D overlay layer and is hidden by CSS, as the Maximum performance level does.
+    //   fonts    player fonts (6.63, MCF v1.0.4): other players' fonts come from
+    //            /api/inventory/public-font-styles (names, chat, bids, scores, run results, King tile,
+    //            profiles; playerFonts.js bindPublicPlayerFont), some chat lines carry them inline as
+    //            presentation.fontStyles, and one's own fonts for tile text and the site from
+    //            /api/inventory/font-styles?view=preferences. All three answer empty: every surface
+    //            keeps the game's normal font. The inventory's own font list is a different request
+    //            and stays untouched, so fonts can still be picked and previewed there.
     // Read straight from storage here: the settings (section 1) only exist once the page is there.
     // The bidding-indicator store (biddingIndicators/assignmentStore.js) keeps what it accepted for
     // the rest of a run, so marbles change with the next run on each lane; chat lines from the next
@@ -169,6 +176,7 @@
         for (const [g, parts] of Object.entries(COS_GROUPS))
             for (const p of parts) out[p] = !!(st.hideCosAll || st[COS_GROUP_KEYS[g]] || (p === 'indicator' ? bidMode(st) === 2 : st[COS_KEYS[p]]));
         out.indicatorSmall = !out.indicator && bidMode(st) === 1;
+        out.fonts = !!(st.hideCosAll || st.hideFonts);
         return out;
     }
     let cosHide = {};
@@ -179,6 +187,7 @@
         if (typeof txt !== 'string') return false;
         for (const [field, part] of Object.entries(COS_MARBLE_FIELDS)) if (cosHide[part] && txt.indexOf('"' + field + '"') !== -1) return true;
         if (cosChatParts() && txt.indexOf(CHAT_COS_SCHEMA) !== -1) return true;
+        if (cosHide.fonts && txt.indexOf('"fontStyles"') !== -1) return true;
         return !!(cosHide.wreath || cosHide.crest) && txt.indexOf('"kingCosmetics"') !== -1;
     }
     function chatCosStrip(v) {
@@ -283,6 +292,7 @@
             return o;
         }
         if (v && typeof v === 'object' && v.schema === CHAT_COS_SCHEMA) return chatCosStrip(v);
+        if (k === 'fontStyles' && cosHide.fonts) return undefined;
         return v;
     }
 
@@ -403,7 +413,8 @@
     }
 
     // Installed only once a switch is first turned on: until then this script leaves the page's
-    // fetch alone. Only the reply of /bid/place and the King snapshot are ever looked at.
+    // fetch alone. Only the reply of /bid/place and the King snapshot are ever looked at, and the
+    // two font requests (6.63) are answered empty without asking the server.
     let cosFetchWrapped = false;
     function wrapCosFetch() {
         if (cosFetchWrapped) return;
@@ -411,9 +422,15 @@
         try {
             const nativeFetch = pageWindow.fetch;
             pageWindow.fetch = function (input, init) {
-                const pending = nativeFetch.apply(this, arguments);
                 let url = '';
                 try { url = typeof input === 'string' ? input : String((input && input.url) || ''); } catch (e) {}
+                if (cosHide.fonts && (url.indexOf('/api/inventory/public-font-styles') !== -1
+                    || url.indexOf('/api/inventory/font-styles?view=preferences') !== -1)) {
+                    const empty = url.indexOf('public-font-styles') !== -1 ? '{"players":{}}' : '{}';
+                    return pageWindow.Promise.resolve(new pageWindow.Response(empty,
+                        { status: 200, headers: { 'Content-Type': 'application/json' } }));
+                }
+                const pending = nativeFetch.apply(this, arguments);
                 if (url.indexOf('/bid/place') === -1 && url.indexOf('/api/king/snapshot') === -1) return pending;
                 return pending.then(res => res.clone().text().then(txt => {
                     if (!cosConcerns(txt)) return res;

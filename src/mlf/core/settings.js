@@ -182,6 +182,10 @@
                 { key: 'hideWreath', def: false, label: 'Hide the wreath', hint: 'No wreath around the King\'s picture. Takes hold with the next King update.' },
                 { key: 'hideCrest', def: false, label: 'Hide the Royal Crest', hint: 'The game\'s plain shield instead of the King\'s crest in a Royal Celebration. Takes hold with the next King update.' },
             ]},
+            { title: 'Fonts', note: 'Takes hold after reloading the page.', items: [
+                { key: 'hideFonts', def: false, label: 'Hide player fonts',
+                  hint: 'Names, chat, bids, scores, run results, the King tile and profiles all in the game\'s normal font, for every player including you. The Misc. Shop and your inventory still show the fonts, so you can look at them and pick one.' },
+            ]},
         ]},
         { title: 'Chat', blurb: 'Slim rail, pop-out window, growing message box and the enhanced chat.', items: [
             { key: 'chatRail', label: 'Smooth collapse and slim rail',

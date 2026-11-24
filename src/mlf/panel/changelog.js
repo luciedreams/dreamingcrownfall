@@ -1,5 +1,8 @@
     // Newest first. The first entry is what What's new shows after a fresh install.
     const CHANGELOG = [
+        { v: '0.17.5', date: '2026-11-24', items: [
+            'Settings › Cosmetics › Fonts: "Hide player fonts" shows every name, chat line, bid, score, run result, the King tile and profiles in the game\'s normal font, for every player including you (game update v1.0.4 added player fonts). The shop and your inventory still show them. "Hide all cosmetics" covers it too.',
+        ] },
         { v: '0.17.4', date: '2026-11-24', items: [
             'Chat cosmetics button fixed for the game update v1.0.4: the game now has three modes (Full, Static, Off) instead of on/off. The sparkles show the mode (bright = Full, dimmed = Static, struck through = Off); a click opens the game\'s own list to pick one.',
             'Settings › Cosmetics: hiding all chat cosmetics sets that game menu to Off again and puts your previous mode back when you switch it off.',
