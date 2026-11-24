@@ -553,7 +553,7 @@
             `${S} .mcfo-switch__input:checked + .mcfo-switch { background: ${track}; box-shadow: inset 0 0 0 1px ${edge}; }`,
             `${S} .mcfo-seg button[aria-pressed="true"] { background: ${pressed}; }`,
             `${S}[data-mcfo-chatcos="1"] .mcf-chat__cosmetics-toggle[aria-pressed="true"] { background: ${deep} !important; border-color: ${edge} !important; color: ${text} !important; }`,
-            `${S}[data-mcfo-chatcos="1"] .mcf-chat__cosmetics-toggle[aria-pressed="true"]::before { background-color: ${track}; }`,
+            `${S}[data-mcfo-chatcos="1"] .mcfo-cosmode:not([data-mode="off"]) { background: ${deep} !important; border-color: ${edge} !important; color: ${text} !important; }`,
             `${S} .mcfo-tsbanner__name { color: ${c(0.84, 0.15)}; text-shadow: 0 2px 0 rgba(0, 0, 0, 0.4), 0 0 26px ${c(0.55, 0.16)}, 0 4px 22px rgba(0, 0, 0, 0.75); }`,
             `${S} .mcfo-tsbanner__kicker { color: ${c(0.9, 0.06)}; }`,
             // Mentions of you (6.36) in the theme's accent instead of the fixed gold (6.51).

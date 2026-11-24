@@ -189,7 +189,7 @@
     // it was one signal too many. Left out of every skin's :hover rule.
     const SKIN_HOVERLESS = ['.mcfo-signpost', '[data-role="diamonds-purchase-link"]'];
     const SKIN_BUTTONS = [
-        '.mcf-chat__send', '.mcf-chat__cosmetics-toggle', '.mcf-chat__collapse', '.mcfo-chatpop-btn', '.mcfo-tomato-btn', '.mcfo-animal-btn',
+        '.mcf-chat__send', '.mcf-chat__cosmetics-toggle', '.mcfo-cosmode', '.mcf-chat__collapse', '.mcfo-chatpop-btn', '.mcfo-tomato-btn', '.mcfo-animal-btn',
         '.mcfo-taskbar button', '.mcfo-win__head button', '[data-role="sound-utility-toggle"]',
         '.mcfo-rebellion', '.mcfo-rail-toggle', '.mcfo-unbid', '.mcfo-autobid',
         '[data-action="king-attack"]', '.mcfo-attack', '.mcfo-signpost',
@@ -444,7 +444,7 @@
                 }
                 ${S} .mcf-chat__header :is(.mcf-chat__title, .mcf-chat__title strong, .mcf-chat__room) { color: #eaf2ff !important; }
                 ${S} .mcf-chat__title strong { font-family: ${GILL}; letter-spacing: 0.12em; text-transform: uppercase; }
-                ${S} :is(.mcf-chat__cosmetics-toggle, .mcf-chat__collapse) {
+                ${S} :is(.mcf-chat__cosmetics-toggle, .mcfo-cosmode, .mcf-chat__collapse) {
                     background: ${TD.dark} !important; border: 1px solid ${TD.trim} !important; color: #eaf2ff !important; border-radius: 2px !important;
                 }
                 ${S} .mcf-chat__body {

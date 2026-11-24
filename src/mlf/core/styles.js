@@ -1648,32 +1648,65 @@
         html[data-mcfo-chatplus="1"] :is([data-role="chat-messages"], .mcf-chat__messages) article.mcf-chat__message[data-mcf-group="end"] {
             border-top-left-radius: 0 !important; border-top-right-radius: 0 !important; padding-top: 4px !important;
         }
-        /* The game's cosmetics button said "Cosmetics on/off" in words — the widest thing in the
+        /* Up to MCF v1.0.3 (kept in case the game rolls back). The game's cosmetics button said "Cosmetics on/off" in words — the widest thing in the
            chat header. Since 6.16.1 it is a symbol the size of its neighbours: sparkles, struck
            through while off. The state is in its aria-pressed; only the look hangs on that. The
            button stays the game's own: click and text are still the game's, the text just is not
            shown (screen readers still read it, and it comes back as the tooltip). */
-        .mcf-chat__cosmetics-toggle {
+        button.mcf-chat__cosmetics-toggle {
             position: relative; display: grid !important; place-items: center; box-sizing: border-box;
             width: 30px !important; min-width: 30px !important; height: 30px !important; min-height: 30px !important;
             padding: 0 !important; font-size: 0 !important; letter-spacing: 0 !important; line-height: 0 !important;
             overflow: hidden; cursor: pointer; transition: background 0.2s, border-color 0.2s, color 0.2s;
         }
-        .mcf-chat__cosmetics-toggle::after {
+        button.mcf-chat__cosmetics-toggle::after {
             content: ''; width: 17px; height: 17px; background: currentColor; opacity: 0.5;
             -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M10 2l1.8 5.2L17 9l-5.2 1.8L10 16l-1.8-5.2L3 9l5.2-1.8z'/%3E%3Cpath d='M18 13l.9 2.1L21 16l-2.1.9L18 19l-.9-2.1L15 16l2.1-.9z'/%3E%3Cpath d='M18 2.5l.6 1.4 1.4.6-1.4.6-.6 1.4-.6-1.4-1.4-.6 1.4-.6z'/%3E%3C/svg%3E") center / contain no-repeat;
                     mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M10 2l1.8 5.2L17 9l-5.2 1.8L10 16l-1.8-5.2L3 9l5.2-1.8z'/%3E%3Cpath d='M18 13l.9 2.1L21 16l-2.1.9L18 19l-.9-2.1L15 16l2.1-.9z'/%3E%3Cpath d='M18 2.5l.6 1.4 1.4.6-1.4.6-.6 1.4-.6-1.4-1.4-.6 1.4-.6z'/%3E%3C/svg%3E") center / contain no-repeat;
         }
-        .mcf-chat__cosmetics-toggle[aria-pressed="true"]::after { opacity: 1; }
-        .mcf-chat__cosmetics-toggle:not([aria-pressed="true"])::before {
+        button.mcf-chat__cosmetics-toggle[aria-pressed="true"]::after { opacity: 1; }
+        button.mcf-chat__cosmetics-toggle:not([aria-pressed="true"])::before {
             content: ''; position: absolute; left: 50%; top: 50%; width: 22px; height: 2px; border-radius: 1px;
             background: currentColor; opacity: 0.85; transform: translate(-50%, -50%) rotate(-45deg);
         }
         /* In colour (setting): green while on. */
-        html[data-mcfo-chatcos="1"] .mcf-chat__cosmetics-toggle[aria-pressed="true"] {
+        html[data-mcfo-chatcos="1"] button.mcf-chat__cosmetics-toggle[aria-pressed="true"] {
             background: #10291c !important; border-color: #3fae72 !important; color: #7dffb4 !important;
         }
-        .mcf-chat__cosmetics-toggle:disabled { opacity: 0.5; cursor: default; }
+        button.mcf-chat__cosmetics-toggle:disabled { opacity: 0.5; cursor: default; }
+        /* Since MCF v1.0.4 the control is a select of three modes (6.62.2). The frame .mcfo-cosmode
+           (made by cosModeWrap) has the button look and the symbol; the select lies invisible on top
+           and opens the game's own list. Full: sparkles; Static: the same, dimmed; Off: struck through. */
+        .mcfo-cosmode {
+            position: relative; display: inline-grid; place-items: center; box-sizing: border-box;
+            width: 30px; min-width: 30px; height: 30px; min-height: 30px; padding: 0;
+            border: 1px solid var(--mcf-ui-control-border, #355066); border-radius: 7px;
+            background: var(--mcf-ui-control, #111f2b); color: var(--mcf-ui-muted, #a9bfce);
+            cursor: pointer; transition: background 0.2s, border-color 0.2s, color 0.2s;
+        }
+        .mcfo-cosmode:focus-within { border-color: var(--mcf-ui-focus, #4d7693); color: var(--mcf-ui-text, #dff2ff); }
+        .mcfo-cosmode > select.mcf-chat__cosmetics-toggle {
+            position: absolute !important; inset: 0 !important; width: 100% !important; height: 100% !important;
+            min-width: 0 !important; min-height: 0 !important; margin: 0 !important; opacity: 0 !important; cursor: pointer;
+        }
+        .mcfo-cosmode::after {
+            content: ''; width: 17px; height: 17px; background: currentColor; opacity: 1; pointer-events: none;
+            -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M10 2l1.8 5.2L17 9l-5.2 1.8L10 16l-1.8-5.2L3 9l5.2-1.8z'/%3E%3Cpath d='M18 13l.9 2.1L21 16l-2.1.9L18 19l-.9-2.1L15 16l2.1-.9z'/%3E%3Cpath d='M18 2.5l.6 1.4 1.4.6-1.4.6-.6 1.4-.6-1.4-1.4-.6 1.4-.6z'/%3E%3C/svg%3E") center / contain no-repeat;
+                    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M10 2l1.8 5.2L17 9l-5.2 1.8L10 16l-1.8-5.2L3 9l5.2-1.8z'/%3E%3Cpath d='M18 13l.9 2.1L21 16l-2.1.9L18 19l-.9-2.1L15 16l2.1-.9z'/%3E%3Cpath d='M18 2.5l.6 1.4 1.4.6-1.4.6-.6 1.4-.6-1.4-1.4-.6 1.4-.6z'/%3E%3C/svg%3E") center / contain no-repeat;
+        }
+        .mcfo-cosmode[data-mode="static"]::after { opacity: 0.5; }
+        .mcfo-cosmode[data-mode="off"]::after { opacity: 0.5; }
+        .mcfo-cosmode[data-mode="off"]::before {
+            content: ''; position: absolute; left: 50%; top: 50%; width: 22px; height: 2px; border-radius: 1px; pointer-events: none;
+            background: currentColor; opacity: 0.85; transform: translate(-50%, -50%) rotate(-45deg);
+        }
+        /* In colour (setting): green while cosmetics show (Full or Static). */
+        html[data-mcfo-chatcos="1"] .mcfo-cosmode:not([data-mode="off"]) {
+            background: #10291c !important; border-color: #3fae72 !important; color: #7dffb4 !important;
+        }
+        .mcfo-cosmode[data-disabled] { opacity: 0.5; }
+        .mcfo-cosmode[data-disabled] > select { cursor: default; }
+        .mcf-chat[data-collapsed="true"] .mcfo-cosmode { display: none !important; }
 
         /* === THEMES (settings page; the engine is section 3b) ===
            Scoped to .mcfo-theme: generic button rules of the settings window would otherwise

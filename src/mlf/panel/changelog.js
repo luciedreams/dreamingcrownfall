@@ -1,5 +1,9 @@
     // Newest first. The first entry is what What's new shows after a fresh install.
     const CHANGELOG = [
+        { v: '0.17.4', date: '2026-11-24', items: [
+            'Chat cosmetics button fixed for the game update v1.0.4: the game now has three modes (Full, Static, Off) instead of on/off. The sparkles show the mode (bright = Full, dimmed = Static, struck through = Off); a click opens the game\'s own list to pick one.',
+            'Settings › Cosmetics: hiding all chat cosmetics sets that game menu to Off again and puts your previous mode back when you switch it off.',
+        ] },
         { v: '0.17.3', date: '2026-11-21', items: [
             'The header of Your Profile no longer shows the game\'s promo picture behind it, just its dark background, and the Leaderboards header goes without the crown emblem.',
         ] },

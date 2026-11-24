@@ -142,7 +142,7 @@
     //            background or King bubble (panel.sourceSlot), username = username style. Its
     //            plainFallback carries the same colours and is neutralised with it. Checked against
     //            the game's own resolveChatCosmeticRenderModel: each part comes out as the plain model.
-    //            Hiding ALL chat cosmetics uses the game's own button in the chat header instead (below).
+    //            Hiding ALL chat cosmetics sets the game's own cosmetics menu in the chat header to Off instead (below).
     //   king     snapshot.kingCosmetics.wreath and .crest (king socket /king/ws and /api/king/snapshot;
     //            without a crest recipe the game keeps its plain celebration shield); the crown
     //            is the 3D overlay layer and is hidden by CSS, as the Maximum performance level does.

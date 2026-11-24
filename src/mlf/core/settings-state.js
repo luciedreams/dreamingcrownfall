@@ -107,24 +107,67 @@
         for (const p of parts) COS_COVER[COS_KEYS[p]] = ['hideCosAll', COS_GROUP_KEYS[g]];
     }
     const cosCovered = key => (COS_COVER[key] || []).some(k => settings[k]);
-    // The game's own chat cosmetics button (chat header, aria-pressed = cosmetics on, remembered by
-    // the game in mcf.chat.cosmetics.enabled.v1) does "all chat cosmetics" better than any filter:
-    // already drawn lines turn plain too. Pressed only when our wish changes, so a click of the
-    // player's own on that button is respected until the switch here is touched again; turned back
-    // on only if this script was the one that turned it off.
+    // The game's own chat cosmetics control (chat header) does "all chat cosmetics" better than any
+    // filter: already drawn lines turn plain too. Since MCF v1.0.4 it is a <select> with three modes,
+    // full (animated), static (no motion) and off, remembered by the game in mcf.chat.cosmetics.mode.v1;
+    // up to v1.0.3 it was an on/off button with aria-pressed. Set only when our wish changes, so a
+    // choice of the player's own there is respected until the switch here is touched again; put back
+    // (to the mode it had before) only if this script was the one that set it to off.
     let cosChatWish = null;
     function cosChatNative() {
+        cosModeWrap();
         const want = !!(settings.hideCosAll || settings.hideCosChat);
         if (want === cosChatWish) return;
-        const btn = document.querySelector('.mcf-chat__cosmetics-toggle, [data-role="chat-cosmetics-toggle"]');
-        if (!btn) return;   // the chat is not there yet: try again on the next round
-        const on = btn.getAttribute('aria-pressed') === 'true';
-        let ours = false;
-        try { ours = localStorage.getItem('mcfo_cos_chatnative') === '1'; } catch (e) {}
-        if (want && on) { btn.click(); try { localStorage.setItem('mcfo_cos_chatnative', '1'); } catch (e) {} }
-        else if (!want && !on && ours) btn.click();
+        const ctl = document.querySelector('[data-role="chat-cosmetics-toggle"], .mcf-chat__cosmetics-toggle');
+        if (!ctl) return;   // the chat is not there yet: try again on the next round
+        if (ctl.disabled) return;   // cosmetics unavailable right now: the game turns it on with its config
+        let ours = null;
+        try { ours = localStorage.getItem('mcfo_cos_chatnative'); } catch (e) {}
+        if (ctl.tagName === 'SELECT') {
+            const mode = ctl.value;
+            if (want && mode !== 'off') {
+                ctl.value = 'off';
+                ctl.dispatchEvent(new Event('change', { bubbles: true }));
+                try { localStorage.setItem('mcfo_cos_chatnative', mode); } catch (e) {}
+            } else if (!want && mode === 'off' && ours) {
+                ctl.value = ours === 'static' ? 'static' : 'full';   // '1' = set by a version before 6.62.2
+                ctl.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+        } else {
+            const on = ctl.getAttribute('aria-pressed') === 'true';
+            if (want && on) { ctl.click(); try { localStorage.setItem('mcfo_cos_chatnative', '1'); } catch (e) {} }
+            else if (!want && !on && ours) ctl.click();
+        }
         if (!want) try { localStorage.removeItem('mcfo_cos_chatnative'); } catch (e) {}
         cosChatWish = want;
+        cosModeWrap();
+    }
+    // The select shows only a symbol (6.62.2): sparkles for Full, the same sparkles dimmed for Static,
+    // struck through for Off. A select draws no ::before/::after, so it sits in a frame of ours,
+    // .mcfo-cosmode, which carries the look (and the skins' button look) and the symbol; the select
+    // itself lies invisible on top and still takes the click, so the game's own dropdown opens with
+    // its readable options. The frame mirrors the mode in data-mode on every change.
+    function cosModeWrap() {
+        const ctl = document.querySelector('select[data-role="chat-cosmetics-toggle"]');
+        if (!ctl) return;
+        let frame = ctl.parentElement;
+        if (!frame || !frame.classList.contains('mcfo-cosmode')) {
+            frame = document.createElement('span');
+            frame.className = 'mcfo-cosmode';
+            ctl.before(frame);
+            frame.appendChild(ctl);
+        }
+        if (!ctl.dataset.mcfoMode) {
+            ctl.dataset.mcfoMode = '1';
+            ctl.addEventListener('change', () => setTimeout(cosModeWrap, 0));
+        }
+        const names = { full: 'Full: animated styles', static: 'Static: styles without motion', off: 'Off: plain chat' };
+        const mode = names[ctl.value] ? ctl.value : 'full';
+        if (frame.dataset.mode !== mode) frame.dataset.mode = mode;
+        const dis = ctl.disabled ? '1' : '';
+        if ((frame.dataset.disabled || '') !== dis) { if (dis) frame.dataset.disabled = '1'; else delete frame.dataset.disabled; }
+        const tip = ctl.disabled ? 'Chat cosmetics are unavailable' : `Chat cosmetics - ${names[mode]} (click to change)`;
+        if (ctl.title !== tip) ctl.title = tip;
     }
     function setCosmeticsHidden() {
         cosHide = cosCompute(settings);

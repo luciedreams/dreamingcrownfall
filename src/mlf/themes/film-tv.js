@@ -588,7 +588,7 @@
                 ${S} .mcfo-autobid { background: ${saberBg('#c4ffbf')} !important; box-shadow: ${saberGlow('#3dff4e')} !important; color: #062a0a !important; }
                 /* Text buttons make room for the hilt; buttons that only carry a symbol are blade alone. */
                 ${S} :is(.mcf-chat__send, .mcfo-rebellion, .mcfo-unbid, .mcfo-autobid, .mcfo-rail-toggle, .mcfo-signpost, [data-role="diamonds-purchase-link"], [data-role="nav-region"] > :is(button, a)) { padding-left: 16px !important; }
-                ${S} :is(.mcf-chat__collapse, .mcf-chat__cosmetics-toggle, .mcfo-chatpop-btn, .mcfo-gear, .mcfo-drink--icon, .mcfo-win__head button, [data-role="sound-utility-toggle"]) {
+                ${S} :is(.mcf-chat__collapse, .mcf-chat__cosmetics-toggle, .mcfo-cosmode, .mcfo-chatpop-btn, .mcfo-gear, .mcfo-drink--icon, .mcfo-win__head button, [data-role="sound-utility-toggle"]) {
                     background: linear-gradient(180deg, #bfe6ff 0%, #ffffff 35% 65%, #bfe6ff 100%) !important; border-radius: 999px !important; }
                 ${fx(['full'], '.mcf-chat:not([data-collapsed="true"])')} { animation: mcfoHolo 9s steps(1) infinite; }
                 @keyframes mcfoHolo { 0%, 96% { opacity: 1; } 96.5% { opacity: 0.86; } 97% { opacity: 1; } 98% { opacity: 0.9; } 98.4% { opacity: 1; } }

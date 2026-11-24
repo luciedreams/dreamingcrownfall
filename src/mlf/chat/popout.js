@@ -87,7 +87,8 @@
         // The cosmetics button shows only a symbol since 6.16.1; its words come back as the
         // tooltip, read at the moment the pointer arrives, so it always tells the current state.
         const cos = header && header.querySelector('.mcf-chat__cosmetics-toggle');
-        if (cos && !cos.dataset.mcfoTip) {
+        // Since MCF v1.0.4 it is a select of three modes; cosModeWrap (settings) keeps its tooltip.
+        if (cos && cos.tagName !== 'SELECT' && !cos.dataset.mcfoTip) {
             cos.dataset.mcfoTip = '1';
             cos.addEventListener('pointerenter', () => {
                 cos.title = cos.getAttribute('aria-pressed') === 'true' ? 'Chat cosmetics: on (click to turn off)' : 'Chat cosmetics: off (click to turn on)';

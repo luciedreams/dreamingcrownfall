@@ -169,7 +169,7 @@
                   options: [[0, 'Show'], [1, 'Standard size'], [2, 'Hide']],
                   hint: 'Standard size: every decorated indicator keeps its look and is drawn as small as the game\'s plain bid banner; the amount keeps its size. Hide: every bid in the plain grey banner.' },
             ]},
-            { title: 'Chat', note: 'From the next message on. Hiding the whole group uses the game\'s own cosmetics button in the chat header and turns it back on when you switch this off.', items: [
+            { title: 'Chat', note: 'From the next message on. Hiding the whole group sets the game\'s own cosmetics menu in the chat header to Off and puts it back when you switch this off.', items: [
                 { key: 'hideCosChat', def: false, redraw: true, group: true, label: 'Hide all chat cosmetics' },
                 { key: 'hideChatColours', def: false, label: 'Hide chat font colours', hint: 'Messages in plain white.' },
                 { key: 'hideChatBackgrounds', def: false, label: 'Hide chat backgrounds', hint: 'No coloured or patterned panels behind messages.' },
@@ -227,7 +227,7 @@
             { key: 'chatHideToll', needs: 'chatPlus', label: 'Hide toll messages',
               hint: '"... changed the Crown toll" — the toll stands on the king tile.' },
             { key: 'chatCosmeticSwitch', needs: 'chatPlus', label: 'Cosmetics button in colour',
-              hint: 'The sparkles button in the chat header (chat cosmetics) turns green while cosmetics are on.' },
+              hint: 'The sparkles button in the chat header (chat cosmetics) turns green while cosmetics show (Full or Static).' },
             { key: 'chatSizes', needs: 'chatPlus', label: 'Text sizes',
               hint: 'Names and messages in the chat, each on its own.',
               subs: [
