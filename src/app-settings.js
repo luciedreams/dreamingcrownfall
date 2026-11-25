@@ -51,6 +51,9 @@ const SCHEMA = {
     'discord.showKing': true,
     // Öffentliche MarbleMind-Statistik: Tab „Stats“, „Today“ auf Home, Bausteine im HUD (stats.js). Opt-in.
     'stats.enabled': false,
+    // Mit Jobexis Okay (26.11.2026), versteckt: der Konami-Code in den Settings schaltet die offiziellen Themes
+    // und Fonts frei (official-themes.json neben main.js; Spiel-Ebene themes/official*.js).
+    'secret.official': false,
 };
 
 const RANGES = { 'notify.unattendedSeconds': [10, 60], 'ui.soundVolume': [0, 100], 'ui.chatPlace': [0, 2], 'ui.chatW': [300, 1600], 'ui.chatH': [0, 1600] };

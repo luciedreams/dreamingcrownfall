@@ -14,6 +14,8 @@
                                   epic: '#a862e2', rare: '#5da4e1', common: '#4d8b51' };
     const OFFICIAL_REOPEN_KEY = 'dcf_official_theme_reopen';
     let officialListCache;
+    // Freigeschaltet oder wieder gesperrt (Konami-Code, auch aus einem anderen Tab): neu fragen.
+    try { if (pageWindow.dcfApp && pageWindow.dcfApp.onChange) pageWindow.dcfApp.onChange(() => { officialListCache = undefined; }); } catch (e) {}
     function officialList() {
         if (officialListCache !== undefined) return officialListCache;
         let list = null;

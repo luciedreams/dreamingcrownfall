@@ -106,6 +106,10 @@
                 font-family: inherit; color: var(--ds-text); animation: dcf-pn-fade 160ms ease-out;
             }
             html[data-mcfo-perf~="noblur"] .dcf-set { backdrop-filter: none; background: rgba(9, 6, 16, 0.82); }
+            .dcf-set__secret { position: fixed; left: 50%; top: 9vh; translate: -50% 0; z-index: 10; padding: 10px 18px; border-radius: 12px;
+                background: linear-gradient(180deg, #2a1d42, #1b1230); border: 1px solid #ffd36e; color: #ffe9b0; font: 700 14px/1.3 system-ui, sans-serif;
+                box-shadow: 0 10px 30px rgba(0, 0, 0, .55), 0 0 22px rgba(255, 211, 110, .35); animation: dcfSecretIn 260ms ease-out; pointer-events: none; }
+            @keyframes dcfSecretIn { from { opacity: 0; translate: -50% -8px; } to { opacity: 1; translate: -50% 0; } }
             .dcf-set__panel {
                 position: relative; display: grid; grid-template-columns: 250px 1fr;
                 width: min(1180px, 100%); height: min(88vh, 900px);
@@ -812,6 +816,30 @@
     try { window.dcfOpenSettings = page => showAppSettings({ page: String(page || '') }); } catch (e) {}
 
     // opts: { page } a page id, { section, label } the page of an old section and a switch to ring.
+    // ↑ ↑ ↓ ↓ ← → ← → B A while the settings are open (not while typing in a field): unlocks the official
+    // themes and fonts for the whole app, the same code locks them again. Nothing says so anywhere else.
+    const KONAMI = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'b', 'a'];
+    let konamiAt = 0;
+    function officialKonami(e) {
+        if (e.target && e.target.closest && e.target.closest('input, textarea, select, [contenteditable="true"]')) return;
+        const k = e.key && e.key.length === 1 ? e.key.toLowerCase() : e.key;
+        konamiAt = k === KONAMI[konamiAt] ? konamiAt + 1 : (k === KONAMI[0] ? 1 : 0);
+        if (konamiAt < KONAMI.length) return;
+        konamiAt = 0;
+        const api = dcfApi();
+        if (!api || !api.set) return;
+        const on = !(api.settings()['secret.official'] === true);
+        api.set('secret.official', on);
+        officialListCache = undefined;
+        try { api.sound && api.sound('select'); } catch (err) {}
+        const note = dcfEl('div', 'dcf-set__secret', on
+            ? '\u2728 Official themes and fonts unlocked \u2014 Appearance \u203a Theme and Appearance \u203a Fonts.'
+            : 'Official themes and fonts hidden again.');
+        (dcfSet && dcfSet.root ? dcfSet.root : document.body).appendChild(note);
+        setTimeout(() => note.remove(), 4500);
+        setTimeout(() => { if (dcfSet) dcfRender(); }, 150);
+    }
+
     function showAppSettings(opts = {}) {
         dcfSetStyles();
         pnStyles();   // the logo and the shared keyframes
@@ -878,6 +906,7 @@
             });
             root.addEventListener('mousedown', e => { if (e.target === root) closeAppSettings(); });
             const keyHandler = e => {
+                officialKonami(e);
                 if (e.key !== 'Escape') return;
                 e.stopPropagation(); e.preventDefault();
                 if (dcfSet && dcfSet.query) { search.value = ''; dcfSet.query = ''; dcfRender(true); return; }

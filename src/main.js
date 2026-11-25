@@ -642,15 +642,13 @@ ipcMain.on('dcf:display:hz', (e) => {
     e.returnValue = hz;
 });
 
-// Offizielle Themes (Dev): Liste aus <Profil>/official-themes.json — ohne Datei gibt es die Kategorie
-// in Settings › Appearance › Theme nicht (Dev-Funktion; die Liste legt man von Hand ins Profil).
+// Offizielle Themes und Fonts: die Liste kommt mit der App (official-themes.json), sichtbar erst nach dem
+// Konami-Code in den Settings (app-settings 'secret.official'). Eine eigene <Profil>/official-themes.json
+// (neuere Liste beim Entwickeln) gilt immer und hat Vorrang.
 ipcMain.on('dcf:official:list', (e) => {
-    let list = null;
-    try {
-        const d = JSON.parse(fs.readFileSync(path.join(app.getPath('userData'), 'official-themes.json'), 'utf8'));
-        if (d && Array.isArray(d.themes)) list = d.themes;
-    } catch {}
-    e.returnValue = list;
+    const read = (f) => { try { const d = JSON.parse(fs.readFileSync(f, 'utf8')); return d && Array.isArray(d.themes) ? d.themes : null; } catch { return null; } };
+    e.returnValue = read(path.join(app.getPath('userData'), 'official-themes.json'))
+        || (appSettings.get('secret.official') === true ? read(path.join(__dirname, 'official-themes.json')) : null);
 });
 
 // Wer ist in diesem Tab eingeloggt? Fragt das Spiel selbst (Seitenkontext = Cookie der Partition).
