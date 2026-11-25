@@ -643,7 +643,7 @@ ipcMain.on('dcf:display:hz', (e) => {
 });
 
 // Offizielle Themes (Dev): Liste aus <Profil>/official-themes.json — ohne Datei gibt es die Kategorie
-// in Settings › Appearance › Theme nicht. Die Liste kommt von dreamingcrownfall-lokal/werkzeuge/official-themes-holen.sh.
+// in Settings › Appearance › Theme nicht (Dev-Funktion; die Liste legt man von Hand ins Profil).
 ipcMain.on('dcf:official:list', (e) => {
     let list = null;
     try {
