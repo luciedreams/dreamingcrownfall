@@ -642,6 +642,17 @@ ipcMain.on('dcf:display:hz', (e) => {
     e.returnValue = hz;
 });
 
+// Offizielle Themes (Dev): Liste aus <Profil>/official-themes.json — ohne Datei gibt es die Kategorie
+// in Settings › Appearance › Theme nicht. Die Liste kommt von dreamingcrownfall-lokal/werkzeuge/official-themes-holen.sh.
+ipcMain.on('dcf:official:list', (e) => {
+    let list = null;
+    try {
+        const d = JSON.parse(fs.readFileSync(path.join(app.getPath('userData'), 'official-themes.json'), 'utf8'));
+        if (d && Array.isArray(d.themes)) list = d.themes;
+    } catch {}
+    e.returnValue = list;
+});
+
 // Wer ist in diesem Tab eingeloggt? Fragt das Spiel selbst (Seitenkontext = Cookie der Partition).
 async function refreshIdentity(v) {
     try {

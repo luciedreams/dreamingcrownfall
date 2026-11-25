@@ -253,6 +253,7 @@
     // What a tile says about its page: how many of its switches are on, or the chosen level.
     function sectionState(section) {
         if (section.render === 'theme') {
+            if (settings.officialTheme) return { text: 'Theme: ' + settings.officialTheme.name, none: false };
             const t = THEMES.find(x => x.id === settings.themeId) || THEMES[0];
             return { text: 'Theme: ' + t.label, none: t.id === 'original' };
         }

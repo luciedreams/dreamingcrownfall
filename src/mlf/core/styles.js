@@ -1737,6 +1737,11 @@
         .mcfo-theme__stripe { display: block; height: 5px; margin-top: -2px; border-radius: 3px; }
         .mcfo-theme__preview { position: relative; display: block; height: 34px; border-radius: 5px; overflow: hidden;
                                box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1); }
+        .mcfo-theme__mini { display: flex; justify-content: center; min-height: 96px; }
+        .mcfo-theme__mini svg { width: 100%; max-width: 112px; height: auto; aspect-ratio: 1; }
+        .mcfo-theme .mcfo-theme__pick[data-loading] { opacity: 0.6; cursor: progress; }
+        .mcfo-theme__official-hint { margin-top: 14px; }
+        .mcfo-theme .mcfo-theme__official-off { margin-top: 10px; }
         .mcfo-theme__badge { position: absolute; right: 4px; top: 4px; padding: 1px 5px; border-radius: 4px; font-size: 9px; font-weight: 800;
                              letter-spacing: 0.1em; line-height: 1.4; background: rgba(0, 0, 0, 0.72); color: #ffe692; }
         .mcfo-theme__fx { display: grid; gap: 6px; margin-top: 10px; padding: 10px 0 2px; border-top: 1px solid #1c2c3a; }

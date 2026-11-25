@@ -188,6 +188,8 @@
         for (const [field, part] of Object.entries(COS_MARBLE_FIELDS)) if (cosHide[part] && txt.indexOf('"' + field + '"') !== -1) return true;
         if (cosChatParts() && txt.indexOf(CHAT_COS_SCHEMA) !== -1) return true;
         if (cosHide.fonts && txt.indexOf('"fontStyles"') !== -1) return true;
+        // An official theme (0b) puts its own King tile into every King snapshot.
+        if (officialKingConcerns(txt)) return true;
         return !!(cosHide.wreath || cosHide.crest) && txt.indexOf('"kingCosmetics"') !== -1;
     }
     function chatCosStrip(v) {
@@ -282,7 +284,18 @@
         } catch (e) { console.warn('[DreamingCrownfall] could not size bidding indicators:', e.message); }
     }
     if (cosHide.indicatorSmall) installIndicatorScale();
+    // The King of a snapshot (kingPane.js onSnapshot: snapshot.king with playerId and capturedAtMs,
+    // also snapshot.activitySnapshot.king) gets the official theme (0b) as his own; the game then
+    // loads its King tile like any King's.
+    const officialKingConcerns = txt => !!officialKing && typeof txt === 'string'
+        && txt.indexOf('"king":{') !== -1 && txt.indexOf('"capturedAtMs"') !== -1;
+    function officialKingReviver(k, v) {
+        if (k === 'king' && officialKing && v && typeof v === 'object' && typeof v.playerId === 'string' && Number.isSafeInteger(v.capturedAtMs))
+            return Object.assign({}, v, { visualTheme: { id: officialKing.id, revision: officialKing.revision } });
+        return v;
+    }
     function cosReviver(k, v) {
+        if (k === 'king') return officialKingReviver(k, v);
         const part = COS_MARBLE_FIELDS[k];
         if (part) return cosHide[part] ? undefined : v;
         if (k === 'kingCosmetics' && v && typeof v === 'object' && ((cosHide.wreath && v.wreath) || (cosHide.crest && v.crest))) {
@@ -440,7 +453,39 @@
             };
         } catch (e) { console.warn('[DreamingCrownfall] could not filter cosmetics from replies:', e.message); }
     }
-    if (Object.values(cosHide).some(Boolean)) wrapCosFetch();
+    if (Object.values(cosHide).some(Boolean) || officialKing) wrapCosFetch();
+
+    // The King pane's first snapshot of a reign often comes over its event stream
+    // (/api/king/events, EventSource), and the game keeps the King tile theme of a reign from the
+    // first snapshot it sees (kingPane.js onSnapshot: a new theme only with a new playerId or
+    // capturedAtMs). So with an official theme on, the stream's King snapshots get it as well.
+    // Only then is EventSource touched at all, and only events naming a King are rewritten.
+    if (officialKing) try {
+        const proto = pageWindow.EventSource.prototype;
+        const nativeAddES = proto.addEventListener, nativeRemoveES = proto.removeEventListener;
+        const esWrapped = new WeakMap();
+        proto.addEventListener = function (type, fn, ...rest) {
+            if (typeof fn === 'function') {
+                if (!esWrapped.has(fn)) {
+                    const orig = fn;
+                    esWrapped.set(fn, function (e) {
+                        if (e && officialKingConcerns(e.data)) {
+                            try {
+                                const data = JSON.stringify(JSON.parse(e.data, officialKingReviver));
+                                return orig.call(this, new pageWindow.MessageEvent(e.type, { data, origin: e.origin, lastEventId: e.lastEventId }));
+                            } catch (err) { /* an event we cannot read goes through as it came */ }
+                        }
+                        return orig.call(this, e);
+                    });
+                }
+                fn = esWrapped.get(fn);
+            }
+            return nativeAddES.call(this, type, fn, ...rest);
+        };
+        proto.removeEventListener = function (type, fn, ...rest) {
+            return nativeRemoveES.call(this, type, (typeof fn === 'function' && esWrapped.get(fn)) || fn, ...rest);
+        };
+    } catch (e) { console.warn('[DreamingCrownfall] official theme: King events not reachable:', e.message); }
 
     try {
         const NativeWebSocket = pageWindow.WebSocket;

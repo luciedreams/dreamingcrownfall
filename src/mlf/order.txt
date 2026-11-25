@@ -7,6 +7,7 @@ boot/inventory-boot.js
 boot/achievements.page.js
 boot/achievements-boot.js
 boot/start.js
+boot/official-theme.js
 boot/lane-tap.js
 core/main-start.js
 core/settings.js
@@ -20,6 +21,7 @@ themes/kit-games-signature.js
 themes/film-tv.js
 themes/books.js
 themes/music.js
+themes/official.js
 king/king-tile.js
 core/windows.js
 core/menus.js

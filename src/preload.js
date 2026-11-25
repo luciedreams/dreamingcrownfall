@@ -53,6 +53,7 @@ if (host === 'marblecrownfall.com' || host.endsWith('.marblecrownfall.com')) {
             ownPlayers: () => ipcRenderer.invoke('dcf:accounts:players'),
             welcomeClaim: () => ipcRenderer.sendSync('dcf:welcome:claim'),
             displayHz: () => ipcRenderer.sendSync('dcf:display:hz'),
+            officialThemes: () => ipcRenderer.sendSync('dcf:official:list'),
             openStats: (tab) => ipcRenderer.send('dcf:stats:open', typeof tab === 'string' ? tab : ''),
             menu: { open: () => ipcRenderer.send('dcf:menu:open') },
             introClaim: () => ipcRenderer.sendSync('dcf:intro:claim'),

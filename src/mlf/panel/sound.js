@@ -196,7 +196,7 @@
     // Two levels since 6.6: first what holds for every theme (random, rotation) and two ways in —
     // Basic, the colour themes with Custom among them, and Deluxe, the themes with a skin — then
     // the tiles of the one picked. Kept in RAM like the settings page itself.
-    let themeView = null;   // null = the landing page, else 'basic' or 'deluxe'
+    let themeView = null;   // null = the landing page, else 'basic', 'deluxe' or 'official'
     const themeIsDeluxe = t => !!(t && t.skin);
     const THEME_FOOT = 'The board, the chips, chat cosmetics, rarities, gold and diamonds keep their colours: they mean something.';
 
@@ -223,9 +223,10 @@
         back.addEventListener('click', () => { themeView = null; redraw(); });
         const title = document.createElement('span');
         title.className = 'mcfo-set__crumb-title';
-        title.textContent = themeView === 'deluxe' ? 'Deluxe themes' : 'Basic themes';
+        title.textContent = themeView === 'deluxe' ? 'Deluxe themes' : themeView === 'official' ? 'Official themes' : 'Basic themes';
         head.append(back, title);
         card.appendChild(head);
+        if (themeView === 'official') { officialGrid(card, redraw); return card; }
         // One heading and grid per group, in the order THEMES lists them — the groups of this level.
         const groups = [...new Set(THEMES.filter(t => (themeView === 'deluxe') === themeIsDeluxe(t) && themeVisible(t)).map(t => t.group))];
         for (const group of groups) {
@@ -240,7 +241,7 @@
                 b.type = 'button';
                 b.className = 'mcfo-theme__pick';
                 b.setAttribute('data-mcfo-theme-id', t.id);
-                b.setAttribute('aria-pressed', settings.themeId === t.id ? 'true' : 'false');
+                b.setAttribute('aria-pressed', !settings.officialTheme && settings.themeId === t.id ? 'true' : 'false');
                 b.innerHTML = '<span class="mcfo-theme__swatches"></span><span class="mcfo-theme__name"></span><span class="mcfo-theme__note"></span>';
                 b.querySelector('.mcfo-theme__name').textContent = t.label;
                 b.querySelector('.mcfo-theme__note').textContent = t.note;
@@ -265,9 +266,11 @@
                     b.querySelector('.mcfo-theme__swatches').after(band);
                 }
                 b.addEventListener('click', () => {
-                    if (settings.themeId === t.id) return;
+                    if (settings.themeId === t.id && !settings.officialTheme) return;
                     settings.themeId = t.id;
                     saveSettings();
+                    // Leaving an official theme takes a reload (3c); the new pick is saved and shows then.
+                    if (officialLeave()) return;
                     themeTick();
                     redraw();
                 });
@@ -311,9 +314,12 @@
             { id: 'basic', title: 'Basic themes', blurb: 'Colour for the whole page: classics, pride flags, moods, games, editor themes — or your own.' },
             { id: 'deluxe', title: 'Deluxe themes', blurb: 'Textures, scenery and effects over the whole frame of the page.' },
         ];
+        if (officialList().length) cats.push({ id: 'official', title: 'Official themes',
+            blurb: 'The game’s own Visual Themes on the tiles, the King tile and the page — only you see them.' });
         for (const cat of cats) {
+            if (cat.id === 'official') { tiles.appendChild(officialCategory(redraw)); continue; }
             const list = THEMES.filter(t => (cat.id === 'deluxe') === themeIsDeluxe(t) && themeVisible(t));
-            const inUse = (cat.id === 'deluxe') === themeIsDeluxe(current);
+            const inUse = !settings.officialTheme && (cat.id === 'deluxe') === themeIsDeluxe(current);
             const b = document.createElement('button');
             b.type = 'button';
             b.className = 'mcfo-set__tile';
@@ -333,6 +339,26 @@
             tiles.appendChild(b);
         }
         return tiles;
+    }
+
+    // The category tile of the official themes (3c), built like the two above.
+    function officialCategory(redraw) {
+        const list = officialList();
+        const cur = settings.officialTheme && list.find(t => t.id === settings.officialTheme.id);
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'mcfo-set__tile';
+        b.setAttribute('data-mcfo-theme-cat', 'official');
+        b.innerHTML = '<span class="mcfo-theme__catprev"></span><span class="mcfo-set__tile-title"></span><span class="mcfo-set__tile-blurb"></span>'
+                    + '<span class="mcfo-set__tile-state"></span><span class="mcfo-set__tile-arrow" aria-hidden="true">\u203A</span>';
+        b.querySelector('.mcfo-set__tile-title').textContent = 'Official themes';
+        b.querySelector('.mcfo-set__tile-blurb').textContent = 'The game’s own Visual Themes on the tiles, the King tile and the page — only you see them.';
+        const st = b.querySelector('.mcfo-set__tile-state');
+        st.textContent = `${list.length} themes` + (settings.officialTheme ? ` · in use: ${settings.officialTheme.name}` : '');
+        st.toggleAttribute('data-none', !settings.officialTheme);
+        officialStrip(b.querySelector('.mcfo-theme__catprev'), cur || list.find(t => t.miniature) || null);
+        b.addEventListener('click', () => { themeView = 'official'; redraw(); });
+        return b;
     }
 
     // How much a Deluxe theme may move, right under its tiles. The note says so when a

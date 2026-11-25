@@ -27,6 +27,14 @@
     settings.themeRotate = THEME_ROTATE_OPTIONS.some(o => o[0] === Number(stored.themeRotate)) ? Number(stored.themeRotate) : 0;
     // Deluxe effects (6.5): full, subtle or off. Full unless chosen otherwise; the performance
     // levels hold it down on their own (section 3c, skinFxEffective).
+    // Official theme (dev): one of the game's Visual Themes on tiles, King tile and page, for this
+    // screen only (boot/official-theme.js, themes/official.js). null = none.
+    settingDefaults.officialTheme = null;
+    {
+        const o = stored.officialTheme;
+        settings.officialTheme = o && typeof o === 'object' && typeof o.id === 'string' && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(o.id)
+            && Number.isSafeInteger(o.revision) ? { id: o.id, name: String(o.name || o.id), rarity: String(o.rarity || ''), revision: o.revision } : null;
+    }
     const THEME_FX_OPTIONS = [['full', 'Full'], ['subtle', 'Subtle'], ['off', 'Off']];
     settingDefaults.themeFx = 'full';
     settings.themeFx = THEME_FX_OPTIONS.some(o => o[0] === stored.themeFx) ? stored.themeFx : 'full';
