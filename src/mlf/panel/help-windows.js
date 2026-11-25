@@ -257,6 +257,10 @@
             const t = THEMES.find(x => x.id === settings.themeId) || THEMES[0];
             return { text: 'Theme: ' + t.label, none: t.id === 'original' };
         }
+        if (section.render === 'fonts') {
+            const n = Object.keys(settings.officialFonts || {}).length;
+            return { text: n ? `${n} of ${OFFICIAL_FONT_SURFACES.length} surfaces set` : 'The game\'s own', none: !n };
+        }
         if (section.render === 'performance') {
             const level = PERF_LEVELS.find(l => l.id === settings.perfLevel) || PERF_LEVELS[0];
             const g = graphicsState();
@@ -281,6 +285,7 @@
     function sectionKeys(section) {
         if (section.render === 'theme') return ['themeId', 'themeHue', 'themeTint', 'themeAccent', 'themeGradient', 'themePattern', 'themeRandom', 'themeRotate', 'themeFx', 'boardClear'];
         if (section.render === 'performance') return ['perfLevel', 'perfFpsMeter', ...PERF_LEVERS.map(l => l.key)];
+        if (section.render === 'fonts') return ['officialFonts'];
         // The game keeps its own sound (11c); only the player's own settings are ours (11e).
         if (section.render === 'sound') return ['musicPlayer', 'musicBar', 'musicShuffle', 'musicVolume'];
         const keys = [];
@@ -326,6 +331,8 @@
             box.append(gt, graphicsCard(() => redraw()));
         } else if (section.render === 'theme') {
             box.appendChild(themeCard(() => redraw()));
+        } else if (section.render === 'fonts') {
+            if (officialFontsAvailable()) box.appendChild(officialFontsCard(() => redraw()));
         } else if (section.render === 'sound') {
             box.appendChild(soundCard(() => redraw()));
         } else {

@@ -48,3 +48,19 @@
             } catch (e) {}
         }
     })();
+
+    // Official fonts (dev): the game's player fonts per surface, the same way — only on this screen.
+    // The four "Only you" surfaces come from /api/inventory/font-styles?view=preferences, the others
+    // from /api/inventory/public-font-styles (and inline on chat lines); lane-tap answers both with
+    // the choice from Settings › Appearance › Fonts (themes/official-fonts.js) laid over the game's.
+    const OFFICIAL_FONT_VIEWER = ['scorezones', 'tile_text', 'bid_buttons', 'site_text'];
+    const OFFICIAL_FONT_PUBLIC = ['marble_name', 'marble_score', 'bid_amount', 'run_results', 'king_tile', 'king_stats',
+                                  'royal_name', 'chat_username', 'chat_message', 'profile_name'];
+    const OFFICIAL_FONT_SURFACES = [...OFFICIAL_FONT_VIEWER, ...OFFICIAL_FONT_PUBLIC];
+    let officialFonts = {};   // surface -> font id; the settings page keeps it current
+    try {
+        const st = JSON.parse(localStorage.getItem('mcf_overhaul_settings')) || {};
+        if (st.officialFonts && typeof st.officialFonts === 'object')
+            for (const [k, v] of Object.entries(st.officialFonts))
+                if (OFFICIAL_FONT_SURFACES.includes(k) && typeof v === 'string' && /^[a-z0-9-]{1,64}$/.test(v)) officialFonts[k] = v;
+    } catch (e) {}

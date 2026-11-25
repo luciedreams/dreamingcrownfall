@@ -68,6 +68,7 @@
               hint: 'Where the tiles leave room above and below, the chat gives up half of it: shorter than the whole page, still taller than the tiles, everything centred. Measured on every window size.' },
         ]},
         { title: 'Theme', blurb: 'Colours for the whole page, and Deluxe themes with textures and effects.', render: 'theme' },
+        { title: 'Fonts', blurb: 'The game\'s player fonts, surface by surface — only on this screen.', render: 'fonts' },
         { title: 'Performance', blurb: 'Lighter drawing for slower machines.', render: 'performance' },
         { title: 'Header', blurb: 'Account menu, labelled cards, upcoming tilesets, the settings button.', items: [
             { key: 'accountMenu', label: 'Account menu',

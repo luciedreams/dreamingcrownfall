@@ -35,6 +35,13 @@
         settings.officialTheme = o && typeof o === 'object' && typeof o.id === 'string' && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(o.id)
             && Number.isSafeInteger(o.revision) ? { id: o.id, name: String(o.name || o.id), rarity: String(o.rarity || ''), revision: o.revision } : null;
     }
+    // Official fonts (dev): the game's player fonts per surface (playerFonts.js), for this screen only
+    // (boot/lane-tap.js answers the game's font requests, themes/official-fonts.js is the page). {} = the game's own.
+    settingDefaults.officialFonts = {};
+    settings.officialFonts = {};
+    if (stored.officialFonts && typeof stored.officialFonts === 'object')
+        for (const [k, v] of Object.entries(stored.officialFonts))
+            if (OFFICIAL_FONT_SURFACES.includes(k) && typeof v === 'string' && /^[a-z0-9-]{1,64}$/.test(v)) settings.officialFonts[k] = v;
     const THEME_FX_OPTIONS = [['full', 'Full'], ['subtle', 'Subtle'], ['off', 'Off']];
     settingDefaults.themeFx = 'full';
     settings.themeFx = THEME_FX_OPTIONS.some(o => o[0] === stored.themeFx) ? stored.themeFx : 'full';

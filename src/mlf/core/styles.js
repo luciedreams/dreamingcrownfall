@@ -1742,6 +1742,31 @@
         .mcfo-theme .mcfo-theme__pick[data-loading] { opacity: 0.6; cursor: progress; }
         .mcfo-theme__official-hint { margin-top: 14px; }
         .mcfo-theme .mcfo-theme__official-off { margin-top: 10px; }
+        /* Official fonts (3d), laid out like the game's font page: surfaces left, fonts right */
+        .dcf-fonts { display: grid; gap: 12px; }
+        .dcf-fonts__all { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-bottom: 10px; border-bottom: 1px solid #1c2c3a; font-size: 12.5px; font-weight: 700; }
+        .dcf-fonts .dcf-fonts__select { min-width: 200px; padding: 5px 8px; border-radius: 7px; border: 1px solid #2c4254; background: #0e1821; color: #d7e2ea; font: inherit; font-weight: 600; }
+        .dcf-fonts__cols { display: grid; grid-template-columns: minmax(170px, 210px) 1fr; gap: 14px; align-items: start; }
+        .dcf-fonts__side { display: grid; gap: 3px; }
+        .dcf-fonts__side .mcfo-theme__group { margin: 10px 0 4px; }
+        .dcf-fonts__side .mcfo-theme__group:first-child { margin-top: 0; }
+        .dcf-fonts .dcf-fonts__surface { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; padding: 6px 9px; border: 1px solid transparent;
+            border-radius: 7px; background: none; color: #d7e2ea; font: inherit; font-size: 12.5px; text-align: left; cursor: pointer; }
+        .dcf-fonts .dcf-fonts__surface small { font-size: 11px; color: #8da2b7; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .dcf-fonts .dcf-fonts__surface:hover { background: #122232; }
+        .dcf-fonts .dcf-fonts__surface[aria-pressed="true"] { border-color: #4d7ea6; background: #122232; }
+        .dcf-fonts__head { display: grid; gap: 3px; margin-bottom: 10px; }
+        .dcf-fonts__head b { font-size: 14px; }
+        .dcf-fonts__head span { font-size: 11.5px; line-height: 1.4; color: #8da2b7; }
+        .dcf-fonts__grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 8px; }
+        .dcf-fonts .dcf-fonts__pick { display: grid; gap: 4px; padding: 9px 10px; text-align: left; border: 1px solid #2c4254; border-radius: 9px; background: #0e1821;
+            color: #d7e2ea; font: inherit; cursor: pointer; }
+        .dcf-fonts .dcf-fonts__pick:hover { border-color: #4d7ea6; }
+        .dcf-fonts .dcf-fonts__pick[aria-pressed="true"] { border-color: #4d7ea6; background: #122232; box-shadow: inset 0 0 0 1px #4d7ea6; }
+        .dcf-fonts__sample { font-size: 17px; line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .dcf-fonts__name { font-size: 11px; font-weight: 700; color: #8da2b7; }
+        .dcf-fonts__reload { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 12px; padding: 9px 11px; border-radius: 8px;
+            background: #122232; font-size: 12px; line-height: 1.4; color: #c4d3df; }
         .mcfo-theme__badge { position: absolute; right: 4px; top: 4px; padding: 1px 5px; border-radius: 4px; font-size: 9px; font-weight: 800;
                              letter-spacing: 0.1em; line-height: 1.4; background: rgba(0, 0, 0, 0.72); color: #ffe692; }
         .mcfo-theme__fx { display: grid; gap: 6px; margin-top: 10px; padding: 10px 0 2px; border-top: 1px solid #1c2c3a; }

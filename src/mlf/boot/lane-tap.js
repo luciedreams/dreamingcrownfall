@@ -188,6 +188,7 @@
         for (const [field, part] of Object.entries(COS_MARBLE_FIELDS)) if (cosHide[part] && txt.indexOf('"' + field + '"') !== -1) return true;
         if (cosChatParts() && txt.indexOf(CHAT_COS_SCHEMA) !== -1) return true;
         if (cosHide.fonts && txt.indexOf('"fontStyles"') !== -1) return true;
+        if (officialFontsMe && (officialFonts.chat_username || officialFonts.chat_message) && txt.indexOf('"fontStyles"') !== -1 && txt.indexOf(officialFontsMe) !== -1) return true;
         // An official theme (0b) puts its own King tile into every King snapshot.
         if (officialKingConcerns(txt)) return true;
         return !!(cosHide.wreath || cosHide.crest) && txt.indexOf('"kingCosmetics"') !== -1;
@@ -306,6 +307,15 @@
         }
         if (v && typeof v === 'object' && v.schema === CHAT_COS_SCHEMA) return chatCosStrip(v);
         if (k === 'fontStyles' && cosHide.fonts) return undefined;
+        // Your own chat line with its fonts inline (chatPane.js applyMessageTreatment): the official ones.
+        if (officialFontsMe && v && typeof v === 'object' && v.sender && v.presentation && typeof v.presentation === 'object'
+            && (v.sender.playerId || v.sender.userId) === officialFontsMe && (officialFonts.chat_username || officialFonts.chat_message)) {
+            const f = v.presentation.fontStyles;
+            if (f && typeof f === 'object' && Object.hasOwn(f, 'username') && Object.hasOwn(f, 'message')) {
+                const fontStyles = { username: officialFonts.chat_username || f.username, message: officialFonts.chat_message || f.message };
+                return Object.assign({}, v, { presentation: Object.assign({}, v.presentation, { fontStyles }) });
+            }
+        }
         return v;
     }
 
@@ -428,6 +438,28 @@
     // Installed only once a switch is first turned on: until then this script leaves the page's
     // fetch alone. Only the reply of /bid/place and the King snapshot are ever looked at, and the
     // two font requests (6.63) are answered empty without asking the server.
+    // Official fonts (0b): which of the public surfaces are set, and who "you" are in this tab.
+    const officialFontsPublic = () => OFFICIAL_FONT_PUBLIC.filter(k => officialFonts[k]);
+    const officialFontsViewer = () => OFFICIAL_FONT_VIEWER.filter(k => officialFonts[k]);
+    let officialFontsMe = null, officialFontsMeAsked = null;
+    function officialFontsWhoAmI(nativeFetch) {
+        return officialFontsMeAsked || (officialFontsMeAsked = nativeFetch.call(pageWindow, '/api/auth/me', { credentials: 'same-origin', cache: 'no-store' })
+            .then(r => r.ok ? r.json() : null).then(j => {
+                const id = j && (j.playerId || (j.player && j.player.playerId) || (j.user && j.user.playerId));
+                officialFontsMe = typeof id === 'string' && !id.startsWith('guest:') ? id : null;
+                return officialFontsMe;
+            }).catch(() => null));
+    }
+    // The game's own fonts for you, with the official ones laid over them.
+    function officialFontsOver(styles) {
+        const o = Object.assign({}, styles && typeof styles === 'object' ? styles : {});
+        for (const k of officialFontsPublic()) o[k] = officialFonts[k];
+        if (officialFonts.bid_amount) o.bid_indicator = officialFonts.bid_amount;
+        return o;
+    }
+    const jsonResponse = (obj, res) => new pageWindow.Response(JSON.stringify(obj),
+        { status: 200, headers: { 'Content-Type': 'application/json' } });
+
     let cosFetchWrapped = false;
     function wrapCosFetch() {
         if (cosFetchWrapped) return;
@@ -437,9 +469,32 @@
             pageWindow.fetch = function (input, init) {
                 let url = '';
                 try { url = typeof input === 'string' ? input : String((input && input.url) || ''); } catch (e) {}
-                if (cosHide.fonts && (url.indexOf('/api/inventory/public-font-styles') !== -1
-                    || url.indexOf('/api/inventory/font-styles?view=preferences') !== -1)) {
-                    const empty = url.indexOf('public-font-styles') !== -1 ? '{"players":{}}' : '{}';
+                const isPrefs = url.indexOf('/api/inventory/font-styles?view=preferences') !== -1;
+                const isPublic = url.indexOf('/api/inventory/public-font-styles') !== -1;
+                // Official fonts: your own surfaces get the chosen font, over whatever the game says
+                // (or over nothing, with Hide player fonts on - that switch is about everybody else).
+                if (isPrefs && officialFontsViewer().length) {
+                    const base = cosHide.fonts ? pageWindow.Promise.resolve({})
+                        : nativeFetch.apply(this, arguments).then(r => r.ok ? r.json() : {}).catch(() => ({}));
+                    return base.then(d => {
+                        const a = Object.assign({}, d && d.assignments);
+                        for (const k of officialFontsViewer()) a[k] = officialFonts[k];
+                        return jsonResponse(Object.assign({}, d, { assignments: a }));
+                    });
+                }
+                if (isPublic && officialFontsPublic().length) {
+                    let asked = [];
+                    try { asked = new URL(url, location.origin).searchParams.getAll('player'); } catch (e) {}
+                    const base = cosHide.fonts ? pageWindow.Promise.resolve({ players: {} })
+                        : nativeFetch.apply(this, arguments).then(r => r.ok ? r.json() : { players: {} }).catch(() => ({ players: {} }));
+                    return pageWindow.Promise.all([base, officialFontsWhoAmI(nativeFetch)]).then(([d, me]) => {
+                        const players = Object.assign({}, d && d.players);
+                        if (me && asked.includes(me)) players[me] = officialFontsOver(players[me]);
+                        return jsonResponse(Object.assign({}, d, { players }));
+                    });
+                }
+                if (cosHide.fonts && (isPublic || isPrefs)) {
+                    const empty = isPublic ? '{"players":{}}' : '{}';
                     return pageWindow.Promise.resolve(new pageWindow.Response(empty,
                         { status: 200, headers: { 'Content-Type': 'application/json' } }));
                 }
@@ -453,7 +508,8 @@
             };
         } catch (e) { console.warn('[DreamingCrownfall] could not filter cosmetics from replies:', e.message); }
     }
-    if (Object.values(cosHide).some(Boolean) || officialKing) wrapCosFetch();
+    if (Object.values(cosHide).some(Boolean) || officialKing || Object.keys(officialFonts).length) wrapCosFetch();
+    if (officialFontsPublic().length) try { officialFontsWhoAmI(pageWindow.fetch); } catch (e) {}
 
     // The King pane's first snapshot of a reign often comes over its event stream
     // (/api/king/events, EventSource), and the game keeps the King tile theme of a reign from the

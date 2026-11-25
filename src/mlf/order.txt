@@ -22,6 +22,7 @@ themes/film-tv.js
 themes/books.js
 themes/music.js
 themes/official.js
+themes/official-fonts.js
 king/king-tile.js
 core/windows.js
 core/menus.js

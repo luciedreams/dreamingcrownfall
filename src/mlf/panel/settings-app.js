@@ -44,7 +44,7 @@
             { id: 'stats', title: 'Stats', icon: 'chart', blurb: 'Live numbers of the whole game from MarbleMind: a Stats tab, today on Home and in the HUD.', app: 'stats' },
         ]},
         { group: 'Game', pages: [
-            { id: 'appearance', title: 'Appearance', icon: 'palette', blurb: 'Theme, colours and how windows look over the board.', parts: ['Theme', 'Windows'] },
+            { id: 'appearance', title: 'Appearance', icon: 'palette', blurb: 'Theme, colours and how windows look over the board.', parts: ['Theme', 'Fonts', 'Windows'] },
             { id: 'performance', title: 'Performance', icon: 'gauge', blurb: 'Lighter drawing for slower machines, and the game\'s own graphics.', parts: ['Performance'] },
             { id: 'screen', title: 'Game screen', icon: 'layout', blurb: 'The header cards, tile credits and the results at the end of a run, the ticket rail and the footer.', parts: ['Header', 'Lanes', 'Ticket rail', 'Footer'] },
             { id: 'king', title: 'King & throne', icon: 'crown', blurb: 'The king tile, and what happens while you sit on the throne.', parts: ['King tile', 'On the throne'] },
@@ -674,10 +674,13 @@
         for (const title of page.parts) {
             const section = SETTINGS_SECTIONS.find(s => s.title === title);
             if (!section) continue;
+            if (section.render === 'fonts' && !officialFontsAvailable()) continue;
             const reset = () => {
                 if (section.render === 'sound') { soundOff(); musicPause(); settings.musicExcluded = []; music.queue = []; }
                 for (const k of sectionKeys(section)) settings[k] = settingDefaults[k];
-                saveSettings(); apply(); dcfRender();
+                saveSettings(); apply();
+                if (section.render === 'fonts') officialFontsChanged(true);
+                dcfRender();
             };
             const part = dcfPart(page.parts.length > 1 ? section.title : 'Settings', page.parts.length > 1 ? section.blurb : '', reset);
             const inner = dcfEl('div', 'mcfo-set');
@@ -716,6 +719,7 @@
             for (const title of page.parts || []) {
                 const section = SETTINGS_SECTIONS.find(s => s.title === title);
                 if (!section) continue;
+                if (section.render === 'fonts' && !officialFontsAvailable()) continue;
                 if (section.render) {
                     if (hit([section.title, section.blurb, page.title, page.blurb].join(' '))) rows.push(dcfOpenRow(page, section.title, section.blurb));
                     continue;
