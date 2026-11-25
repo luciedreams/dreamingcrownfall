@@ -46,6 +46,8 @@
             chat_background_style: '<rect x="3" y="5" width="18" height="12" rx="3"/><path d="M8 17v4l4-4"/>',
             username_style: '<circle cx="12" cy="8" r="4"/><path d="M4 21c1-5 15-5 16 0"/>',
             king_chat_bubble_style: '<path d="M4 6h16v10H9l-5 4zM8 9l2 2 2-3 2 3 2-2"/>',
+            visual_theme: '<path d="M12 3a9 9 0 1 0 0 18c1.4 0 2-1 1.6-2.2-.5-1.3.4-2.3 1.7-2.3H18a3 3 0 0 0 3-3A9 9 0 0 0 12 3z"/><circle cx="7.5" cy="11" r="1.3"/><circle cx="10.5" cy="7" r="1.3"/><circle cx="15" cy="7.5" r="1.3"/>',
+            chat_font_style: '<path d="M3 19l5-14h1.5l5 14M4.8 14h8.4M16 19v-6.5a2.5 2.5 0 0 1 5 0V19M16 15.5h5"/>',
         };
         const icon = id => `<svg viewBox="0 0 24 24" aria-hidden="true">${ICON[id] || ''}</svg>`;
         // Fetch everything again (6.59): the lists are kept while the page is open, so a crown bought
@@ -74,6 +76,9 @@
             { id: 'chat_background_style', label: 'Chat Background', group: 'Chat', kind: 'chat', slot: 'chat_background_style', singular: 'Chat Background', plural: 'Chat Backgrounds' },
             { id: 'username_style', label: 'Username Style', group: 'Chat', kind: 'chat', slot: 'username_style', singular: 'Username Style', plural: 'Username Styles' },
             { id: 'king_chat_bubble_style', label: 'King Chat Bubble', group: 'Chat', kind: 'chat', slot: 'king_chat_bubble_style', singular: 'King Chat Bubble', plural: 'King Chat Bubbles', king: true },
+            // Miscellany (game v1.0.4): bought in the Misc. Shop. Same page ids as the game's inventory.
+            { id: 'visual_theme', label: 'Visual Themes', group: 'Misc', kind: 'theme', url: '/api/inventory/visual-themes', singular: 'Theme', plural: 'Visual Themes' },
+            { id: 'chat_font_style', label: 'Font Styles', group: 'Misc', kind: 'fontstyle', url: '/api/inventory/font-styles', singular: 'Font', plural: 'Font Styles' },
         ];
         for (const p of PAGES) if (p.kind === 'chat') p.url = '/api/inventory/chat-cosmetics?slotType=' + p.slot;
         const PAGE = Object.fromEntries(PAGES.map(p => [p.id, p]));
@@ -192,6 +197,25 @@
                 m.ordinary = String(d.ordinarySelectedInventoryItemId || noneId);
                 m.king = String(d.kingSelectedInventoryItemId || noneId);
                 m.sel.add(m.ordinary); m.sel.add(m.king);
+            } else if (p.kind === 'theme') {
+                // Basic and the six Basic site colours belong to everyone; they come as entitlements, not items.
+                const owned = [...(d.availableItems || [])];
+                m.items = [...themeBasics(d.basicThemes), ...owned];
+                const ids = safe(() => mods.readPersonalVisualThemeIds(), {}) || {};
+                const byTheme = tid => (m.items.find(i => i.visualTheme && i.visualTheme.id === tid) || {}).inventoryItemId;
+                m.slotSel = {
+                    normalTiles: (owned.find(i => i.visualTheme && i.visualTheme.id === ids.normalTiles) || {}).inventoryItemId || THEME_BASIC,
+                    kingTile: String(d.selectedInventoryItemId || THEME_BASIC),
+                    mainPage: byTheme(ids.mainPage) || THEME_BASIC,
+                };
+                Object.values(m.slotSel).forEach(x => m.sel.add(String(x)));
+            } else if (p.kind === 'fontstyle') {
+                m.enabled = d.enabled !== false;
+                m.surfaces = d.surfaces || {};
+                m.assign = { ...(d.assignments || {}) };
+                m.items = [{ inventoryItemId: FONT_DEFAULT, displayName: 'Default', systemDefault: true },
+                    ...(d.owned || []).map(f => ({ ...f, inventoryItemId: String(f.id), displayName: f.itemName || f.displayName || String(f.id) }))];
+                for (const sf of Object.keys(m.surfaces)) m.sel.add(fontOn(m, sf) || FONT_DEFAULT);
             } else {
                 m.items = d.availableItems || [];
                 m.contexts = d.contexts || [];
@@ -208,6 +232,44 @@
         const itemId = i => String((i && i.inventoryItemId) || '');
         const isSystem = (m, i) => !!(i && (i.systemDefault || itemId(i) === NO_CROWN || itemId(i).startsWith(NO_CHAT)));
         const pooled = m => m.p.kind === 'crown' || m.p.kind === 'marble';
+
+        // ---- Miscellany (game v1.0.4) -----------------------------------------------------------
+        const THEME_BASIC = 'basic', FONT_DEFAULT = 'system_default_font';
+        const THEME_SLOTS = [['normalTiles', 'Normal Tiles', 'Tiles'], ['kingTile', 'King Tile', 'King'], ['mainPage', 'Site Theme', 'Site']];
+        // The game's own cards for Basic (all three slots) and the Basic site colours (Site Theme only).
+        function themeBasics(entitlements) {
+            const names = new Map([[THEME_BASIC, 'Basic'], ...((mods && mods.BASIC_SITE_THEMES) || []).map(t => [t.id, t.name])]);
+            const list = [{ id: THEME_BASIC, rarity: 'basic', unlockedSlots: ['normalTiles', 'kingTile', 'mainPage'] },
+                ...(entitlements || []).filter(t => t.id !== THEME_BASIC && names.has(t.id))];
+            return list.map(({ id, rarity, unlockedSlots }) => ({
+                inventoryItemId: id, displayName: names.get(id), visualTheme: { id }, rarity: rarity || 'basic', unlockedSlots, systemDefault: true,
+                ...(id === THEME_BASIC ? { miniature: safe(() => mods.makeVisualThemeMiniature(), null) }
+                    : { siteTheme: safe(() => mods.resolveVisualThemeLoadout({ mainPage: id }).mainPage, null) }),
+            }));
+        }
+        const themeSlotsOf = i => THEME_SLOTS.filter(([sl]) => !i.unlockedSlots || i.unlockedSlots.includes(sl));
+        const themePreview = i => typeof i.themePreviewHref === 'string' && /^\/themes\/p\/[a-f0-9]{32}$/.test(i.themePreviewHref);
+        // Which font a surface wears ('' = Default). Bid amounts were called bid_indicator before.
+        const fontOn = (m, sf) => String((sf === 'bid_amount' ? m.assign.bid_amount || m.assign.bid_indicator : m.assign[sf]) || '');
+        // The game's grouping of the surfaces: what only you see, what everyone sees.
+        const FONT_GROUPS = [
+            ['Only you', ['scorezones', 'tile_text', 'bid_buttons', 'site_text']],
+            ['Visible to other players', ['marble_name', 'marble_score', 'bid_amount', 'run_results', 'king_tile', 'king_stats', 'royal_name', 'chat_username', 'chat_message', 'profile_name']],
+        ];
+        const fontLabel = (m, sf) => ({ bid_amount: 'Bid Indicators', bid_buttons: 'Ticket Buttons' })[sf] || m.surfaces[sf] || sf;
+        const fontSurfaces = m => FONT_GROUPS.map(([g, ids]) => [g, ids.filter(sf => Object.prototype.hasOwnProperty.call(m.surfaces, sf))])
+            .concat([['Other', Object.keys(m.surfaces).filter(sf => !FONT_GROUPS.some(([, ids]) => ids.includes(sf)))]]).filter(([, ids]) => ids.length);
+        const fontUses = (m, id) => Object.keys(m.surfaces).filter(sf => (fontOn(m, sf) || FONT_DEFAULT) === id);
+        let fontLook = null;   // the equipped appearance for the font previews (?view=preview), once
+        function loadFontLook(m) {
+            if (fontLook) return Promise.resolve(fontLook);
+            // The name as the game shows it: the first display name that is not just the player id.
+            const named = (...ps) => { const all = Object.assign({}, ...[...ps].reverse());
+                const name = ps.map(x => x && x.displayName).find(n => n && n !== all.playerId && n !== String(all.playerId || '').split(':').pop());
+                return { ...all, displayName: name || 'MarbleMage' }; };
+            return api('/api/inventory/font-styles?view=preview').then(b => b && b.preview ? { ...b.preview, player: named(b.viewer, m.player, b.preview.player) } : null, () => null)
+                .then(v => (fontLook = v || { player: m.player || {} }));
+        }
         function filterOf(id) {
             if (!st.filter.has(id)) st.filter.set(id, { q: '', rarity: '', eq: false, pool: false, sort: 'rarity' });
             return st.filter.get(id);
@@ -244,6 +306,8 @@
             ]);
             // Crests on their own: a game build without them must not take the whole inventory down.
             list.push(await get('royalCrests/productPreview.js').catch(() => ({})));
+            // Miscellany (game v1.0.4), the same way: without them only the two Misc pages are missing.
+            for (const f of ['visualThemes.js', 'visualThemeMiniature.js', 'playerFonts.js', 'inventoryFontScenes.js']) list.push(await get(f).catch(() => ({})));
             const all = Object.assign({}, ...list);
             if (typeof all.renderCrownItemPreview !== 'function' || typeof all.renderChatCosmeticPreview !== 'function') throw new Error('renderers_changed');
             return all;
@@ -278,6 +342,21 @@
                         return;
                     }
                     return void mods.renderChatCosmeticPreview(host, item, { ...o, simulateKing: !!p.king, showStateLabel: !!p.king });
+                }
+                if (p.kind === 'theme') {
+                    if (item.siteTheme) {
+                        mods.applyMainPageTheme(host, item.siteTheme);
+                        host.innerHTML = '<div class="inventorySiteThemeSwatch mi-site"><div class="inventorySiteThemeSwatchPanel" aria-hidden="true"><span></span><span></span><span></span></div></div>';
+                        mods.applyMainPageTheme(host.firstElementChild, item.siteTheme);
+                    } else if (!mods.renderVisualThemeMiniature(host, item.miniature, item.displayName || 'Theme')) host.innerHTML = '<div class="mi-none">Swatch unavailable</div>';
+                    return;
+                }
+                if (p.kind === 'fontstyle') {
+                    const id = itemId(item) === FONT_DEFAULT ? '' : itemId(item);
+                    host.innerHTML = `<div class="mi-font${big ? ' mi-font--big' : ''}"><b></b>${big ? '<span></span>' : ''}</div>`;
+                    mods.renderFontSpecimen(host.querySelector('b'), id, big ? (item.displayName || 'Default') : 'Aa ' + (item.displayName || 'Default'));
+                    if (big) mods.renderFontSpecimen(host.querySelector('span'), id, 'MarbleMage · +1,250 pts');
+                    return;
                 }
                 if (p.kind === 'marble') {
                     const fn = mods[p.fn];
@@ -431,6 +510,11 @@
             if (m.contexts.length) {
                 ctl += m.contexts.map(c => `<span class="mi-chip mi-chip--info">${esc(c.label)}: <b>${esc((m.byId.get(String(c.selectedInventoryItemId)) || {}).displayName || '—')}</b></span>`).join('');
             }
+            if (p.kind === 'theme') ctl += THEME_SLOTS.map(([sl, l]) => `<span class="mi-chip mi-chip--info">${l}: <b>${esc((m.byId.get(m.slotSel[sl]) || {}).displayName || 'Basic')}</b></span>`).join('');
+            if (p.kind === 'fontstyle') {
+                const n = Object.keys(m.surfaces).filter(sf => fontOn(m, sf)).length;
+                ctl += `<span class="mi-chip mi-chip--info">Own font on <b>${n} of ${Object.keys(m.surfaces).length}</b> surfaces</span>`;
+            }
             if (p.kind === 'font') {
                 ctl += `<span class="mi-chip mi-chip--info">Ordinary: <b>${esc((m.byId.get(m.ordinary) || {}).displayName || 'No Treatment')}</b></span>
                     <span class="mi-chip mi-chip--info">King: <b>${esc((m.byId.get(m.king) || {}).displayName || 'No Treatment')}</b></span>`;
@@ -479,8 +563,11 @@
             if (io) io.disconnect();
             const list = visibleItems(m), fid = itemId(focusItem(m));
             const textOnly = p.kind === 'title' || p.kind === 'toll';
-            $body.innerHTML = list.length ? `<div class="mi-grid${p.wide ? ' mi-grid--wide' : ''}${textOnly ? ' mi-grid--text' : ''}${p.kind === 'chat' || p.kind === 'font' ? ' mi-grid--chat' : ''}">${list.map(i => card(m, i, fid, textOnly)).join('')}</div>`
-                : '<div class="mi-status"><span>Nothing matches these filters.</span></div>';
+            if (p.kind === 'fontstyle' && !m.enabled) { $body.innerHTML = '<div class="mi-status"><b>Font Styles are currently unavailable</b><span>The game has switched them off for now.</span></div>'; return; }
+            const empty = (p.kind === 'theme' || p.kind === 'fontstyle') && !m.items.some(i => !isSystem(m, i)) && !filterOf(p.id).q
+                ? `<div class="mi-status mi-status--hint"><span>${p.kind === 'theme' ? 'Themes you buy in the Misc. Shop will appear here. Basic and its site colours are yours already.' : 'Fonts you buy in the Misc. Shop will appear here. Until then every surface uses the Default font.'}</span></div>` : '';
+            $body.innerHTML = empty + (list.length ? `<div class="mi-grid${p.wide || p.kind === 'fontstyle' ? ' mi-grid--wide' : ''}${textOnly ? ' mi-grid--text' : ''}${p.kind === 'chat' || p.kind === 'font' ? ' mi-grid--chat' : ''}">${list.map(i => card(m, i, fid, textOnly)).join('')}</div>`
+                : '<div class="mi-status"><span>Nothing matches these filters.</span></div>');
             if (textOnly) return;
             io = new IntersectionObserver(entries => {
                 for (const en of entries) {
@@ -497,6 +584,8 @@
         function badges(m, i) {
             const id = itemId(i), out = [];
             if (m.p.kind === 'font') { if (m.ordinary === id) out.push(['eq', 'Chat']); if (m.king === id) out.push(['eq', 'King']); }
+            else if (m.p.kind === 'theme') THEME_SLOTS.forEach(([sl, , short]) => { if (m.slotSel[sl] === id) out.push(['eq', short]); });
+            else if (m.p.kind === 'fontstyle') { const n = fontUses(m, id).length; if (n) out.push(['eq', n === Object.keys(m.surfaces).length ? 'Everywhere' : n + (n === 1 ? ' surface' : ' surfaces')]); }
             else if (m.contexts.length) m.contexts.forEach(c => { if (String(c.selectedInventoryItemId) === id) out.push(['eq', c.label]); });
             else if (m.sel.has(id) && !(m.random && pooled(m))) out.push(['eq', 'Equipped']);
             if (m.pool.has(id)) out.push(['pool', 'Pool']);
@@ -583,6 +672,19 @@
                 // Game v0.10.6a: tolls are saved for the next reign, and each one fills one occasion only.
                 const tollRule = p.kind === 'toll' ? '<p class="mi-note">Applies from your next reign on. Each toll you own fills one occasion (you have two No Change); picking one that is used elsewhere swaps the two.</p>' : '';
                 actions = `<p class="mi-note">Use it for</p><div class="mi-actions">${actions}</div>${tollRule}<p class="mi-note">${unlock}</p>`;
+            } else if (p.kind === 'theme') {
+                const needsRecipe = !i.systemDefault && !i.siteTheme;
+                actions = `<p class="mi-note">Use it for</p><div class="mi-actions">${themeSlotsOf(i).map(([sl, l]) => { const on = m.slotSel[sl] === id;
+                    const off = on || (needsRecipe && sl !== 'kingTile' && !themePreview(i));
+                    return `<button type="button" class="mi-btn${on ? ' mi-btn--on' : ' mi-btn--main'}" data-act="theme" data-slot="${sl}" ${off ? 'disabled' : ''}>${on ? '✓ ' : ''}${l}</button>`; }).join('')}</div>
+                    <p class="mi-note">King Tile: everyone sees it during your next reign. Normal Tiles and Site Theme: only you, in this app, after the game reloads (F5).</p>
+                    ${themePreview(i) ? `<a class="mi-link" href="${esc(i.themePreviewHref)}" target="_blank" rel="noopener noreferrer">Preview theme ↗</a>` : ''}`;
+            } else if (p.kind === 'fontstyle') {
+                const fid = id === FONT_DEFAULT ? '' : id;
+                const sf = st.fontSurface && m.surfaces[st.fontSurface] ? st.fontSurface : Object.keys(m.surfaces)[0];
+                actions = `<p class="mi-note">Use it on</p>${fontSurfaces(m).map(([g, ids]) => `<div class="mi-fgroup"><h3>${esc(g)}</h3><div class="mi-actions">${ids.map(s => { const on = fontOn(m, s) === fid;
+                        return `<button type="button" class="mi-btn${on ? ' mi-btn--on' : ''}" data-act="surface" data-slot="${esc(s)}" ${on ? 'disabled' : ''}>${on ? '✓ ' : ''}${esc(fontLabel(m, s))}</button>`; }).join('')}</div></div>`).join('')}
+                    ${sf ? `<div class="mi-fprev"><label class="mi-sel">Preview on <select data-act="fprev">${Object.keys(m.surfaces).map(s => `<option value="${esc(s)}" ${s === sf ? 'selected' : ''}>${esc(fontLabel(m, s))}</option>`).join('')}</select></label><div class="inventoryFontScene mi-fscene"></div></div>` : ''}`;
             } else if (p.kind === 'font') {
                 actions = `<div class="mi-actions">
                     <button type="button" class="mi-btn mi-btn--main" data-act="font" data-slot="ordinary" ${m.ordinary === id ? 'disabled' : ''}>${m.ordinary === id ? '✓ Ordinary chat' : 'Use in ordinary chat'}</button>
@@ -610,7 +712,31 @@
                 draw(host, m, i, true);
                 if (handles.size > before) detailHandles = [...handles].slice(before);
             }
+            if (p.kind === 'fontstyle') drawFontScene(m, i);
         }
+        // The game's own scene for one surface, with this font on it (and your other fonts around it).
+        let fontScene = null;
+        function drawFontScene(m, i) {
+            if (fontScene) { safe(() => fontScene.destroy()); fontScene = null; }
+            const host = $detail.querySelector('.mi-fscene'), sel = $detail.querySelector('select[data-act=fprev]');
+            if (!host || !sel || typeof mods.mountFontScene !== 'function') { if (host) host.remove(); return; }
+            const sf = sel.value, fid = itemId(i) === FONT_DEFAULT ? '' : itemId(i), want = itemId(i);
+            loadFontLook(m).then(look => {
+                if (!host.isConnected || itemId(detailTarget().i) !== want) return;
+                const box = document.createElement('div');
+                host.replaceChildren(box);
+                const themes = safe(() => mods.readPageVisualThemes(), null);
+                fontScene = safe(() => mods.mountFontScene(box, sf, { appearance: look, themes }), null);
+                if (fontScene) safe(() => fontScene.apply(m.assign, fid)); else host.innerHTML = '<div class="mi-none">Preview unavailable</div>';
+            });
+        }
+        $detail.addEventListener('change', e => {
+            const t = e.target;
+            if (t.dataset.act !== 'fprev') return;
+            st.fontSurface = t.value;
+            const tg = detailTarget();
+            if (tg.i) drawFontScene(tg.m, tg.i);
+        });
         $detail.addEventListener('click', e => {
             const b = e.target.closest('button[data-act]');
             if (!b) return;
@@ -661,6 +787,25 @@
                     if (kind === 'rotation') r = await post(base + 'rotation', { direction: extra });
                     if (r && r.equipment) d.equipment = r.equipment;
                     else if (r) await load(p.id, true);
+                } else if (p.kind === 'theme') {
+                    if (kind !== 'theme') { st.busy = false; $mi.removeAttribute('data-busy'); return; }   // three slots: no single "equip"
+                    const basic = item && item.systemDefault && itemId(item) === THEME_BASIC;
+                    if (extra === 'kingTile') {
+                        await post('/api/inventory/king-tile-themes/selected', { inventoryItemId: basic || (item && item.systemDefault) ? null : id });
+                        d.selectedInventoryItemId = basic ? null : id;
+                        safe(() => mods.rememberKingThemeForGuide(basic ? undefined : item.visualTheme));
+                    } else await mods.savePersonalVisualTheme(extra, basic ? null : item);
+                    st.msg = extra === 'kingTile' ? 'Saved for your next reign.' : 'Saved. Reload the game (F5) to see it.'; st.msgTone = 'ok';
+                } else if (p.kind === 'fontstyle') {
+                    if (kind !== 'surface') { st.busy = false; $mi.removeAttribute('data-busy'); return; }
+                    const fontId = id === FONT_DEFAULT ? null : id;
+                    const r = await post('/api/inventory/font-styles', { surface: extra, fontId });
+                    if (!r || r.ok !== true) throw new Error('font_save_unconfirmed');
+                    const a = { ...(d.assignments || {}) };
+                    if (fontId) a[extra] = fontId; else { delete a[extra]; if (extra === 'bid_amount') delete a.bid_indicator; }
+                    d.assignments = a;
+                    safe(() => mods.applyViewerFonts(a));
+                    st.msg = ''; 
                 } else if (p.kind === 'chat') {
                     if (kind === 'equip') { await post('/api/inventory/chat-cosmetics/selected', { slotType: p.slot, inventoryItemId: isSystem(m, item) ? null : id }); await load(p.id, true); }
                 } else if (p.kind === 'font') {
@@ -677,7 +822,7 @@
                     const rev = p.kind === 'toll' ? { expectedRevision: (await api(p.url)).revision } : {};
                     if (slot) { await post(`/api/inventory/${p.endpoint}/selected`, { slotType: slot, inventoryItemId: id, ...rev }); await load(p.id, true); }
                 }
-                st.msg = '';
+                if (p.kind !== 'theme') st.msg = '';
             } catch (e) {
                 st.msg = 'That did not work: ' + (e && e.message || 'error'); st.msgTone = 'error';
             } finally {
@@ -886,11 +1031,12 @@
             ['crowns', 'Crown'], ['wreaths', 'Wreath'], ['royal_crests', 'Royal Crest'], ['royal_title', 'Royal Title'], ['default_toll', 'Default Toll'],
             ['marble_borders', 'Border'], ['marble_trails', 'Trail'], ['bidding_indicator_style', 'Bidding Indicator'], ['rebellion_aura_style', 'Rebellion Aura'],
             ['chat_font_colors', 'Chat Font Color'], ['chat_background_style', 'Chat Background'], ['username_style', 'Username Style'], ['king_chat_bubble_style', 'King Chat Bubble'],
+            ['visual_theme', 'Visual Themes'], ['chat_font_style', 'Font Styles'],
         ];
         async function renderOverview(gen) {
             $detail.innerHTML = '';
             $head.innerHTML = `<div class="mi-title"><span class="mi-title__icon">${icon('overview')}</span><h1>What you wear</h1><span class="mi-count">Click a slot to change it</span><div class="mi-ctl">${RELOAD}</div></div>`;
-            const groups = [['King', SLOTS.slice(0, 5)], ['Marble', SLOTS.slice(5, 9)], ['Chat', SLOTS.slice(9)]];
+            const groups = [['King', SLOTS.slice(0, 5)], ['Marble', SLOTS.slice(5, 9)], ['Chat', SLOTS.slice(9, 13)], ['Misc', SLOTS.slice(13)]];
             $body.innerHTML = `<div class="mi-over">${groups.map(([g, slots]) => `<section><h2>${g}</h2><div class="mi-over__grid">${slots.map(([id, label]) =>
                 `<button type="button" class="mi-slot" data-slot="${id}"><span class="mi-slot__label">${icon(id)}${esc(label)}</span><div class="mi-slot__pic"><div class="mi-status"><span>…</span></div></div><b class="mi-slot__name"></b><span class="mi-slot__sub"></span></button>`).join('')}</div></section>`).join('')}</div>`;
             const order = ['crowns', 'marble_borders', 'marble_trails', ...SLOTS.map(s => s[0])];
@@ -907,6 +1053,18 @@
                 label.insertAdjacentHTML('beforeend', newTag(newCount(id)));
                 const name = tile.querySelector('.mi-slot__name'), sub = tile.querySelector('.mi-slot__sub'), pic = tile.querySelector('.mi-slot__pic');
                 let item = null, text = '', note = '';
+                // Misc: several slots per page - the names, like titles and tolls.
+                if (m.p.kind === 'theme' || m.p.kind === 'fontstyle') {
+                    const rows = m.p.kind === 'theme'
+                        ? THEME_SLOTS.map(([sl, l]) => [l, (m.byId.get(m.slotSel[sl]) || {}).displayName || 'Basic'])
+                        : (() => { const own = Object.keys(m.surfaces).filter(sf => fontOn(m, sf));
+                            return own.length ? own.slice(0, 3).map(sf => [fontLabel(m, sf), (m.byId.get(fontOn(m, sf)) || {}).displayName || fontOn(m, sf)])
+                                .concat(own.length > 3 ? [['', `+${own.length - 3} more`]] : []) : [['All surfaces', 'Default']]; })();
+                    pic.innerHTML = `<div class="mi-slot__text">${rows.map(([a, b]) => `<div><span>${esc(a)}</span><b>${esc(b)}</b></div>`).join('')}</div>`;
+                    name.textContent = ''; sub.textContent = '';
+                    if (gen === renderGen) drawSide();
+                    return;
+                }
                 if (m.contexts.length) {
                     text = m.contexts.map(c => `${c.label}: ${(m.byId.get(String(c.selectedInventoryItemId)) || {}).displayName || '—'}`).join(' · ');
                     pic.innerHTML = `<div class="mi-slot__text">${m.contexts.map(c => `<div><span>${esc(c.label)}</span><b>${esc((m.byId.get(String(c.selectedInventoryItemId)) || {}).displayName || '—')}</b></div>`).join('')}</div>`;
@@ -945,10 +1103,25 @@
             go(s.dataset.slot, sel ? itemId(sel) : '');
         });
 
+        function dropPage(id) {
+            const at = PAGES.findIndex(p => p.id === id);
+            if (at >= 0) PAGES.splice(at, 1);
+            delete PAGE[id];
+            const sl = SLOTS.findIndex(x => x[0] === id);
+            if (sl >= 0) SLOTS.splice(sl, 1);
+        }
+
         // ---- start ---------------------------------------------------------------------------------
         drawSide();
         $body.innerHTML = '<div class="mi-status">Loading the inventory …</div>';
-        loadMods().then(m => { mods = m; render(); }, e => {
+        loadMods().then(m => {
+            mods = m;
+            // A game build without the Misc modules: leave those two pages out instead of showing broken ones.
+            if (typeof mods.renderVisualThemeMiniature !== 'function' || typeof mods.savePersonalVisualTheme !== 'function') dropPage('visual_theme');
+            if (typeof mods.renderFontSpecimen !== 'function') dropPage('chat_font_style');
+            if (!PAGE[st.page]) st.page = 'overview';
+            render();
+        }, e => {
             console.error('[DreamingCrownfall] new inventory: the game\'s renderers did not load', e);
             $body.innerHTML = `<div class="mi-status"><b>The new inventory could not start</b><span>The game changed something it needs (${esc(e && e.message)}). The classic inventory still works.</span>
                 <button type="button" class="mi-btn" data-mi="classic-now">Open the classic inventory</button></div>`;

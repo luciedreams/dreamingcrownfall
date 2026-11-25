@@ -1,5 +1,10 @@
     // Newest first. The first entry is what What's new shows after a fresh install.
     const CHANGELOG = [
+        { v: '0.17.6', date: '2026-11-25', items: [
+            'Inventory: the new Misc group from game update v1.0.4. Visual Themes shows Basic, the six Basic site colours and every theme you buy as cards with the game\'s own swatch; pick a theme for Normal Tiles, King Tile or Site Theme in the detail column. The King Tile theme is seen by everyone during your next reign, Normal Tiles and Site Theme apply after the game reloads.',
+            'Inventory › Font Styles: every font you own as a card with a sample in that font. In the detail column you choose the surfaces it goes on (what only you see, what other players see), and a preview shows it on the surface you pick, with your own cosmetics around it.',
+            'Inventory › Overview: a Misc section with your three theme slots and the surfaces that use a font of their own.',
+        ] },
         { v: '0.17.5', date: '2026-11-24', items: [
             'Settings › Cosmetics › Fonts: "Hide player fonts" shows every name, chat line, bid, score, run result, the King tile and profiles in the game\'s normal font, for every player including you (game update v1.0.4 added player fonts). The shop and your inventory still show them. "Hide all cosmetics" covers it too.',
         ] },

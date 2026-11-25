@@ -116,6 +116,24 @@
         .mi-chip { display: inline-flex; gap: 4px; padding: 5px 10px; border-radius: 8px; font-size: 12px; border: 1px dashed var(--line, #2f3f4e); color: var(--muted, #95a9ba); }
         .mi-chip b { color: var(--ink, #fff); font-weight: 700; }
         .mi-msg { padding: 7px 10px; border-radius: 8px; border: 1px solid #7a3a2c; background: rgba(70, 20, 12, .45); color: #ffc2b2; font-size: 12.5px; }
+        .mi-msg[data-tone=ok] { border-color: color-mix(in srgb, var(--green, #7ec98f) 55%, transparent); background: color-mix(in srgb, var(--green, #7ec98f) 12%, transparent); color: var(--green, #7ec98f); }
+        /* Miscellany (game v1.0.4): theme swatches, font specimens, the surfaces in the detail column */
+        .mi-status--hint { padding: 4px 4px 14px; justify-items: start; text-align: left; }
+        .mi-thumb > .mi-site, .mi-big > .mi-site { width: 78%; aspect-ratio: 1; box-sizing: border-box; display: grid; place-items: center; }
+        .mi-thumb > .mi-site .inventorySiteThemeSwatchPanel, .mi-big > .mi-site .inventorySiteThemeSwatchPanel { box-sizing: border-box; }
+        .mi-big.mi-big--theme { max-width: 300px; justify-self: center; }
+        .mi-font { display: grid; gap: 6px; place-items: center; width: 100%; padding: 8px; box-sizing: border-box; text-align: center; color: #fff; }
+        .mi-font b { font-size: 19px; font-weight: 400; line-height: 1.15; overflow-wrap: anywhere; }
+        .mi-font--big b { font-size: 34px; }
+        .mi-font--big span { font-size: 17px; color: var(--gold-soft, #ffe4a4); }
+        .mi-big.mi-big--fontstyle { aspect-ratio: auto; min-height: 130px; }
+        .mi-fgroup { display: grid; gap: 6px; }
+        .mi-fgroup h3 { margin: 4px 0 0; font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--muted, #95a9ba); }
+        .mi-fgroup .mi-actions .mi-btn { flex: 1 1 calc(50% - 6px); padding: 7px 10px; font-size: 12px; }
+        .mi-fprev { display: grid; gap: 8px; margin-top: 4px; }
+        .mi-fprev .mi-sel select { max-width: 100%; }
+        .mi-fscene { border-radius: 10px; overflow: hidden; min-height: 40px; }
+        .mi-slot[data-slot=visual_theme] .mi-slot__pic, .mi-slot[data-slot=chat_font_style] .mi-slot__pic { background: color-mix(in srgb, var(--panel-3, #0b0f13) 70%, transparent) !important; height: auto; min-height: 90px; }
         .mi[data-busy] .mi-main, .mi[data-busy] .mi-detail { cursor: progress; }
         .mi-body { overflow: auto; padding: 12px 14px 16px; overflow-anchor: none; }
         .mi-status { display: grid; justify-items: center; gap: 8px; padding: 40px 10px; color: var(--muted, #95a9ba); text-align: center; }
