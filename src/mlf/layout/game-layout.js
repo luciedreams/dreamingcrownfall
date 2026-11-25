@@ -51,7 +51,22 @@
     const GL_APP = { panel: [22, 15, 36], line: [180, 138, 232], text: [236, 228, 247], accent: [255, 211, 110],
         bidBg: 'radial-gradient(120% 95% at 50% 0%, #ffe08f, #c48a26 75%)', bidText: [29, 20, 5] };
     const glLight = c => (0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]) / 255;
+    // An official theme (3c) paints the game with --mcf-ui-* (visualThemes.js applyMainPageTheme): the bars
+    // take those, the bid buttons the theme's own ticket pictures (glOfficialSkin), so no gold paint here.
+    function glOfficialPalette() {
+        const shell = glQ('[data-role="shell"]');
+        if (!shell) return null;
+        const cs = getComputedStyle(shell);
+        const c = name => officialHexRgb(cs.getPropertyValue('--mcf-ui-' + name));
+        const panel = c('panel'), text = c('text');
+        if (!panel || !text) return null;
+        const line = c('border') || c('control-border') || GL_APP.line;
+        const accent = c('focus') || c('gold') || text;
+        return { panel, line, text, accent,
+            bidBg: `radial-gradient(120% 95% at 50% 0%, rgba(${line.join(', ')}, .26), rgba(${panel.join(', ')}, .98) 72%)`, bidText: text };
+    }
     function glPalette() {
+        if (settings.officialTheme) return glOfficialPalette() || GL_APP;
         if (!document.documentElement.hasAttribute('data-mcfo-theme')) return GL_APP;
         const st = el => (el ? getComputedStyle(el) : null);
         const cell = st(glQ('[data-role="metric-cell"]')), val = st(glQ('[data-role="tickets"]')), btn = st(glQ('.mcfo-unbid'));
@@ -184,6 +199,10 @@
             .dcf-gl-bar__k { position: absolute; left: 5px; top: 4px; font: 800 10px/1 system-ui, sans-serif; color: rgb(var(--gl-accent)); text-shadow: 0 1px 2px rgba(0, 0, 0, .9); }
             .dcf-gl-bar__n { position: absolute; bottom: 4px; left: 0; right: 0; font: 700 8.5px/1 system-ui, sans-serif; letter-spacing: .05em; text-transform: uppercase; color: rgba(var(--gl-text), .85); text-shadow: 0 1px 2px rgba(0, 0, 0, .9); }
             .dcf-gl-bar button.bid .dcf-gl-bar__k { color: rgb(var(--gl-bidText)); text-shadow: none; }
+            /* Official theme (3c): the theme's ticket picture under the amount, like the game's own bid buttons */
+            .dcf-gl-bar__ticket { position: absolute; inset: 5px 6px; width: calc(100% - 12px); height: calc(100% - 10px); object-fit: contain; pointer-events: none; }
+            .dcf-gl-bar button[data-ticket] > span { position: relative; text-shadow: 0 1px 2px rgba(0, 0, 0, .85), 0 0 4px rgba(0, 0, 0, .6); color: #fff; }
+            .dcf-gl-res img.dcf-gl-res__ic { object-fit: contain; }
             .dcf-gl-bar button[data-busy] { border-color: rgb(var(--gl-accent)); box-shadow: inset 0 0 0 2px rgba(0, 0, 0, .4), 0 0 14px rgba(var(--gl-accent), .45); }
             /* attack running: what it is doing, at the bottom of the King tile */
             .dcf-gl-atk { position: fixed; z-index: 48; transform: translateX(-50%); display: flex; align-items: center; gap: 9px; padding: 8px 14px 8px 10px; border-radius: 12px; cursor: pointer;
@@ -630,9 +649,44 @@
     }
 
     // Values, states and the drinks' pictures follow the game every half second.
+    // Official theme (3c): the pictures of the theme where the bars show the game's things — the currency
+    // icons of the header cards, the gemstones of the theme, the ticket pictures of the game's bid buttons.
+    // Only while one is on; leaving it reloads the page, so nothing has to be put back.
+    function glOfficialSkin() {
+        if (!settings.officialTheme) return;
+        for (const ch of glBuilt.chips) {
+            const val = glQ(`[data-role="${ch.roleName}"]`);
+            const img = val && val.closest('[data-role="metric-cell"]')?.querySelector('img');
+            const src = img && img.getAttribute('src');
+            if (!src || ch.icSrc === src) continue;
+            ch.icSrc = src;
+            const ic = document.createElement('img');
+            ic.className = 'dcf-gl-res__ic';
+            ic.alt = '';
+            ic.src = src;
+            ch.c.querySelector('.dcf-gl-res__ic')?.replaceWith(ic);
+        }
+        const icons = officialSiteSection()?.currencyIcons || {};
+        for (const [key, num] of glBuilt.gemNums) {
+            const img = num.previousElementSibling;
+            const src = officialAssetPath(icons[key]);
+            if (img && src && img.getAttribute('src') !== src) img.src = src;
+        }
+        for (const [id, n] of [['b1', 1], ['b5', 5], ['b10', 10]]) {
+            const b = glBuilt.buttons.get(id);
+            const src = glQ(`[data-role="bid-${n}"] img.mcfBidTicketImage`)?.getAttribute('src');
+            if (!b || !src || b.dataset.ticket === src) continue;
+            b.dataset.ticket = src;
+            let t = b.querySelector('.dcf-gl-bar__ticket');
+            if (!t) { t = document.createElement('img'); t.className = 'dcf-gl-bar__ticket'; t.alt = ''; b.prepend(t); }
+            t.src = src;
+        }
+    }
+
     function glTick() {
         if (!glOn || !glBuilt) return;
         glColours();
+        glOfficialSkin();
         glPlaceParticipation();
         for (const ch of glBuilt.chips) {
             const val = glQ(`[data-role="${ch.roleName}"]`);

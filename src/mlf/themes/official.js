@@ -161,3 +161,80 @@
             card.appendChild(off);
         }
     }
+
+    // ---- helpers for the parts of the page the game does not theme by itself ----
+    const officialHexRgb = v => {
+        const m = /^#([0-9a-f]{6})$/i.exec(String(v || '').trim());
+        return m ? [0, 2, 4].map(i => parseInt(m[1].slice(i, i + 2), 16)) : null;
+    };
+    // The page part of the theme as the game keeps it (0b wrote it), or null.
+    function officialSiteSection() {
+        if (!settings.officialTheme) return null;
+        try {
+            const p = JSON.parse(localStorage.getItem(OFFICIAL_PREFS_KEY));
+            const m = p && p.mainPage;
+            return m && m.id === settings.officialTheme.id && m.mainPage && typeof m.mainPage === 'object' ? m.mainPage : null;
+        } catch (e) { return null; }
+    }
+    // Only pictures from where the game itself takes them (visualThemes.js artwork()).
+    const officialAssetPath = v => typeof v === 'string' && (/^\/themes\/p\/[a-f0-9]{32}\/assets\/[a-f0-9]{32}\.(?:svg|webp)$/.test(v)
+        || /^\/(?:assets|materials\/ui\/theme-previews\/v1)\/[a-z0-9/_-]+\.(?:svg|webp|png)$/i.test(v)) ? v : null;
+
+    // The page's picture. The game shows a Site theme's artwork (or material) on its other pages —
+    // inventory, shop, profiles — through siteThemePage.js, and on the game page only its colour.
+    // Here the game page gets it too, with the game's own function and its own CSS
+    // (siteNavigation.css: body::before, the scene motion); the shell, which the game paints in the
+    // page colour, turns see-through, as the game does for its own track pages (.trackb-shell).
+    // Nothing moves: the board, the bars and the windows stay where they are.
+    function officialSiteBackground() {
+        const sec = officialSiteSection();
+        if (!sec || (!sec.backgroundArtwork && !sec.backgroundMaterial)) return;
+        const tag = document.querySelector('script[src*="/immutable-assets/"]');
+        const m = tag && tag.getAttribute('src').match(/\/immutable-assets\/([^/]+)\//);
+        if (!m) return;
+        const base = `/immutable-assets/${m[1]}/`;
+        Promise.all([import(base + 'visualThemes.js'), import(base + 'siteThemeBackground.js')]).then(([vt, bg]) => {
+            if (typeof vt.readSiteTheme !== 'function' || typeof bg.applySiteThemeBackground !== 'function') return;
+            const theme = vt.readSiteTheme();
+            if (!theme || theme.id !== settings.officialTheme.id) return;
+            bg.applySiteThemeBackground(document.documentElement, theme);
+            if (!document.getElementById('dcf-official-site-css')) {
+                const st = document.createElement('style');
+                st.id = 'dcf-official-site-css';
+                st.textContent = `html:is([data-mcf-site-artwork], [data-mcf-site-material]) [data-role="shell"] { background: transparent !important; }`;
+                (document.head || document.documentElement).appendChild(st);
+            }
+        }).catch(e => console.warn('[DreamingCrownfall] official theme: page background unavailable:', e.message));
+    }
+
+    // The King tile. The game swaps a King's theme in when the reign's first snapshot arrives and the
+    // recipe has loaded (kingPane.js onSnapshot), but while the King tile runs its local simulation it
+    // only redraws the moving parts (renderLaneRetainedDynamicFrame) — the floor and the backdrop stay
+    // as they were drawn before the theme came. The same happens to every King's theme in the game.
+    // With an official theme on, the tile is checked every two seconds: a floor still in the basic
+    // colour, or a missing backdrop, makes the next frame a full one (the retained scene's lane key no
+    // longer matches, kingPane.js retainedPresentation), which the game then draws in the theme.
+    let officialKingRecipe = null;
+    function officialKingWatch() {
+        if (!officialKing) return;
+        fetch(`/materials/ui/themes/v1/${officialKing.id}/revisions/${officialKing.revision}.json`, { credentials: 'same-origin' })
+            .then(r => r.ok ? r.json() : null).then(j => { officialKingRecipe = j && j.kingTile ? j.kingTile : null; }).catch(() => {});
+        let last = 0;
+        setInterval(() => {
+            const k = officialKingRecipe;
+            const st = k && document.querySelector('[data-role="king-shared-renderer-stage"]');
+            if (!st || document.hidden || Date.now() - last < 4000) return;
+            const base = st.querySelector('[data-tile-surface="base"]');
+            const art = st.querySelector('[data-tile-surface="king-artwork"]');
+            const fill = base ? String(base.getAttribute('fill') || '').toLowerCase() : '';
+            const stale = (k.backgroundArtwork && !art) || (fill === '#131b14' && String(k.floor || '').toLowerCase() !== '#131b14');
+            const r = st.__m25Retained;
+            if (!stale || !r || typeof r !== 'object' || typeof r.laneKey !== 'string') return;
+            last = Date.now();
+            r.laneKey = '__dcf_official_refresh';
+        }, 2000);
+    }
+    if (settings.officialTheme && officialKing) {
+        officialSiteBackground();
+        officialKingWatch();
+    }
