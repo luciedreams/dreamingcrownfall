@@ -32,6 +32,8 @@
           hint: 'The turning crown and every wall block carry a drop shadow that is recomputed on every frame.' },
         { key: 'perfCrownStill', label: 'Crown stands still',
           hint: 'The 3D crown stops turning and is redrawn twice a second instead of on every frame.' },
+        { key: 'perfThemeShimmer', label: 'No shimmer on themed tiles',
+          hint: 'Some Visual Themes let a glint run over their blocks, for example on the King tile. The game animates it inside the texture, so every block with that texture is redrawn on every frame, and the game\'s own Minimal setting leaves it on. Measured with a King using such a theme: 23 instead of 33 frames a second.' },
         { key: 'perfChatMotion', label: 'No chat animations',
           hint: 'Shimmer, pulse and twinkle of chat cosmetics.' },
         { key: 'perfNoBlur',     label: 'No blur behind windows',
@@ -46,12 +48,12 @@
     ];
     const PERF_LEVELS = [
         { id: 'off',      label: 'Off',      text: 'Everything as the game draws it.', set: {} },
-        { id: 'light',    label: 'Light',    text: 'The crown stands still, no shadows on the king tile, no chat animations, no blur behind windows. Looks almost the same.',
-          set: { perfShadows: true, perfCrownStill: true, perfChatMotion: true, perfNoBlur: true } },
+        { id: 'light',    label: 'Light',    text: 'The crown stands still, no shadows on the king tile, no shimmer on themed tiles, no chat animations, no blur behind windows. Looks almost the same.',
+          set: { perfShadows: true, perfThemeShimmer: true, perfCrownStill: true, perfChatMotion: true, perfNoBlur: true } },
         { id: 'balanced', label: 'Balanced', text: 'Light, and the picture is redrawn at most 30 times a second.',
-          set: { perfShadows: true, perfCrownStill: true, perfChatMotion: true, perfNoBlur: true, perfFpsCap: 30 } },
+          set: { perfShadows: true, perfThemeShimmer: true, perfCrownStill: true, perfChatMotion: true, perfNoBlur: true, perfFpsCap: 30 } },
         { id: 'maximum',  label: 'Maximum',  text: 'At most 20 frames a second, no crown, plain edges. Noticeably plainer.',
-          set: { perfShadows: true, perfCrownStill: true, perfChatMotion: true, perfNoBlur: true, perfFpsCap: 20, perfCrownHide: true, perfEdges: true } },
+          set: { perfShadows: true, perfThemeShimmer: true, perfCrownStill: true, perfChatMotion: true, perfNoBlur: true, perfFpsCap: 20, perfCrownHide: true, perfEdges: true } },
         { id: 'custom',   label: 'Custom',   text: 'Your own mix. Changing any lever below switches here.', set: null },
     ];
 

@@ -1,5 +1,8 @@
     // Newest first. The first entry is what What's new shows after a fresh install.
     const CHANGELOG = [
+        { v: '0.17.7', date: '2026-11-26', items: [
+            'Settings › Performance: "No shimmer on themed tiles". Some Visual Themes let a glint run over their blocks, and the game redraws every block with that texture on every frame for it, even on its Minimal setting. With a King using such a theme it cost about a third of the frame rate. Part of the Light, Balanced and Maximum levels.',
+        ] },
         { v: '0.17.6', date: '2026-11-25', items: [
             'Inventory: the new Misc group from game update v1.0.4. Visual Themes shows Basic, the six Basic site colours and every theme you buy as cards with the game\'s own swatch; pick a theme for Normal Tiles, King Tile or Site Theme in the detail column. The King Tile theme is seen by everyone during your next reign, Normal Tiles and Site Theme apply after the game reloads.',
             'Inventory › Font Styles: every font you own as a card with a sample in that font. In the detail column you choose the surfaces it goes on (what only you see, what other players see), and a preview shows it on the surface you pick, with your own cosmetics around it.',

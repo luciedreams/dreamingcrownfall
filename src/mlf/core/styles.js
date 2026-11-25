@@ -1186,6 +1186,10 @@
            each time (crownOverlayProofRenderer.js, draw -> resize). Hidden, that box is 0x0 and
            the canvas drops to 1x1 pixel, so the loop that keeps running costs next to nothing. */
         html[data-mcfo-perf~="crownhide"] [data-role="king-crown-overlay-layer"] { display: none !important; }
+        /* Theme shimmer (MCF v1.0.4, visualThemes.js fills[].motion 'shimmer'): a <g class="mcf-tile-theme-shimmer"> with a CSS
+           animation INSIDE the <pattern> of a texture, so every shape filled with it repaints each frame. The game only stops it
+           for prefers-reduced-motion. Measured 25.11.2026 (perf-lab, King with test-theme): 23 -> 30-33 fps without it. */
+        html[data-mcfo-perf~="themeshimmer"] .mcf-tile-theme-shimmer { display: none !important; }
         html[data-mcfo-cos~="crown"] [data-role="king-crown-overlay-layer"] { display: none !important; }
 
         /* Crowns without a 3D model turn through a CSS animation instead (crownOverlayProofBandTurn,

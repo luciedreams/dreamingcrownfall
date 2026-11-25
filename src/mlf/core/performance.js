@@ -302,6 +302,7 @@
         if (perfValue('perfShadows'))    tokens.push('shadows');
         if (perfValue('perfCrownStill')) tokens.push('crownstill');
         if (perfValue('perfCrownHide'))  tokens.push('crownhide');
+        if (perfValue('perfThemeShimmer')) tokens.push('themeshimmer');
         if (perfValue('perfChatMotion')) tokens.push('chatmotion');
         if (perfValue('perfNoBlur'))     tokens.push('noblur');
         if (perfValue('perfEdges'))      tokens.push('edges');
