@@ -199,9 +199,14 @@
             .dcf-gl-bar__k { position: absolute; left: 5px; top: 4px; font: 800 10px/1 system-ui, sans-serif; color: rgb(var(--gl-accent)); text-shadow: 0 1px 2px rgba(0, 0, 0, .9); }
             .dcf-gl-bar__n { position: absolute; bottom: 4px; left: 0; right: 0; font: 700 8.5px/1 system-ui, sans-serif; letter-spacing: .05em; text-transform: uppercase; color: rgba(var(--gl-text), .85); text-shadow: 0 1px 2px rgba(0, 0, 0, .9); }
             .dcf-gl-bar button.bid .dcf-gl-bar__k { color: rgb(var(--gl-bidText)); text-shadow: none; }
-            /* Official theme (3c): the theme's ticket picture under the amount, like the game's own bid buttons */
-            .dcf-gl-bar__ticket { position: absolute; inset: 5px 6px; width: calc(100% - 12px); height: calc(100% - 10px); object-fit: contain; pointer-events: none; }
-            .dcf-gl-bar button[data-ticket] > span { position: relative; text-shadow: 0 1px 2px rgba(0, 0, 0, .85), 0 0 4px rgba(0, 0, 0, .6); color: #fff; }
+            /* Official theme (3c): the bid buttons ARE the theme's tickets, as the game draws its own
+               (app.js: a 96 x 40 picture, the amount on it, no frame, a drop shadow) */
+            .dcf-gl-bar button.bid[data-ticket] { width: 96px; background: none; border: 0; box-shadow: none; filter: drop-shadow(0 3px 3px rgba(0, 0, 0, .4)); }
+            .dcf-gl-bar button.bid[data-ticket]:hover { box-shadow: none; filter: drop-shadow(0 3px 3px rgba(0, 0, 0, .4)) drop-shadow(0 0 8px rgba(var(--gl-accent), .45)) brightness(1.08); }
+            .dcf-gl-bar button.bid[data-ticket][data-hit] { box-shadow: none; }
+            .dcf-gl-bar__ticket { position: absolute; left: 0; top: 50%; width: 96px; height: 40px; translate: 0 -50%; pointer-events: none; }
+            .dcf-gl-bar button.bid[data-ticket] > span:not(.dcf-gl-bar__k) { position: relative; font: 700 19px/1 var(--mcf-player-font-bid_buttons, inherit); letter-spacing: .04em; color: var(--dcf-ticket-ink, #fff); }
+            .dcf-gl-bar button.bid[data-ticket] .dcf-gl-bar__k { top: 2px; left: 4px; color: rgb(var(--gl-text)); text-shadow: 0 1px 2px rgba(0, 0, 0, .9); }
             .dcf-gl-res img.dcf-gl-res__ic { object-fit: contain; }
             .dcf-gl-bar button[data-busy] { border-color: rgb(var(--gl-accent)); box-shadow: inset 0 0 0 2px rgba(0, 0, 0, .4), 0 0 14px rgba(var(--gl-accent), .45); }
             /* attack running: what it is doing, at the bottom of the King tile */
@@ -674,12 +679,20 @@
         }
         for (const [id, n] of [['b1', 1], ['b5', 5], ['b10', 10]]) {
             const b = glBuilt.buttons.get(id);
-            const src = glQ(`[data-role="bid-${n}"] img.mcfBidTicketImage`)?.getAttribute('src');
+            const game = glQ(`[data-role="bid-${n}"]`);
+            const src = game?.querySelector('img.mcfBidTicketImage')?.getAttribute('src');
             if (!b || !src || b.dataset.ticket === src) continue;
             b.dataset.ticket = src;
             let t = b.querySelector('.dcf-gl-bar__ticket');
             if (!t) { t = document.createElement('img'); t.className = 'dcf-gl-bar__ticket'; t.alt = ''; b.prepend(t); }
             t.src = src;
+            // The amount as the game writes it on its ticket: its text and its ink.
+            const label = game.querySelector('.mcfBidTicketImageLabel');
+            const amount = b.querySelector('span:not(.dcf-gl-bar__k)');
+            if (label && amount) {
+                amount.textContent = label.textContent.trim() || amount.textContent;
+                b.style.setProperty('--dcf-ticket-ink', getComputedStyle(label).color);
+            }
         }
     }
 
