@@ -75,14 +75,58 @@
             return body || {};
         }
 
+        // ---- new unlocks (DCF) -----------------------------------------------------------------------
+        // New marks as in the inventory. The server's own list of new unlocks is acknowledged as soon as the
+        // page opens (see start), so the app keeps its own memory: per player, how far each achievement had
+        // got when it was last seen (a badge 1 once unlocked, a career line its number of milestones), in
+        // this frame's localStorage. The first visit takes everything as seen; whatever is earned after that
+        // wears "New" until its card is clicked or "Mark all seen" is used.
+        const SEEN_KEY = 'dcf_ach_seen_v1';
+        const seenStore = (() => { try { const v = JSON.parse(localStorage.getItem(SEEN_KEY) || '{}'); return v && typeof v === 'object' ? v : {}; } catch (e) { return {}; } })();
+        let seen = null;   // stable id -> level last seen, for the player on this page
+        const level = e => e.kind === 'line' ? Number(e.i.completedCount) || 0 : (e.done ? 1 : 0);
+        function saveSeen() { try { localStorage.setItem(SEEN_KEY, JSON.stringify(seenStore)); } catch (e) {} }
+        function noteLoaded() {
+            const pid = String(st.snap.playerId || 'me');
+            if (!seenStore[pid] || typeof seenStore[pid] !== 'object') {
+                seenStore[pid] = Object.fromEntries(entries().map(e => [e.sid, level(e)]));
+                saveSeen();
+            }
+            seen = seenStore[pid];
+        }
+        const isNew = e => !!seen && level(e) > (Number(seen[e.sid]) || 0);
+        function markSeen(list) {
+            let changed = false;
+            for (const e of list) if (isNew(e)) { seen[e.sid] = level(e); changed = true; }
+            if (changed) saveSeen();
+            return changed;
+        }
+        const newIn = page => st.snap && seen ? entries().filter(e => (page === 'all' || e.cat === page) && isNew(e)) : [];
+        const newTag = n => n ? `<em class="mi-newn" title="${n} new">${n}</em>` : '';
+        const NEW_CARD = '<span class="mi-new">New</span>';
+        const seenBtn = n => n ? `<button type="button" class="mi-btn mi-btn--quiet" data-mi="seen" title="Take the New mark off all ${n}">Mark all seen</button>` : '';
+        // "Mark all seen" for every category at once, at the foot of the sidebar: click twice.
+        let seenArmed = false, seenArmTimer = 0;
+        function seenEverything() {
+            if (!seenArmed) {
+                seenArmed = true; drawSide();
+                clearTimeout(seenArmTimer);
+                seenArmTimer = setTimeout(() => { seenArmed = false; drawSide(); }, 4000);
+                return;
+            }
+            seenArmed = false; clearTimeout(seenArmTimer);
+            markSeen(newIn('all'));
+            render();
+        }
+
         // One list for everything: single achievements and career lines become the same kind of entry.
         function entries() {
             const s = st.snap, out = [];
-            (s.oneOffs || []).forEach((i, n) => out.push({ key: 'o' + n + ':' + (i.familyId || i.title), kind: 'one', i, cat: i.category, title: i.title, done: !!i.unlocked,
+            (s.oneOffs || []).forEach((i, n) => out.push({ key: 'o' + n + ':' + (i.familyId || i.title), sid: 'o:' + (i.id || i.title), kind: 'one', i, cat: i.category, title: i.title, done: !!i.unlocked,
                 ap: Number(i.achievementPoints) || 0, at: Number(i.completedAtMs) || 0, pct: onePct(i) }));
             (s.families || []).forEach((l, n) => {
                 const last = (l.history || []).reduce((a, h) => Math.max(a, Number(h.completedAtMs) || 0), 0);
-                out.push({ key: 'f' + n + ':' + l.familyId, kind: 'line', i: l, cat: l.category || 'mastery', title: l.title, done: !l.nextMilestone,
+                out.push({ key: 'f' + n + ':' + l.familyId, sid: 'f:' + l.familyId, kind: 'line', i: l, cat: l.category || 'mastery', title: l.title, done: !l.nextMilestone,
                     started: Number(l.completedCount) > 0, ap: l.nextMilestone ? Number(l.nextMilestone.achievementPoints) || 0 : 0, at: last, pct: linePct(l) });
             });
             return out;
@@ -139,15 +183,21 @@
             const stats = st.snap ? catStats() : new Map();
             const all = [...stats.values()].reduce((a, c) => ({ done: a.done + c.done, total: a.total + c.total }), { done: 0, total: 0 });
             const row = (id, label, c) => `<button type="button" class="inventorySubcategoryButton mi-nav ma-nav" data-page="${id}" aria-current="${st.page === id ? 'page' : 'false'}" style="${look(id)}">
-                ${icon(id)}<span>${esc(label)}</span>${c ? `<i>${c.done}/${c.total}</i><b class="ma-navbar"><b style="width:${c.total ? (c.done * 100 / c.total).toFixed(1) : 0}%"></b></b>` : ''}</button>`;
+                ${icon(id)}<span>${esc(label)}</span>${id === 'overview' ? '' : newTag(newIn(id).length)}${c ? `<i>${c.done}/${c.total}</i><b class="ma-navbar"><b style="width:${c.total ? (c.done * 100 / c.total).toFixed(1) : 0}%"></b></b>` : ''}</button>`;
             $side.innerHTML = `<div class="mi-group">${row('overview', 'Overview')}${row('all', 'All', st.snap ? all : null)}</div>
                 <div class="mi-group"><h2>Categories</h2>${CATS.map(([id, label]) => row(id, label, stats.get(id) || { done: 0, total: 0 })).join('')}</div>
-                <div class="mi-side__foot"><button type="button" class="mi-link" data-mi="classic">Classic achievements</button></div>`;
+                <div class="mi-side__foot">${seenAllBtn()}<button type="button" class="mi-link" data-mi="classic">Classic achievements</button></div>`;
+        }
+        function seenAllBtn() {
+            const all = newIn('all').length;
+            return all ? `<button type="button" class="mi-btn mi-btn--quiet mi-seenall" data-mi="seenall" title="Take the New mark off all ${all} achievements, in every category">`
+                + `<span class="mi-seenall__long">${seenArmed ? 'Sure? Click again' : `Mark all ${all} seen`}</span><span class="mi-seenall__short">${seenArmed ? '?' : '✓'}</span></button>` : '';
         }
         $side.addEventListener('click', e => {
             const b = e.target.closest('[data-page], [data-mi]');
             if (!b) return;
             if (b.dataset.mi === 'classic') { const u = new URL(location.href); u.searchParams.set('mlf', 'classic'); location.href = u.href; return; }
+            if (b.dataset.mi === 'seenall') { seenEverything(); return; }
             go(b.dataset.page);
         });
         function go(page, focusKey) {
@@ -171,7 +221,7 @@
             const title = st.page === 'all' ? 'All achievements' : catLabel(st.page);
             const chip = (key, v, label) => `<button type="button" class="mi-rar" data-k="${key}" data-v="${v}" aria-pressed="${st[key] === v}">${label}</button>`;
             $head.innerHTML = `<div class="mi-title"><span class="mi-title__icon">${icon(st.page)}</span><h1>${esc(title)}</h1>
-                    ${c ? `<span class="mi-count">${c.done} of ${c.total} complete · ${c.unlocks} unlocks</span>` : ''}${RELOAD}</div>
+                    ${c ? `<span class="mi-count">${c.done} of ${c.total} complete · ${c.unlocks} unlocks</span>` : ''}<div class="mi-ctl">${seenBtn(newIn(st.page).length)}${RELOAD}</div></div>
                 <div class="mi-filters">
                     <input type="search" class="mi-search" placeholder="Search achievements" value="${esc(st.q)}">
                     <div class="mi-rars">${chip('mode', 'all', 'All')}${chip('mode', 'open', 'In progress')}${chip('mode', 'done', 'Unlocked')}${chip('mode', 'complete', 'Completed')}</div>
@@ -184,6 +234,11 @@
         $head.addEventListener('change', e => { if (e.target.dataset.k === 'sort') { st.sort = e.target.value; drawGrid(); } });
         $head.addEventListener('click', e => {
             if (e.target.closest('[data-mi=reload]')) { start(true); return; }
+            if (e.target.closest('[data-mi=seen]')) {
+                markSeen(newIn(st.page));
+                $body.querySelectorAll('.ma-card > .mi-new').forEach(t => t.remove());
+                drawSide(); drawHead(); return;
+            }
             const b = e.target.closest('button[data-k]');
             if (!b) return;
             st[b.dataset.k] = b.dataset.v;
@@ -209,7 +264,7 @@
             const state = e.done ? 'done' : (line ? (e.started ? 'part' : 'open') : 'open');
             const tier = line ? `<span class="ma-tier">${fmt(i.completedCount || 0)}${i.nextMilestone ? '' : ' ✓'}</span>` : '';
             return `<article class="mi-card ma-card" data-key="${esc(e.key)}" data-state="${state}" style="${look(e.cat)}" aria-selected="${e.key === fk}" tabindex="0">
-                <div class="ma-badge"><img src="${esc(badgeUrl(i.iconUrl, 'medium'))}" alt="" loading="lazy">${tier}</div>
+                ${isNew(e) ? NEW_CARD : ''}<div class="ma-badge"><img src="${esc(badgeUrl(i.iconUrl, 'medium'))}" alt="" loading="lazy">${tier}</div>
                 <div class="ma-card__body"><h3>${esc(i.title || 'Achievement')}</h3>
                     <p>${esc(line ? (i.familyId === 'mcf.mastery.renaissance' ? 'Cross-system career' : `Career line · ${fmt(i.completedCount || 0)} milestone${Number(i.completedCount) === 1 ? '' : 's'}`) : (i.description || ''))}</p></div>
                 ${!e.done && e.pct > 0 ? bar(e.pct, i.title) : ''}
@@ -233,6 +288,15 @@
             st.focus.set(st.page, c.dataset.key);
             $body.querySelectorAll('.ma-card[aria-selected=true]').forEach(x => x.setAttribute('aria-selected', 'false'));
             c.setAttribute('aria-selected', 'true');
+            const tag = c.querySelector(':scope > .mi-new');
+            if (tag) {
+                const en = entries().find(x => x.key === c.dataset.key);
+                if (en) markSeen([en]);
+                tag.remove();
+                drawSide();
+                const sb = $head.querySelector('[data-mi=seen]');
+                if (sb && !newIn(st.page).length) sb.remove();
+            }
             drawDetail();
         });
         $body.addEventListener('keydown', e => { const c = e.target.closest && e.target.closest('.ma-card'); if (c && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); c.click(); } });
@@ -306,7 +370,7 @@
                 ${close.length ? `<section><h2>Closest to done</h2><div class="mi-grid ma-grid">${close.map(e => card(e, '').replace('<article ', `<article data-goto="${e.cat}|${esc(e.key)}" `)).join('')}</div></section>` : ''}
                 <section><h2>Recently unlocked</h2>${recent.length ? `<div class="ma-recent">${recent.map(r => `<div class="ma-recentrow" style="${look(r.category)}"><img src="${esc(badgeUrl(r.iconUrl, 'tiny'))}" alt=""><span><b>${esc(r.title)}</b><small>${esc(catLabel(r.category))} · ${esc(dateLabel(r))}</small></span><i>+${fmt(r.achievementPoints)} AP</i></div>`).join('')}</div>` : '<p class="mi-note">Your first unlock is waiting.</p>'}</section>
                 <section><h2>Categories</h2><div class="ma-cats">${CATS.map(([id, label]) => { const c = stats.get(id) || { done: 0, total: 0 };
-                    return `<button type="button" class="ma-cat" data-goto="${id}|" style="${look(id)}">${icon(id)}<span>${esc(label)}</span><b>${c.done}/${c.total}</b>${bar(c.total ? c.done / c.total : 0)}</button>`; }).join('')}</div></section>
+                    return `<button type="button" class="ma-cat" data-goto="${id}|" style="${look(id)}">${icon(id)}<span>${esc(label)}${newTag(newIn(id).length)}</span><b>${c.done}/${c.total}</b>${bar(c.total ? c.done / c.total : 0)}</button>`; }).join('')}</div></section>
                 <section><h2>Public Chronicle</h2><div class="ma-share">
                     <span>${s.visibility === 'public' ? 'Visible to everyone at' : 'Private - your AP and unlocks stay hidden.'}</span>
                     ${s.visibility === 'public' ? `<a href="${esc(share)}" target="_blank" rel="noopener">${esc(share)}</a><button type="button" class="mi-btn" data-act="copy">Copy link</button>` : ''}
@@ -333,6 +397,7 @@
             if (!again) { drawSide(); $body.innerHTML = '<div class="mi-status">Reading your Chronicle …</div>'; }
             try {
                 st.snap = await api('/api/achievements');
+                noteLoaded();
             } catch (e) {
                 const out = e && (e.status === 401 || e.status === 403);
                 $body.innerHTML = `<div class="mi-status"><b>${out ? 'Sign in to see your achievements' : 'The Chronicle did not answer'}</b><span>${esc(out ? 'Achievements open for a signed-in player.' : e.message)}</span><button type="button" class="mi-btn" data-mi="retry">Try again</button></div>`;

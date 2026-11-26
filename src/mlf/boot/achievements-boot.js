@@ -36,6 +36,9 @@
         html[data-mcfo-newach] #mcfo-ach-root.mi-root { flex: 1 1 auto; min-height: 0; padding: 12px 14px; width: 100%; max-width: none; margin: 0; box-sizing: border-box; display: block; }
         .ma { --panel-3: #0b111b; }
         .mi-side .ma-nav.inventorySubcategoryButton { display: grid; grid-template-columns: 17px minmax(0, 1fr) auto; column-gap: 9px; row-gap: 4px; }
+        /* DCF: New marks - the count sits between the name and done/total; the card itself is the anchor of its tag */
+        .mi-side .ma-nav.inventorySubcategoryButton:has(> .mi-newn) { grid-template-columns: 17px minmax(0, 1fr) auto auto; }
+        .ma-cat .mi-newn { margin-left: 7px; vertical-align: 1px; }
         .ma .ma-nav .ma-navbar { grid-column: 2 / -1; height: 3px; border-radius: 2px; background: rgba(255, 255, 255, .08); overflow: hidden; }
         .ma .ma-nav .ma-navbar b { display: block; height: 100%; background: var(--mi-line); }
         .ma-grid { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
@@ -142,6 +145,7 @@
         .ma-share { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--line, #ffffff20); background: rgba(0, 0, 0, .18); font-size: 12.5px; }
         .ma-share a { color: var(--cyan, #67e8f9); word-break: break-all; }
         .ma .mi-grid [data-goto] { cursor: pointer; }
+        .ma .ma-card, .ma .ma-cat { position: relative; }   /* after their all: unset - anchor for the New tag */
         @media (max-width: 1180px) { .ma-stats { grid-template-columns: 1fr 1fr; } .ma-stat--reward { grid-column: 1 / -1; } }
     `;
 

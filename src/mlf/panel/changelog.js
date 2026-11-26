@@ -1,5 +1,8 @@
     // Newest first. The first entry is what What's new shows after a fresh install.
     const CHANGELOG = [
+        { v: '0.18.2', date: '2026-11-26', items: [
+            'Achievements: New marks, just like in the inventory. Anything you unlock from now on, a badge or a new milestone on a career line, wears "New" until you click its card. The sidebar and the category tiles on the Overview show how many are new, and "Mark all seen" clears a category from its header or everything at once from the foot of the sidebar (click it twice).',
+        ] },
         { v: '0.18.1', date: '2026-11-26', items: [
             'Bug fixes.',
         ] },
