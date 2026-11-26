@@ -370,10 +370,13 @@
 
     // ---- pieces -----------------------------------------------------------------------------------
     const GL_ICON = {
-        rebel: '<path d="M14.5 17.5 3 6V3h3l11.5 11.5"/><path d="M13 19l6-6M16 16l4 4M19 21l2-2"/>',
+        // Rebel: a cracked crown (rising against the King); Attack: two crossed swords. Until 0.17.8 both were
+        // one sword — the second sword of Attack ran along the first, so the two buttons looked the same (Luce).
+        rebel: '<path d="M3 8l4.5 4L12 5l4.5 7L21 8l-2 11H5Z"/><path d="M12 5v4l-2 3 3 2-1 5"/>',
         more: '<circle cx="12" cy="7" r="3.2"/><path d="M8.8 7v4c0 1.8 1.4 3.2 3.2 3.2s3.2-1.4 3.2-3.2V7"/><path d="M5 17h14M7 21h10"/>',
         unbid: '<path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/>',
-        attack: '<path d="M14.5 17.5 3 6V3h3l11.5 11.5"/><path d="M13 19l6-6M16 16l4 4M19 21l2-2"/><path d="M9.5 6.5 21 18v3h-3"/>',
+        attack: '<path d="M14.5 17.5 3 6V3h3l11.5 11.5"/><path d="M13 19l6-6M16 16l4 4M19 21l2-2"/>'
+              + '<path d="M9.5 17.5 21 6V3h-3L6.5 14.5"/><path d="M11 19l-6-6M8 16l-4 4M5 21l-2-2"/>',
         auto: '<path d="M12 3v3M12 18v3M3 12h3M18 12h3"/><circle cx="12" cy="12" r="4"/>',
         crown: '<path d="M3 8l4.5 4L12 5l4.5 7L21 8l-2 11H5Z"/><path d="M5 19h14"/>',
     };

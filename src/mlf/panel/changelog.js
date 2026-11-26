@@ -1,5 +1,8 @@
     // Newest first. The first entry is what What's new shows after a fresh install.
     const CHANGELOG = [
+        { v: '0.17.9', date: '2026-11-26', items: [
+            'Game layout: Rebel and Attack in the hotbar have their own symbols now, a cracked crown for Rebel and two crossed swords for Attack. Both showed a single sword before and were easy to mix up.',
+        ] },
         { v: '0.17.8', date: '2026-11-26', items: [
             'King tile: the bounty on the Crown shows as a line at the top right, "Bounty: 1,000 Gold", in the same style as the toll: the Gold for dethroning an NPC King and, since game update v1.0.4a, the bounties players place. It stays with Hide NPCs on. Settings › King & throne › Lines on the king tile › Bounty.',
         ] },
