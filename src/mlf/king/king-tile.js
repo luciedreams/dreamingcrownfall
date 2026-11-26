@@ -36,7 +36,7 @@
         const html = document.documentElement;
         if (!settings.kingCorner) { html.removeAttribute('data-mcfo-kc'); return; }
         const hide = KING_CORNER_LINES.filter(([k]) => !settings[k]).map(([, w]) => w);
-        html.setAttribute('data-mcfo-kc', ['on', ...hide].join(' '));
+        html.setAttribute('data-mcfo-kc', ['on', ...hide].join(' ') + (settings.kcBounty ? ' bountyline' : ''));
     }
 
     // The set toll as one more line in the game's right column. The game rebuilds that block
@@ -55,6 +55,30 @@
         const v = String(kingState.toll);
         if (line.lastChild.textContent !== v) line.lastChild.textContent = v;
         line.setAttribute('data-mcfo-stale', (Date.now() - kingState.at > KING_POLL_MS * 2) ? '1' : '0');
+    }
+
+    // Crown bounties (game v1.0.4a): the game shows the Gold on the Crown as a "Bounty" card under the
+    // read-outs (since v1.0.0 the Gold for dethroning an NPC King, since v1.0.4a also bounties players
+    // place). As with the toll, it becomes one line in the right column instead (Luce, 26.11.2026).
+    // The amount is read from the game's own element, which it keeps current (kingPane.js
+    // king-bounty-amount); the card being hidden by the game means there is no bounty. The line also
+    // stays with "Hide NPCs" on an NPC King: that switch only takes the game's card away (NPC_CSS).
+    function drawBountyLine(labels) {
+        const right = labels.querySelector('.mcf-king-corner-labels__right');
+        const card = labels.querySelector('[data-role="king-bounty"]');
+        const amountEl = card && card.querySelector('[data-role="king-bounty-amount"]');
+        const amount = card && !card.hidden && amountEl ? amountEl.textContent.trim() : '';
+        let line = labels.querySelector('.mcfo-kc-bounty');
+        if (!right || !settings.kingCorner || !settings.kcBounty || !amount || /^0+$/.test(amount)) { line?.remove(); return; }
+        if (!line || line.parentNode !== right) {
+            line?.remove();
+            line = document.createElement('span');
+            line.className = 'mcfo-kc-bounty';
+            line.innerHTML = 'Bounty: <b></b> Gold';
+            right.appendChild(line);
+        }
+        const b = line.querySelector('b');
+        if (b.textContent !== amount) b.textContent = amount;
     }
 
     // The king's VIP tier (6.42), one more line in the game's left column, under "<title> <time>".
@@ -129,7 +153,7 @@
 
         // Since game v0.10.1: the game draws the read-outs itself, ours join them (see above).
         const labels = document.querySelector('[data-role="king-corner-labels"]');
-        if (labels) { clear(); drawTollLine(labels); drawVipLine(labels); return; }
+        if (labels) { clear(); drawTollLine(labels); drawBountyLine(labels); drawVipLine(labels); return; }
 
         // Older builds without the game's block: our own two fields, as before 6.28.
         const showName = settings.kingCorner && settings.kcName;

@@ -1,5 +1,8 @@
     // Newest first. The first entry is what What's new shows after a fresh install.
     const CHANGELOG = [
+        { v: '0.17.8', date: '2026-11-26', items: [
+            'King tile: the bounty on the Crown shows as a line at the top right, "Bounty: 1,000 Gold", in the same style as the toll: the Gold for dethroning an NPC King and, since game update v1.0.4a, the bounties players place. It stays with Hide NPCs on. Settings › King & throne › Lines on the king tile › Bounty.',
+        ] },
         { v: '0.17.7', date: '2026-11-26', items: [
             'Settings › Performance: "No shimmer on themed tiles". Some Visual Themes let a glint run over their blocks, and the game redraws every block with that texture on every frame for it, even on its Minimal setting. With a King using such a theme it cost about a third of the frame rate. Part of the Light, Balanced and Maximum levels.',
         ] },

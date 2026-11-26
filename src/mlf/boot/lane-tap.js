@@ -330,7 +330,7 @@
     //            around a marble in the tile data-rebellion-player-id. All of it is a marble on screen, so the
     //            main switch alone leaves it alone (Luce, 14.11.: before, it took the rail and the auras too).
     //            The Rebellion rack (data-rebellion-rack-player-id) is a list of names: main switch.
-    //   King     the bounty plaque (only NPC kings carry one)
+    //   King     the game's bounty card (the Bounty line of the king tile, 4., stays: Gold to collect)
     // The game's data is never changed for the marbles: the physics needs every one of them.
     // Names are learned from every frame that carries an npc: id - the system lines only have the name.
     const npcNames = new Set();

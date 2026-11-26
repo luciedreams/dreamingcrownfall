@@ -129,6 +129,7 @@
             { key: 'kcTolls',    label: 'Points from tolls',     hint: 'top right' },
             { key: 'kcThwarted', label: 'Challengers thwarted',  hint: 'top right' },
             { key: 'kingToll',   label: 'Toll setting',          hint: 'top right, added by DreamingCrownfall' },
+            { key: 'kcBounty',   label: 'Bounty',                hint: 'top right, the Gold on the Crown for whoever takes it (an NPC King\'s and bounties players place), added by DreamingCrownfall. Off: the game shows it as its own box in the king tile.' },
         ] } },
         { title: 'On the throne', blurb: 'Typing the toll, and beverages poured by themselves the moment you take the crown. The toll on taking the throne is the game\'s Default Toll (Inventory).', throne: true, items: [
             { key: 'tollInput', label: 'Type the toll',

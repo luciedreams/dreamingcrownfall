@@ -89,6 +89,9 @@
         /* Our line inside the game's right column: same font, the value in the game's gold. */
         .mcfo-kc-toll b { font-weight: 700; color: #f4d28b; }
         .mcfo-kc-toll[data-mcfo-stale="1"] { opacity: 0.45; }
+        /* Crown bounty (game v1.0.4a) as a line like the toll; the game's card goes (Luce, 26.11.2026). */
+        html[data-mcfo-kc~="bountyline"] [data-role="king-bounty"] { display: none !important; }
+        .mcfo-kc-bounty b { font-weight: 700; color: #f4d28b; }
         /* The king's VIP tier under the title line; the colour comes inline from the tier. */
         .mcfo-kc-vip { font-weight: 700; }
 
