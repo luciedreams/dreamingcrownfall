@@ -1,5 +1,8 @@
     // Newest first. The first entry is what What's new shows after a fresh install.
     const CHANGELOG = [
+        { v: '0.18.1', date: '2026-11-26', items: [
+            'Bug fixes.',
+        ] },
         { v: '0.18.0', date: '2026-11-26', items: [
             'The Stats tab is gone, together with "Today in the game" on Home, the eight game-wide pieces in the HUD and Settings › Stats. The public statistics page they showed has been shut down.',
         ] },
