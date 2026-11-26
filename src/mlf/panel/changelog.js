@@ -1,5 +1,8 @@
     // Newest first. The first entry is what What's new shows after a fresh install.
     const CHANGELOG = [
+        { v: '0.17.10', date: '2026-11-26', items: [
+            'Inventory: "Mark all seen" for every category at once, at the bottom of the sidebar above Classic inventory. It shows how many items are new in total and only appears while there are any; click it twice to take every New mark off. In a narrow window it is a small check mark.'
+        ] },
         { v: '0.17.9', date: '2026-11-26', items: [
             'Game layout: Rebel and Attack in the hotbar have their own symbols now, a cracked crown for Rebel and two crossed swords for Attack. Both showed a single sword before and were easy to mix up.',
         ] },

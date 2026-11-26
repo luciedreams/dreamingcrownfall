@@ -432,13 +432,18 @@
                 html += `<button type="button" class="inventorySubcategoryButton mi-nav" data-subpage="${p.id}" data-page="${p.id}" aria-current="${st.page === p.id ? 'page' : 'false'}">
                     ${icon(p.id)}<span>${esc(p.label)}</span>${newTag(newCount(p.id))}<i>${n}</i></button>`;
             }
-            html += '</div><div class="mi-side__foot"><button type="button" class="mi-link" data-mi="classic">Classic inventory</button></div>';
+            // Every New mark at once (Luce, 26.11.2026): only while there is one; the first click arms it.
+            const all = totalNew();
+            const seenAll = all ? `<button type="button" class="mi-btn mi-btn--quiet mi-seenall" data-mi="seenall" title="Take the New mark off all ${all} items, in every category">`
+                + `<span class="mi-seenall__long">${seenArmed ? 'Sure? Click again' : `Mark all ${all} seen`}</span><span class="mi-seenall__short">${seenArmed ? '?' : '✓'}</span></button>` : '';
+            html += `</div><div class="mi-side__foot">${seenAll}<button type="button" class="mi-link" data-mi="classic">Classic inventory</button></div>`;
             $side.innerHTML = html;
         }
         $side.addEventListener('click', e => {
             const b = e.target.closest('[data-page], [data-mi]');
             if (!b) return;
             if (b.dataset.mi === 'classic') { const u = new URL(location.href); u.searchParams.set('mlf', 'classic'); location.href = u.href; return; }
+            if (b.dataset.mi === 'seenall') { seenEverything(); return; }
             go(b.dataset.page);
         });
         function go(id, focusId) {
@@ -603,6 +608,26 @@
             drawSide();
             const btn = $head.querySelector('[data-mi=seen]');
             if (btn && !newCount(st.page)) btn.remove();
+        }
+        // All categories at once. Achievements are items of the other pages, so they are not counted twice.
+        let seenArmed = false, seenArmTimer = 0;
+        function totalNew() { return PAGES.reduce((n, p) => n + (p.url ? newCount(p.id) : 0), 0); }
+        function seenEverything() {
+            if (!seenArmed) {
+                seenArmed = true; drawSide();
+                clearTimeout(seenArmTimer);
+                seenArmTimer = setTimeout(() => { seenArmed = false; drawSide(); }, 4000);
+                return;
+            }
+            seenArmed = false; clearTimeout(seenArmTimer);
+            for (const p of PAGES) {
+                if (!p.url || !st.data.has(p.id)) continue;
+                const m = model(p.id);
+                if (m) markSeen(p.id, m.items.map(itemId));
+            }
+            root.querySelectorAll('.mi-card > .mi-new, .mi-slot__label .mi-newn').forEach(t => t.remove());
+            drawSide();
+            if (PAGE[st.page].kind !== 'overview' && $head.querySelector('[data-mi=seen]')) drawHead();
         }
         function seenAllOnPage() {
             if (st.page === 'achievements') { for (const e of achAll()) if (e.isNew) markSeen(e.page, e.ids); }
