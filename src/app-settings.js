@@ -13,7 +13,7 @@ const SCHEMA = {
     'app.onboarded': false,   // Willkommen-Schritte erledigt (bestehende Installationen: main.js setzt es)
     'game.plain': false,      // Spiel-Ebene startet wie die Website (neue Installationen ab 0.3.0)
     'windows.popOut': true,
-    'ui.transitions': true,   // Überblenden beim Wechsel zwischen Accounts, Home und Stats (overlay.js)
+    'ui.transitions': true,   // Überblenden beim Wechsel zwischen Accounts, Home und Wiki (overlay.js)
     'ui.gameLayout': true,    // Spiel-Layout statt Website-Layout (mlf/layout/game-layout.js, seit 0.7.0)
     'app.layoutIntro': false, // „Welcome to the new design“ schon gezeigt
     // Spiel-Layout (0.10.0, Wünsche von Ninkasi und CookingSum): Ort des Chats 0 schwebend links,
@@ -49,8 +49,6 @@ const SCHEMA = {
     'discord.enabled': false,
     'discord.showAccount': true,
     'discord.showKing': true,
-    // Öffentliche MarbleMind-Statistik: Tab „Stats“, „Today“ auf Home, Bausteine im HUD (stats.js). Opt-in.
-    'stats.enabled': false,
     // Mit Jobexis Okay (26.11.2026), versteckt: der Konami-Code in den Settings schaltet die offiziellen Themes
     // und Fonts frei (official-themes.json neben main.js; Spiel-Ebene themes/official*.js).
     'secret.official': false,

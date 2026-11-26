@@ -1,5 +1,5 @@
 // ESC-Menü (seit 0.7.0, Luces Wahl „Pausenmenü mittig“ vom 17.10.): Resume, die Spielseiten, die
-// App-Sachen, Quit. Kommt in jeder Ansicht — Spiel-Tab, Home, Stats — und sieht überall gleich aus:
+// App-Sachen, Quit. Kommt in jeder Ansicht — Spiel-Tab, Home, Wiki — und sieht überall gleich aus:
 // der Hauptprozess stellt die Einträge zusammen und spielt den Zeichner (PAGE unten) in eine eigene
 // isolierte Welt der Seite, die vorn steht. Dort hängt das Menü in einem Shadow-Root über der Seite
 // (Unschärfe dahinter geht nur IN der Seite — durchsichtige Views darüber zeigen nichts durch).
@@ -7,7 +7,7 @@
 //
 // Wann ESC das Menü öffnet: im Spiel entscheidet die Spiel-Ebene (core/windows.js — erst Fenster,
 // offene Menüs, Spiel-Popups, nie aus Eingabefeldern) und ruft dcfApp.menu.open(); auf Home und
-// Stats main.js/handleKeys.
+// im Wiki main.js/handleKeys.
 
 const { app, nativeImage } = require('electron');
 const path = require('path');
@@ -26,7 +26,6 @@ function PAGE() {
         medal: '<circle cx="12" cy="15" r="5"/><path d="M8.5 11.5 6 3h4l2 5 2-5h4l-2.5 8.5"/>',
         user: '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
         home: '<path d="M3 11l9-8 9 8"/><path d="M5 10v10h5v-6h4v6h5V10"/>',
-        chart: '<path d="M4 20V10"/><path d="M10 20V4"/><path d="M16 20v-7"/><path d="M22 20H2"/>',
         hud: '<rect x="2" y="6" width="20" height="6" rx="2"/><path d="M6 9h.01M10 9h4M18 9h.01"/><path d="M5 16h14M8 19h8"/>',
         gear: '<path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3h0a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8v0a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z"/>',
         scroll: '<path d="M8 3h11v15a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3v-2h11v2a3 3 0 0 0 3 3"/><path d="M8 3a3 3 0 0 0-3 3v10M11 8h5M11 12h5"/>',
@@ -276,10 +275,10 @@ function updateLook(s) {
 }
 
 // ctx: was das Menü über die App wissen muss und was es auslösen darf (main.js).
-//   where(wc)     'game' | 'home' | 'stats'
-//   homeOk() statsOk() hudOpen()   welche Einträge es gibt
+//   where(wc)     'game' | 'home' | 'wiki'
+//   homeOk() hudOpen()   welche Einträge es gibt
 //   gameAct(id, title)  'page:<key>' / 'patchnotes' im Spiel-Tab ausführen (title = Fenstertitel der Seite)
-//   home() stats() wiki() hud() settings() quit()
+//   home() wiki() hud() settings() quit()
 //   updater       { state(), check(), install() }
 module.exports = function createEscMenu(ctx) {
     const logo = nativeImage.createFromPath(path.join(__dirname, 'assets', 'icon.png')).resize({ width: 128, height: 128, quality: 'best' }).toDataURL();
@@ -297,7 +296,6 @@ module.exports = function createEscMenu(ctx) {
         if (where !== 'wiki') list.push({ id: 'wiki', icon: 'book', label: 'Wiki' });
         list.push({ sep: true });
         if (where !== 'home' && ctx.homeOk()) list.push({ id: 'home', icon: 'home', label: 'Home' });
-        if (where !== 'stats' && ctx.statsOk()) list.push({ id: 'stats', icon: 'chart', label: 'Stats' });
         list.push({ id: 'hud', icon: 'hud', label: ctx.hudOpen() ? 'Hide the HUD' : 'Show the HUD', hint: 'F2' });
         list.push({ id: 'settings', icon: 'gear', label: 'Settings', hint: 'Ctrl+,' });
         list.push({ id: 'keys', icon: 'keyboard', label: 'Keyboard shortcuts', hint: 'F1' });
@@ -312,7 +310,6 @@ module.exports = function createEscMenu(ctx) {
     async function act(wc, id) {
         if (id.startsWith('page:') || id === 'patchnotes' || id === 'gifts' || id === 'music') return ctx.gameAct(id, GAME_PAGES.find((p) => 'page:' + p[2] === id)?.[1] || '');
         if (id === 'home') return ctx.home();
-        if (id === 'stats') return ctx.stats();
         if (id === 'hud') return ctx.hud();
         if (id === 'settings') return ctx.settings();
         if (id === 'quit') return ctx.quit();
@@ -418,7 +415,7 @@ module.exports = function createEscMenu(ctx) {
         show,
         isOpen: (wc) => !!wc && open.has(wc.id),
         close(wc) { if (wc && !wc.isDestroyed() && open.has(wc.id)) run(wc, 'window.__dcfEsc && __dcfEsc.close()').catch(() => {}); },
-        // Home/Stats: ESC kommt über main.js an, nicht über die Seite — offen = schließen.
+        // Home/Wiki: ESC kommt über main.js an, nicht über die Seite — offen = schließen.
         // F1 überall: dasselbe für die Tastenkürzel.
         toggle(wc, what = 'menu') {
             if (!wc || wc.isDestroyed()) return;

@@ -2,7 +2,7 @@
     // ESC MENU — what the app's game menu asks of this page
     // =========================================================================================
     // The menu itself belongs to the app (src/esc-menu.js): it looks the same over the game, Home
-    // and Stats. Entries that need the game layer come back here: the game's pages open as windows
+    // and the wiki. Entries that need the game layer come back here: the game's pages open as windows
     // like from the footer, the patch notes as their card.
     try {
         window.dcfEscAct = id => {

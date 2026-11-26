@@ -1,6 +1,6 @@
 // Toasts im Spiel (seit 0.7.0, Luces Wahl vom 17.10.: oben mittig, und nur solange die App vorn ist —
 // sonst wie bisher die System-Benachrichtigung, notify.js). Gezeichnet in der Ansicht, die gerade vorn
-// steht (Spiel-Tab, Home, Stats, Wiki), in einer eigenen isolierten Welt mit Shadow-Root. Farben aus
+// steht (Spiel-Tab, Home, Wiki), in einer eigenen isolierten Welt mit Shadow-Root. Farben aus
 // dem Spiel-Layout (--gl-*), ohne es die der App. Mehrere stapeln sich nach unten, jeder geht nach
 // 6 s; ein Klick springt zum Account, um den es geht (onClick).
 

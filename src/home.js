@@ -10,7 +10,6 @@
 //   /api/dailies          → Quests (erledigt/abholbar, dazu jede einzeln mit Fortschritt für die
 //                           Quest-Tabelle) und Daily Items (abholbar), Regeln wie in der Spiel-Ebene
 // King: aus dem Snapshot des Notifiers (alle 15 s).
-// Mit Settings › Stats dazu „Today“ der öffentlichen MarbleMind-Seite (stats.js, nur solange Home zu sehen ist).
 
 const path = require('path');
 const { WebContentsView, ipcMain } = require('electron');
@@ -65,7 +64,7 @@ const COLLECT_JS = `(async () => {
     };
 })()`;
 
-module.exports = function createHome({ win, views, label, stats, kingNow, onSelect }) {
+module.exports = function createHome({ win, views, label, kingNow, onSelect }) {
     const view = new WebContentsView({ webPreferences: {
         preload: path.join(__dirname, 'home-preload.js'), contextIsolation: true, sandbox: true,
     } });
@@ -78,18 +77,14 @@ module.exports = function createHome({ win, views, label, stats, kingNow, onSele
     let timer = null, shown = false;
 
     const available = () => views.length >= 2;
-    // Im Hintergrund: Werte und MarbleMind-„Today“ warm halten (nur wenn es Home überhaupt gibt).
+    // Im Hintergrund: Werte warm halten (nur wenn es Home überhaupt gibt).
     setInterval(() => { if (!shown && available()) collect(); }, BACKGROUND_MS);
     setTimeout(() => { if (available()) collect(); }, 20000);
-    const warmStats = () => stats?.want('home-bg', available());
-    setInterval(warmStats, BACKGROUND_MS);
-    setTimeout(warmStats, 20000);
 
     function snapshot() {
         const k = kingNow();
         return {
             king: k ? { name: k.name, since: k.since, npc: !!k.npc, mine: k.npc ? -1 : views.findIndex((v) => v.playerId && v.playerId === k.playerId) } : null,
-            stats: stats?.data() || null,
             accounts: views.map((v, i) => ({
                 index: i,
                 name: label(v),
@@ -117,7 +112,6 @@ module.exports = function createHome({ win, views, label, stats, kingNow, onSele
     function setVisible(on) {
         shown = on;
         view.setVisible(on);
-        stats?.want('home', on);
         clearInterval(timer);
         timer = null;
         if (on) {
@@ -137,9 +131,7 @@ module.exports = function createHome({ win, views, label, stats, kingNow, onSele
 
     ipcMain.handle('home:state', () => snapshot());
     ipcMain.on('home:select', (_e, i) => onSelect(Number(i)));
-    ipcMain.on('home:refresh', () => { if (shown) { collect(); stats?.refresh(); } });
-    // Klick auf „Today“/Droughts: Stats-Tab, passende Unterseite der öffentlichen Seite.
-    ipcMain.on('home:stats', (_e, tab) => onSelect(-2, typeof tab === 'string' ? tab : undefined));
+    ipcMain.on('home:refresh', () => { if (shown) collect(); });
 
     return { view, available, setVisible, push, ensure, forget: (v) => data.delete(v) };
 };

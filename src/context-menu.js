@@ -62,7 +62,7 @@ module.exports = function startContextMenu({ toggleHud, hudOpen, openSettings, s
 
     return {
         // Menü eines Account-Rahmens der Leiste: im sichtbaren Spiel-Tab ganz oben an x zeichnen.
-        // Steht Home oder Stats vorn (kein Menü-Zeichner), ein schlichtes System-Menü.
+        // Steht Home oder das Wiki vorn (kein Menü-Zeichner), ein schlichtes System-Menü.
         showFrameMenu({ target, x, title, items }) {
             const list = [{ type: 'head', label: title }, ...items];
             if (target && !target.isDestroyed()) {

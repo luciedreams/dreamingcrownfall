@@ -1,5 +1,8 @@
     // Newest first. The first entry is what What's new shows after a fresh install.
     const CHANGELOG = [
+        { v: '0.18.0', date: '2026-11-26', items: [
+            'The Stats tab is gone, together with "Today in the game" on Home, the eight game-wide pieces in the HUD and Settings › Stats. The public statistics page they showed has been shut down.',
+        ] },
         { v: '0.17.10', date: '2026-11-26', items: [
             'Inventory: "Mark all seen" for every category at once, at the bottom of the sidebar above Classic inventory. It shows how many items are new in total and only appears while there are any; click it twice to take every New mark off. In a narrow window it is a small check mark.'
         ] },

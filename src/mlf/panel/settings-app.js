@@ -27,7 +27,6 @@
         sound: '<path d="M11 5 6 9H2v6h4l5 4V5Z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M19 5a10 10 0 0 1 0 14"/>',
         info: '<circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h0"/>',
         hud: '<rect x="2" y="6" width="20" height="6" rx="2"/><path d="M6 9h.01M10 9h4M18 9h.01"/><path d="M5 16h14M8 19h8"/>',
-        chart: '<path d="M4 20V10"/><path d="M10 20V4"/><path d="M16 20v-7"/><path d="M22 20H2"/>',
         search: '<circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/>',
         close: '<path d="M18 6 6 18M6 6l12 12"/>',
     };
@@ -41,7 +40,6 @@
             { id: 'notifications', title: 'Notifications', icon: 'bell', blurb: 'Desktop notifications for every account, also while the window is in the background.', app: 'notifications' },
             { id: 'discord', title: 'Discord', icon: 'discord', blurb: 'Show on your Discord profile that you are playing.', app: 'discord' },
             { id: 'hud', title: 'HUD', icon: 'hud', blurb: 'A small always-on-top window with what you want to keep an eye on. F2 opens and closes it.', app: 'hud' },
-            { id: 'stats', title: 'Stats', icon: 'chart', blurb: 'Live numbers of the whole game from MarbleMind: a Stats tab, today on Home and in the HUD.', app: 'stats' },
         ]},
         { group: 'Game', pages: [
             { id: 'appearance', title: 'Appearance', icon: 'palette', blurb: 'Theme, colours and how windows look over the board.', parts: ['Theme', 'Fonts', 'Windows'] },
@@ -66,7 +64,7 @@
         { page: 'general', part: 'windows', key: 'windows.popOut', label: 'Every window on its own', hint: 'Classic layout only (the game layout keeps them inside the game, as side panels or free windows). Inventory, leaderboards, shop and the other windows open as windows of their own, to move anywhere, also onto another screen. Off: they open inside the game as before, and ⧉ in a window\'s title bar takes that one out. The chat always opens inside the game.' },
         { page: 'general', part: 'layout', key: 'ui.gameLayout', label: 'Game layout', hint: 'The board as a game: a resource bar at the top, a hotbar with keys at the bottom (1 / 5 / 0 bid, M bigger bids, U unbid, B autobid, R rebellion, F attack, Q W E A S D drinks, I inventory, P profile, Y achievements, J dailies, O shop, L leaderboards), the chat floating in a corner or docked on the right, lanes and King as one arena. Off: the classic layout of the website.' },
         { page: 'general', part: 'layout', key: 'ui.sidePanels', label: 'Windows as side panels', hint: 'Inventory, profile and achievements open as a panel on the left, shop, dailies, leaderboards and the rest on the right, one per side, like the frames in an MMO. Off: free windows as before — move them, resize them and minimise them into the taskbar.', needs: 'ui.gameLayout' },
-        { page: 'general', part: 'windows', key: 'ui.transitions', label: 'Smooth transitions', hint: 'Switching between accounts, Home, Stats and the wiki fades over instead of cutting hard. Windows inside the game open and close softly and fly into the taskbar when you minimise them.' },
+        { page: 'general', part: 'windows', key: 'ui.transitions', label: 'Smooth transitions', hint: 'Switching between accounts, Home and the wiki fades over instead of cutting hard. Windows inside the game open and close softly and fly into the taskbar when you minimise them.' },
         { page: 'general', part: 'windows', key: 'ui.sounds', label: 'Interface sounds', hint: 'Soft sounds when the game menu, the shortcuts card or the right-click menu open and close, when you pick an entry and when you switch accounts. Nothing plays on mouse-over.' },
         { page: 'general', part: 'npcs', key: 'game.hideNpcs', label: 'Hide NPCs', hint: 'Since game v1.0 computer players (NPCs) take the throne, play tiles, start Rebellions and talk in chat. On: their chat lines and the system lines about them are gone, the scoreboard and the Rebellion rack leave them out, Home, the HUD and notifications do not name an NPC King, and the King tile drops the game\'s bounty card (the Bounty line under the toll stays). Off by default: the game as it comes.' },
         { page: 'general', part: 'npcs', key: 'game.hideNpcMarbles', label: 'Their marbles too', hint: 'NPC marbles disappear from the bidder rail and the running tile, and so do their Rebellion auras — it is the same marble walking from one into the other. They still take part: other marbles bounce off them, now off nothing you can see. Off: their marbles stay visible, only the rest is hidden.', needs: 'game.hideNpcs' },
@@ -89,7 +87,6 @@
         { page: 'discord', key: 'discord.enabled', label: 'Show on Discord', hint: 'Opt-in. Your Discord profile shows "Playing Marble Crownfall" while the app runs. Needs the Discord app (or Vesktop) running on this computer.' },
         { page: 'discord', key: 'discord.showAccount', label: 'Show the account', hint: 'The name of the account in the tab you are looking at.', needs: 'discord.enabled' },
         { page: 'discord', key: 'discord.showKing', label: 'Show when you are King', hint: '"King for 12 min" while one of your accounts sits on the throne.', needs: 'discord.enabled' },
-        { page: 'stats', key: 'stats.enabled', label: 'MarbleMind stats', hint: 'Opt-in. A Stats tab next to Home with the public statistics page of marblemind.fun, "Today in the game" on Home, and more pieces for the HUD. Only public numbers about the whole game are loaded, without a login; nothing about you or your accounts is sent.' },
     ];
 
     function dcfSetStyles() {
@@ -361,22 +358,6 @@
             box.appendChild(board);
         } else if (page.id === 'hud') {
             dcfHudPage(box, api);
-        } else if (page.id === 'stats') {
-            // The public page of the MarbleMind bot (marblemind.fun/public); the app only shows it (src/stats.js).
-            const part = dcfPart('MarbleMind');
-            const card = dcfEl('div', 'mcfo-set__card');
-            for (const i of items) card.appendChild(dcfAppSwitch(i, state));
-            part.appendChild(card);
-            part.appendChild(dcfEl('p', 'dcf-set__note', 'What you get: the Stats tab (rotation, tile guide, shops, freezes, king, attacks, rebellions and more), "Today in the game" with droughts on Home, and eight HUD pieces under Settings › HUD — runs, players, reigns, attacks, rebellions, chat, frozen runs and droughts. Numbers are loaded only while Home or the HUD shows them, every 30 seconds.'));
-            if (state['stats.enabled'] && api.openStats) {
-                const btns = dcfEl('div', 'dcf-set__btns');
-                const b = dcfEl('button', 'dcf-set__btn dcf-set__btn--main', 'Open the Stats tab');
-                b.type = 'button';
-                b.addEventListener('click', () => { closeAppSettings(); api.openStats(); });
-                btns.appendChild(b);
-                part.appendChild(btns);
-            }
-            box.appendChild(part);
         } else if (page.id === 'discord') {
             const part = dcfPart('Rich Presence');
             const card = dcfEl('div', 'mcfo-set__card');
@@ -478,16 +459,8 @@
             gold: d.gold != null ? d.gold : 12803, diamonds: d.diamonds != null ? d.diamonds : 455, claim: d.claim != null ? d.claim : 2,
             gems: d.gems || per.reduce((t, a) => { for (const k of ['ruby', 'sapphire', 'emerald', 'topaz']) t[k] = (t[k] || 0) + ((a.gems && a.gems[k]) || 0); return t; }, {}),
             points: d.points != null ? d.points : per.reduce((n, a) => n + (a.points || 0), 0),
-            // MarbleMind pieces: real values once loaded, examples until then (only drawn with Settings › Stats on).
-            mm: d.mm && d.mm.today ? d.mm : (d.mm || dcfStatsOn()) ? {
-                today: { runs: 130, players: 7.5, reigns: 3, attacks: 3, rebellions: 1, chat: 19 },
-                frozen: { rate24h: 0, rate7d: 1 },
-                droughts: (d.mm && d.mm.droughts) || [{ rarity: 'Cosmic', median: 55, longest: 848, since: 346 }, { rarity: 'Ethereal', median: 19, longest: 398, since: 43 },
-                           { rarity: 'Mythic', median: 12, longest: 195, since: 55 }, { rarity: 'Legendary', median: 9, longest: 536, since: 15 }],
-            } : null,
         };
     }
-    const dcfStatsOn = () => { const api = dcfApi(); try { return !!(api && api.settings()['stats.enabled']); } catch (e) { return false; } };
     function dcfHudPage(box, api) {
         if (!api.hud) { box.appendChild(dcfEl('p', 'dcf-set__empty', 'The HUD needs a newer version of the app.')); return; }
         const lib = dcfHudRenderer(api);
@@ -534,9 +507,7 @@
                 // that was the ↑ button — every click on the switch moved the row instead.
                 const row = dcfEl('div', 'dcf-hudrow');
                 if (!it.on) row.setAttribute('data-off', '');
-                const needsStats = it.id.startsWith('mm') && !dcfStatsOn();
-                const name = dcfEl('label', 'dcf-hudrow__name', ((lib && lib.HUD_ITEMS[it.id]) || it.id) + (needsStats ? ' · needs Settings › Stats' : ''));
-                if (needsStats) row.setAttribute('data-off', '');
+                const name = dcfEl('label', 'dcf-hudrow__name', (lib && lib.HUD_ITEMS[it.id]) || it.id);
                 name.htmlFor = 'dcf-hud-item-' + it.id;
                 const mv = (dir, label) => {
                     const b = dcfEl('button', 'dcf-hudrow__mv', label);

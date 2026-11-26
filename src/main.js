@@ -24,7 +24,6 @@ const createHome = require('./home.js');
 const windowState = require('./window-state.js');
 const startShortcuts = require('./shortcuts.js');
 const createHud = require('./hud.js');
-const createStats = require('./stats.js');
 const createWiki = require('./wiki.js');
 const startTabStatus = require('./tab-status.js');
 const createOverlay = require('./overlay.js');
@@ -160,20 +159,19 @@ const webPrefs = (acc) => ({
 let win = null, tabBar = null, tray = null, notifier = null, addons = null, updater = null, vitals = null;
 let active = 0;
 const HOME = -1;      // active === HOME: der Home-Tab (Übersicht, erst ab zwei Accounts)
-const STATS = -2;     // active === STATS: die öffentliche MarbleMind-Seite (stats.js, nur mit Schalter)
 const WIKI = -3;      // active === WIKI: das Wiki der Community (wiki.js)
-// active < 0 = kein Spiel-Tab vorn (Home, Stats oder Wiki) — wer ein Spiel braucht, nimmt lastGame.
+// active < 0 = kein Spiel-Tab vorn (Home oder Wiki) — wer ein Spiel braucht, nimmt lastGame.
 let lastGame = 0;     // zuletzt gewählter Spiel-Tab (für Discord, Settings aus dem Tray)
-let home = null, hud = null, stats = null, wiki = null, tabStatus = null, overlay = null, accountSettings = null;
+let home = null, hud = null, wiki = null, tabStatus = null, overlay = null, accountSettings = null;
 const contextMenu = startContextMenu({
     toggleHud: () => hud?.toggle(), hudOpen: () => !!hud?.isOpen(), openSettings: () => showSettingsPage(''),
     sound: (kind) => uiSound(kind),
 });
 const escMenu = createEscMenu({
-    where: (wc) => (wc === home?.view.webContents ? 'home' : wc === stats?.view()?.webContents ? 'stats' : wc === wiki?.view()?.webContents ? 'wiki' : 'game'),
-    homeOk: () => !!home?.available(), statsOk: () => !!stats?.enabled(), hudOpen: () => !!hud?.isOpen(),
+    where: (wc) => (wc === home?.view.webContents ? 'home' : wc === wiki?.view()?.webContents ? 'wiki' : 'game'),
+    homeOk: () => !!home?.available(), hudOpen: () => !!hud?.isOpen(),
     // Spielseiten und Patch notes zeichnet die Spiel-Ebene (src/mlf/panel/esc-menu.js) im zuletzt gewählten
-    // Spiel-Tab. Spielseiten als eigene Fenster (Standard): von Home/Stats/Wiki aus NICHT dorthin wechseln —
+    // Spiel-Tab. Spielseiten als eigene Fenster (Standard): von Home/Wiki aus NICHT dorthin wechseln —
     // der Wechsel holte das Hauptfenster über das gerade geöffnete Fenster (Luce, 17.10.); stattdessen das
     // Fenster ausdrücklich nach vorn holen. Patch notes und Fenster im Spiel brauchen den Spiel-Tab vorn.
     gameAct: (id, title) => {
@@ -185,7 +183,7 @@ const escMenu = createEscMenu({
         v.view.webContents.executeJavaScript(`window.dcfEscAct && window.dcfEscAct(${JSON.stringify(id)})`).catch(() => {});
         if (own && title) for (const ms of [300, 900]) setTimeout(() => raisePopup(v, title), ms);
     },
-    home: () => select(HOME), stats: () => select(STATS), wiki: () => select(WIKI), hud: () => hud?.toggle(),
+    home: () => select(HOME), wiki: () => select(WIKI), hud: () => hud?.toggle(),
     settings: () => showSettingsPage(''), quit: () => win?.close(),
     globalShortcuts: () => appSettings.get('shortcuts.global') === true,
     gameLayout: () => appSettings.get('ui.gameLayout') !== false,
@@ -249,7 +247,6 @@ function tabState() {
     return {
         active,
         home: !!home?.available(),
-        stats: !!stats?.enabled(),
         maximized: !!(win && !win.isDestroyed() && win.isMaximized()),
         tabs: views.map((v) => ({
             name: label(v), guest: v.guest, avatar: v.avatar || '', loading: !v.ready,   // bis watchReady den Tab freigibt — das load-Ereignis kann bei hängendem Server ausbleiben
@@ -265,20 +262,19 @@ function pushTabs() {
     if (tabBar && !tabBar.webContents.isDestroyed()) tabBar.webContents.send('tabs:state', state);
     badge.set(state.tabs.reduce((sum, t) => sum + (t.guest ? 0 : Number(t.claim) || 0), 0));
     const cur = views[active];
-    if (win) win.setTitle(active === HOME ? `${APP_TITLE} – Home` : active === STATS ? `${APP_TITLE} – Stats` : active === WIKI ? `${APP_TITLE} – Wiki` : cur ? `${APP_TITLE} – ${label(cur)}` : APP_TITLE);
+    if (win) win.setTitle(active === HOME ? `${APP_TITLE} – Home` : active === WIKI ? `${APP_TITLE} – Wiki` : cur ? `${APP_TITLE} – ${label(cur)}` : APP_TITLE);
     home?.push();
 }
 
-const frontOf = (i) => (i === HOME ? home?.view : i === STATS ? stats?.view() : i === WIKI ? wiki?.view() : views[i]?.view);
+const frontOf = (i) => (i === HOME ? home?.view : i === WIKI ? wiki?.view() : views[i]?.view);
 
-// statsTab: Unterseite der Stats-Seite (aus Home/HUD), sonst bleibt sie, wo sie war.
 // Der Zustand (active, Tab-Leiste) wechselt sofort; das Bild blendet über (overlay.js): erst das alte
 // Bild einfrieren, dann darunter umschalten. Kommt ein weiterer Wechsel, solange das Bild noch
 // geholt wird, schaltet der laufende gleich aufs neueste Ziel.
-let switching = false, switchTab = undefined;
-function select(i, statsTab, { quiet = false } = {}) {
+let switching = false;
+function select(i, { quiet = false } = {}) {
     if (i === HOME && !home?.available()) i = lastGame;
-    if (i === STATS && !stats?.enabled()) i = lastGame;
+    if (i < 0 && i !== HOME && i !== WIKI) i = lastGame;   // -2 war bis 0.18.0 der Stats-Tab
     if (i >= 0 && !views[i]) i = Math.min(Math.max(0, i), views.length - 1);
     if (i >= 0 && !views[i]) return;
     const before = frontOf(active);
@@ -289,17 +285,16 @@ function select(i, statsTab, { quiet = false } = {}) {
     active = i;
     if (i >= 0) lastGame = i;
     pushTabs();
-    switchTab = statsTab;
     if (switching) return;
     const smooth = overlay && appSettings.get('ui.transitions') !== false && win.isVisible() && !win.isMinimized()
         && before && before !== frontOf(i) && (overlay?.state() || 'none') === 'none';
-    if (!smooth) { show(active, switchTab); veil(frontOf(active)?.webContents, 0, 0); return; }
+    if (!smooth) { show(active); veil(frontOf(active)?.webContents, 0, 0); return; }
     switching = true;
     transition(before).catch(() => {}).finally(() => {
         // Der verlassene Tab behält seinen Schleier (siehe transition); der vorn verliert ihn sicher.
         switching = false;
         // Während des Übergangs woanders hingeklickt: dorthin, dann eben ohne zweiten Übergang.
-        if (shownFront !== frontOf(active)) { show(active, switchTab); veil(frontOf(active)?.webContents, 0, VEIL_OUT_MS); }
+        if (shownFront !== frontOf(active)) { show(active); veil(frontOf(active)?.webContents, 0, VEIL_OUT_MS); }
         else syncOverlay();
     });
 }
@@ -357,7 +352,7 @@ async function transition(before) {
     veiled.add(before.webContents);
     if (homeData) await homeData;
     if (active !== target) return;
-    show(target, switchTab);
+    show(target);
     if (!next || next.isDestroyed()) return;
     // Ein paar Bilder, damit das Spiel nach document.hidden wieder zeichnet, dann langsam aufblenden.
     await settle(next);
@@ -385,10 +380,8 @@ async function primeTabs() {
         while (!v.ready && !v.failed && Date.now() < until) await new Promise((r) => setTimeout(r, 150));
         if (v.ready) await primeView(v.view, v.view.webContents);
     }
-    // Home und Stats ebenso (Stats wird dafür im Hintergrund vorgeladen).
+    // Home ebenso, das Wiki wird dafür im Hintergrund vorgeladen.
     if (home?.available()) await primeView(home.view, home.view.webContents);
-    const sv = await stats?.preload();
-    if (sv) { await new Promise((r) => setTimeout(r, 400)); await primeView(sv, sv.webContents); }
     const wv = await wiki?.preload();
     if (wv) { await new Promise((r) => setTimeout(r, 400)); await primeView(wv, wv.webContents); }
     const front = frontOf(active);
@@ -411,13 +404,12 @@ function settle(wc) {
     return Promise.race([wc.executeJavaScript(SETTLE_JS).catch(() => {}), new Promise((r) => setTimeout(r, 1200))]);
 }
 let shownFront = null;   // die Ansicht, die zuletzt nach vorn geholt wurde
-function show(i, statsTab) {
+function show(i) {
     views.forEach((v, j) => v.view.setVisible(j === i || v.warming));
     home?.setVisible(i === HOME);
-    if (i === STATS) stats.show(statsTab); else stats?.view()?.setVisible(false);
     if (i === WIKI) wiki.show(); else wiki?.view()?.setVisible(false);
-    const front = i === HOME ? home.view : i === STATS ? stats.view() : i === WIKI ? wiki.view() : views[i].view;
-    if (i === STATS || i === WIKI) front.setVisible(true);
+    const front = i === HOME ? home.view : i === WIKI ? wiki.view() : views[i].view;
+    if (i === WIKI) front.setVisible(true);
     // Der gewählte Tab nach oben: Tabs, die noch anlaufen (warmUp), liegen sichtbar darunter.
     // Die Überblend-Ebene bleibt darüber.
     win.contentView.addChildView(front);
@@ -526,7 +518,7 @@ function watchReady(v) {
         poll();
     });
 }
-const activeContents = () => (active === HOME ? home?.view.webContents : active === STATS ? stats?.view()?.webContents
+const activeContents = () => (active === HOME ? home?.view.webContents
     : active === WIKI ? wiki?.view()?.webContents : views[active]?.view.webContents);
 
 function layout() {
@@ -539,18 +531,15 @@ function layout() {
     for (const v of views) v.view.setBounds({ x: 0, y: top, width, height: height - top });
     overlay?.setArea({ x: 0, y: top, width, height: height - top });
     home?.view.setBounds({ x: 0, y: top, width, height: height - top });
-    stats?.view()?.setBounds({ x: 0, y: top, width, height: height - top });
     wiki?.view()?.setBounds({ x: 0, y: top, width, height: height - top });
 }
 
 ipcMain.on('tabs:select', (_e, i) => select(i));
-ipcMain.on('tabs:reload', (_e, i) => (i === STATS ? stats?.view()?.webContents : i === WIKI ? wiki?.view()?.webContents : views[i]?.view.webContents)?.reload());
+ipcMain.on('tabs:reload', (_e, i) => (i === WIKI ? wiki?.view()?.webContents : views[i]?.view.webContents)?.reload());
 ipcMain.on('tabs:add', () => { addAccount({ partition: newPartition() }, true); saveAccounts(); });
 ipcMain.on('tabs:remove', (_e, i) => removeAccount(i));
 // Zahnrad in der Tab-Leiste: immer erreichbar, auch wenn die Spiel-Ebene „wie die Website“ aussieht.
 ipcMain.on('tabs:settings', () => showSettingsPage(''));
-// Settings › Stats › „Open the Stats tab“ (Spiel-Ebene).
-ipcMain.on('dcf:stats:open', (_e, tab) => select(STATS, tab || undefined));
 ipcMain.handle('tabs:state', () => tabState());
 // Scoreboard (Spiel-Ebene): alle in dieser App angemeldeten Accounts werden dort hervorgehoben.
 ipcMain.handle('dcf:accounts:players', () => views.map(v => v.playerId).filter(Boolean));
@@ -692,7 +681,7 @@ function handleKeys(e, input, wc) {
         if (k === 'ArrowLeft' ? h.canGoBack() : h.canGoForward()) (k === 'ArrowLeft' ? h.goBack() : h.goForward());
     }
     else if (k === 'F1' && !ctrl && !input.alt && !input.shift) { if (!input.isAutoRepeat) escMenu.toggle(activeContents(), 'keys'); }
-    // ESC-Menü auf Home und Stats (im Spiel entscheidet die Spiel-Ebene, core/windows.js).
+    // ESC-Menü auf Home und Wiki (im Spiel entscheidet die Spiel-Ebene, core/windows.js).
     else if (k === 'Escape' && active < 0 && !ctrl && !input.alt && !input.shift) { if (!input.isAutoRepeat) escMenu.toggle(activeContents()); }
     else if (ctrl && k === ',') showSettingsPage('');
     else if (ctrl && (k === '+' || k === '=')) wc.setZoomLevel(wc.getZoomLevel() + 0.5);
@@ -903,20 +892,13 @@ function createWindow() {
         onGuest: () => { const v = views[active]; if (!v) return; v.acc.guestOk = true; saveAccounts(); syncOverlay(); },
     });
 
-    stats = createStats({
-        win, setting: appSettings.get, onSettingsChange: appSettings.onChange,
-        onChange: () => { home?.push(); hud?.update(); },
-        wire: (wc) => { escMenu.attach(wc); tooltip.attach(wc); wc.on('before-input-event', (e, input) => handleKeys(e, input, wc)); },
-    });
     wiki = createWiki({ win, wire: (wc) => { escMenu.attach(wc); tooltip.attach(wc); wc.on('before-input-event', (e, input) => handleKeys(e, input, wc)); } });
-    // Stats ein-/ausgeschaltet: Tab-Leiste nachziehen; wer gerade auf Stats steht, geht zurück ins Spiel.
-    appSettings.onChange(() => { if (active === STATS && !stats.enabled()) select(lastGame); else pushTabs(); });
     tabStatus = startTabStatus({ views, onChange: pushTabs });
     accountSettings = startAccountSettings({ views });
     startPlanWatch();
     let shownKing = null;
     setInterval(() => { const k = notifier?.kingNow()?.playerId || null; if (k !== shownKing) { shownKing = k; pushTabs(); } }, 5000);
-    home = createHome({ win, views, label, stats, kingNow: () => notifier?.kingNow() || null, onSelect: (i, tab) => select(i, tab) });
+    home = createHome({ win, views, label, kingNow: () => notifier?.kingNow() || null, onSelect: (i) => select(i) });
     home.view.webContents.on('before-input-event', (e, input) => handleKeys(e, input, home.view.webContents));
     escMenu.attach(home.view.webContents);
     tooltip.attach(home.view.webContents);
@@ -935,13 +917,13 @@ function createWindow() {
     // ausgekoppelte Fenster sind auch Fenster und hielten die App sonst am Leben.
     win.on('close', (e) => { if (quitReady) return; e.preventDefault(); prepareQuit().then(() => win?.close()); });
     win.on('closed', () => app.quit());
-    // Wieder vorn, was beim Beenden vorn war. Home/Stats erst nach dem Vorbereiten der Tabs
+    // Wieder vorn, was beim Beenden vorn war. Home/Wiki erst nach dem Vorbereiten der Tabs
     // (primeTabs verschleiert alles außer dem vorderen Spiel-Tab).
     const ses = loadSession();
     const game = Number.isInteger(ses.lastGame) && views[ses.lastGame] ? ses.lastGame : 0;
     select(Number.isInteger(ses.front) && views[ses.front] ? ses.front : game);
     primeTabs().catch((e) => { priming = false; console.error(`[dcf] Tabs vorbereiten: ${e.message}`); syncOverlay(); })
-        .then(() => { if (ses.front === HOME || ses.front === STATS || ses.front === WIKI) select(ses.front, undefined, { quiet: true }); });
+        .then(() => { if (ses.front === HOME || ses.front === WIKI) select(ses.front, { quiet: true }); });
 }
 
 // Settings im aktiven Tab öffnen, auf einer bestimmten Seite (Tray › Check for updates).
@@ -1008,8 +990,7 @@ if (!app.requestSingleInstanceLock()) {
         vitals = startVitals({ views, setting: appSettings.get, label });
         loadAppLayer();
         createWindow();
-        hud = createHud({ views, stats, icon: ICON, kingNow: () => notifier?.kingNow() || null, onToggle: () => buildTrayMenu(),
-            openStats: (tab) => { win.show(); win.focus(); select(STATS, tab); },
+        hud = createHud({ views, icon: ICON, kingNow: () => notifier?.kingNow() || null, onToggle: () => buildTrayMenu(),
             refocus: () => { win.focus(); activeContents()?.focus(); } });
         if (loadSession().hud === true && !autostart.startHidden) hud.open();
         createTray();

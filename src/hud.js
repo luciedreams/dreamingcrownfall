@@ -6,7 +6,6 @@
 //   Kopfzeile jedes Spiel-Tabs (Tickets + Status, Edelsteine aus window.__dcfGems)  alle 10 s  — kein API-Aufruf
 //   /api/stats/me, /api/king/beverages/me, /api/dailies  alle 60 s  — nur für Gold/Diamanten/Punkte/Abholbares
 // King und Royal Celebration kommen aus dem Snapshot des Notifiers.
-// MarbleMind-Bausteine (mm…) aus stats.js — dort abgerufen, solange das HUD offen ist und einer an ist.
 
 const fs = require('fs');
 const os = require('os');
@@ -68,7 +67,7 @@ function kwinKeepAbove() {
     });
 }
 
-module.exports = function createHud({ views, stats, kingNow, icon, onToggle, openStats = () => {}, refocus = () => {} }) {
+module.exports = function createHud({ views, kingNow, icon, onToggle, refocus = () => {} }) {
     let win = null, fast = null, slow = null;
     const header = new Map(), api = new Map(); // view-Eintrag → letzte Werte
     const live = (v) => !v.guest && pageUp(v.view.webContents);   // auch während die Seite noch „lädt“ (page-js.js)
@@ -94,7 +93,6 @@ module.exports = function createHud({ views, stats, kingNow, icon, onToggle, ope
             diamonds: sum(api, 'diamonds'),
             points: sum(api, 'points'),
             claim: sum(api, 'claim'),
-            mm: stats?.data() || null,
         };
     }
     const state = () => ({ cfg: config.get(), data: data() });
@@ -102,8 +100,6 @@ module.exports = function createHud({ views, stats, kingNow, icon, onToggle, ope
     function send() {
         if (win && !win.isDestroyed()) win.webContents.send('hud:state', state());
     }
-    // stats.js holt nur, solange das HUD offen ist und mindestens ein MarbleMind-Baustein an ist.
-    const wantStats = () => stats?.want('hud', isOpen() && config.get().items.some((i) => i.on && i.id.startsWith('mm')));
     async function readHeaders() {
         const on = config.get().items.some((i) => i.on && ['tickets', 'ticketsPer', 'earning', 'gems', 'gemsPer'].includes(i.id));
         if (on) await Promise.all(views.filter(live).map(async (v) => {
@@ -142,10 +138,9 @@ module.exports = function createHud({ views, stats, kingNow, icon, onToggle, ope
         win.webContents.on('before-input-event', (e, input) => {
             if (input.type === 'keyDown' && input.key === 'F2' && !input.control && !input.alt) { e.preventDefault(); close(); }
         });
-        win.on('closed', () => { win = null; clearInterval(fast); clearInterval(slow); fast = slow = null; wantStats(); onToggle(false); broadcast(); });
+        win.on('closed', () => { win = null; clearInterval(fast); clearInterval(slow); fast = slow = null; onToggle(false); broadcast(); });
         fast = setInterval(readHeaders, FAST_MS);
         slow = setInterval(readApi, SLOW_MS);
-        wantStats();
         onToggle(true);
         broadcast();
     }
@@ -162,7 +157,6 @@ module.exports = function createHud({ views, stats, kingNow, icon, onToggle, ope
     // HUD-Fenster
     ipcMain.handle('hud:state', () => state());
     ipcMain.on('hud:close', close);
-    ipcMain.on('hud:stats', (_e, tab) => openStats(typeof tab === 'string' ? tab : undefined));
     ipcMain.on('hud:fit', (_e, w, h) => {
         if (!win || win.isDestroyed()) return;
         const W = Math.max(120, Math.min(1600, Math.ceil(Number(w) || 0))), H = Math.max(28, Math.min(1000, Math.ceil(Number(h) || 0)));
@@ -175,12 +169,10 @@ module.exports = function createHud({ views, stats, kingNow, icon, onToggle, ope
         send();
         broadcast();
         if (isOpen()) { readHeaders(); readApi(); } // ein neu eingeschalteter Baustein bekommt sofort Werte
-        wantStats();
     });
     ipcMain.on('dcf:hud:toggle', () => toggle());
     ipcMain.handle('dcf:hud:data', () => data());
     ipcMain.on('dcf:hud:renderer', (e) => { try { e.returnValue = fs.readFileSync(path.join(__dirname, 'hud-render.js'), 'utf8'); } catch { e.returnValue = ''; } });
 
-    // update: neue MarbleMind-Werte (stats.js) ins offene HUD.
     return { open, close, toggle, isOpen, update: send };
 };

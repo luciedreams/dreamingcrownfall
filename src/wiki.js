@@ -1,4 +1,4 @@
-// Das Wiki der Community (marblecrownfall.wikioasis.org, CookingSum) als eigener Bereich wie Stats
+// Das Wiki der Community (marblecrownfall.wikioasis.org, CookingSum) als eigener Bereich neben Home
 // (seit 0.7.0, Luce 17.10.): Knopf oben rechts in der Leiste und Eintrag im ESC-Menü. Eigene, bleibende
 // Sitzung (persist:wiki), damit ein Wiki-Login hält. Seiten von wikioasis.org bleiben in der App, alles
 // andere geht in den System-Browser. Zurück/Vor: Maustasten 4/5 hier, Alt+←/→ in main.js/handleKeys.
@@ -9,7 +9,7 @@ const START = 'https://marblecrownfall.wikioasis.org/';
 const inside = (url) => {
     try { const u = new URL(url); return u.protocol === 'https:' && (u.hostname === 'wikioasis.org' || u.hostname.endsWith('.wikioasis.org')); } catch { return false; }
 };
-// Wie bei Stats: Scrollbalken in App-Farben, nichts ziehbar, kein Fokusrahmen nach Klicks; dazu die
+// Scrollbalken in App-Farben, nichts ziehbar, kein Fokusrahmen nach Klicks; dazu die
 // Seitentasten der Maus, die in einer App sonst nichts tun.
 const PAGE_CSS = `html { scrollbar-color: rgba(180, 138, 232, 0.45) transparent; scrollbar-width: thin; }
     img, a { -webkit-user-drag: none; } :focus:not(:focus-visible) { outline: none; }`;
@@ -22,7 +22,7 @@ module.exports = function createWiki({ win, wire = () => {} }) {
     function ensureView() {
         if (view) return view;
         view = new WebContentsView({ webPreferences: { partition: 'persist:wiki', contextIsolation: true, sandbox: true } });
-        view.setBackgroundColor('#00000000');   // durchsichtig wie Stats: ohne Bild scheint der Fenstergrund durch
+        view.setBackgroundColor('#00000000');   // durchsichtig: ohne Bild scheint der Fenstergrund durch
         const wc = view.webContents;
         wc.setWindowOpenHandler(({ url }) => {
             if (inside(url)) wc.loadURL(url); else if (/^https?:/.test(url)) shell.openExternal(url);
