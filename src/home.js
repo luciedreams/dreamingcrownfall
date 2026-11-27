@@ -25,7 +25,7 @@ const COLLECT_JS = `(async () => {
     const tickets = Number(String(t?.querySelector('[data-role="tickets"]')?.textContent || '').replace(/[^0-9]/g, '')) || null;
     const j = (p) => fetch(p, { credentials: 'same-origin', headers: { accept: 'application/json' } })
         .then((r) => (r.ok ? r.json() : null)).catch(() => null);
-    const [stats, bev, daily] = await Promise.all([j('/api/stats/me'), j('/api/king/beverages/me'), j('/api/dailies')]);
+    const [stats, bev, daily, vipMe] = await Promise.all([j('/api/stats/me'), j('/api/king/beverages/me'), j('/api/dailies'), j('/api/vip/me')]);
     const quests = Array.isArray(daily?.quests?.quests) ? daily.quests.quests : [];
     const items = Array.isArray(daily?.dailyItems?.items) ? daily.dailyItems.items : [];
     return {
@@ -33,7 +33,8 @@ const COLLECT_JS = `(async () => {
         ticketStatus: String(s?.textContent || '').trim(),
         points: stats?.current?.currentPoints ?? null,
         gold: stats?.current?.currentGold ?? null,
-        vip: stats?.current?.vipPoints ?? null,
+        // VIP aus /api/vip/me: /api/stats/me hinkt dort hinterher (MarbleClownFall 27.11.: stats/me 0, vip/me 1).
+        vip: vipMe?.vipPoints ?? stats?.current?.vipPoints ?? null,
         kingMinutes: stats?.episode?.totalTimeAsKingMinutes ?? null,
         throneCaptures: stats?.episode?.throneCaptures ?? null,
         diamonds: bev?.balances?.diamonds ?? null,
